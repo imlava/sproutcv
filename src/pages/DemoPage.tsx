@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import AnimatedDemo from '@/components/AnimatedDemo';
+import EnhancedAnimatedDemo from '@/components/EnhancedAnimatedDemo';
 import { 
   ArrowRight, 
   Upload, 
@@ -19,279 +20,375 @@ import {
   Clock,
   Star,
   TrendingUp,
-  Shield
+  Shield,
+  Sparkles,
+  Trophy,
+  Rocket,
+  Eye,
+  Heart,
+  Globe
 } from 'lucide-react';
 
 const DemoPage = () => {
   const navigate = useNavigate();
 
-  const steps = [
+  const processSteps = [
     {
       step: 1,
       icon: Upload,
-      title: "Upload Your Resume",
-      description: "Simply drag and drop your resume (PDF, DOC, DOCX) or paste the content directly",
-      color: "bg-blue-100 text-blue-600"
+      title: "Smart Upload & Parse",
+      description: "AI instantly understands your resume structure, content, and formatting preferences",
+      gradient: "from-blue-500 to-cyan-500",
+      features: ["Instant parsing", "Format detection", "Content extraction"]
     },
     {
       step: 2,
-      icon: FileText,
-      title: "Add Job Description",
-      description: "Paste the job description you're targeting to get personalized optimization",
-      color: "bg-green-100 text-green-600"
+      icon: BarChart3,
+      title: "Deep AI Analysis",
+      description: "Advanced algorithms analyze keywords, ATS compatibility, and optimization opportunities",
+      gradient: "from-purple-500 to-pink-500",
+      features: ["Keyword analysis", "ATS scoring", "Gap identification"]
     },
     {
       step: 3,
-      icon: BarChart3,
-      title: "AI Analysis & Scoring",
-      description: "Our AI analyzes your resume against the job requirements and provides detailed insights",
-      color: "bg-purple-100 text-purple-600"
+      icon: Target,
+      title: "Strategic Optimization",
+      description: "AI applies proven strategies to enhance your resume's impact and effectiveness",
+      gradient: "from-green-500 to-emerald-500",
+      features: ["Content enhancement", "Keyword placement", "Impact optimization"]
     },
     {
       step: 4,
       icon: Download,
-      title: "Export Optimized Resume",
-      description: "Download your tailored, ATS-friendly resume and land more interviews",
-      color: "bg-orange-100 text-orange-600"
+      title: "Professional Export",
+      description: "Download your interview-ready, ATS-optimized resume in multiple formats",
+      gradient: "from-orange-500 to-red-500",
+      features: ["Multiple formats", "ATS compatible", "Interview ready"]
     }
   ];
 
-  const features = [
+  const achievements = [
     {
-      icon: Target,
-      title: "99% ATS Compatibility",
-      description: "Ensure your resume passes through all major applicant tracking systems",
-      stat: "99%"
+      icon: Users,
+      title: "50,000+ Success Stories",
+      description: "Professionals worldwide trust SproutCV",
+      stat: "50k+",
+      gradient: "from-blue-500 to-cyan-500"
     },
     {
       icon: TrendingUp,
-      title: "4x More Interviews",
-      description: "Our users see a 400% increase in interview requests on average",
-      stat: "4x"
+      title: "400% More Interviews",
+      description: "Average increase in interview requests",
+      stat: "400%",
+      gradient: "from-green-500 to-emerald-500"
+    },
+    {
+      icon: Target,
+      title: "99% ATS Pass Rate",
+      description: "Successfully passes major ATS systems",
+      stat: "99%",
+      gradient: "from-purple-500 to-pink-500"
     },
     {
       icon: Clock,
-      title: "30-Second Analysis",
-      description: "Get comprehensive feedback faster than you can read through your resume",
-      stat: "30s"
+      title: "30 Second Analysis",
+      description: "Lightning-fast resume optimization",
+      stat: "30s",
+      gradient: "from-orange-500 to-red-500"
+    }
+  ];
+
+  const testimonials = [
+    {
+      name: "Sarah Chen",
+      role: "Software Engineer at Google",
+      image: "S",
+      quote: "SproutCV transformed my resume from average to outstanding. I went from 0 responses to 8 interview invitations in just 2 weeks!",
+      metrics: "Interview rate: +500%",
+      gradient: "from-green-500 to-emerald-500"
     },
     {
-      icon: Users,
-      title: "25,000+ Success Stories",
-      description: "Join thousands of professionals who've accelerated their careers",
-      stat: "25k+"
+      name: "Marcus Rodriguez",
+      role: "Product Manager at Microsoft",
+      image: "M", 
+      quote: "The AI insights were incredible. It identified exactly what my resume was missing and helped me land my dream job at Microsoft.",
+      metrics: "Resume score: 47% → 96%",
+      gradient: "from-blue-500 to-cyan-500"
+    },
+    {
+      name: "Emily Johnson",
+      role: "Marketing Director at Spotify",
+      image: "E",
+      quote: "Finally, a tool that actually understands ATS systems. My resume now gets past the initial screening every time.",
+      metrics: "Response rate: 3% → 42%",
+      gradient: "from-purple-500 to-pink-500"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50">
       <Header />
       
-      <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50 relative overflow-hidden">
-        <div className="absolute inset-0 bg-grid-gray-100 bg-[size:20px_20px] opacity-30" />
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+        <div className="absolute inset-0 bg-grid-green-100 bg-[size:32px_32px] opacity-20" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          {/* Hero Section */}
-          <div className="pt-20 pb-16 text-center">
-            <Badge className="bg-green-100 text-green-800 hover:bg-green-200 px-4 py-2 text-sm font-semibold mb-6">
-              🚀 See SproutCV In Action
-            </Badge>
+          <div className="pt-24 pb-20 text-center">
+            <div className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full border border-green-200 shadow-lg mb-8">
+              <Sparkles className="h-5 w-5 text-green-600" />
+              <span className="text-green-700 font-semibold">Experience SproutCV Live Demo</span>
+              <Eye className="h-5 w-5 text-green-600" />
+            </div>
             
-            <h1 className="text-5xl sm:text-6xl font-black text-gray-900 mb-6 leading-tight">
-              How SproutCV
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600 block mt-2">
-                Transforms Resumes
+            <h1 className="text-6xl sm:text-7xl font-black text-gray-900 mb-8 leading-tight">
+              See How SproutCV
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 block mt-2">
+                Creates Magic
               </span>
             </h1>
             
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Watch how our AI-powered platform analyzes, optimizes, and transforms your resume 
-              into an interview-generating machine in just 4 simple steps.
+            <p className="text-2xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed">
+              Witness the complete transformation of a resume from ordinary to extraordinary. 
+              Every step is real, every improvement is strategic, every result is measurable.
             </p>
             
-            <Button 
-              size="lg" 
-              className="text-lg px-10 py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-105 mb-12"
-              onClick={() => navigate('/auth')}
-            >
-              Try It Free Now
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Interactive Demo Section */}
-          <div className="mb-20">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                Live Interactive Demo
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Experience the complete SproutCV workflow with our automated demo
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-8">
-                {steps.map((step, index) => (
-                  <div key={index} className="flex items-start space-x-6 p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200">
-                    <div className={`flex-shrink-0 w-16 h-16 ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                      <step.icon className="h-8 w-8" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center mb-3">
-                        <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm font-bold px-3 py-1 rounded-full mr-3">
-                          Step {step.step}
-                        </span>
-                        <h3 className="text-xl font-bold text-gray-900">{step.title}</h3>
-                      </div>
-                      <p className="text-gray-600 leading-relaxed">{step.description}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <Button 
+                size="lg" 
+                className="text-xl px-12 py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105"
+                onClick={() => navigate('/auth')}
+              >
+                <Rocket className="mr-3 h-6 w-6" />
+                Start Your Transformation
+              </Button>
               
-              {/* Animated Demo Component */}
-              <AnimatedDemo />
+              <div className="flex items-center space-x-3 text-gray-600">
+                <div className="flex -space-x-2">
+                  {['S', 'M', 'E', 'J', 'A'].map((letter, idx) => (
+                    <div key={idx} className={`w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-sm border-2 border-white shadow-lg`}>
+                      {letter}
+                    </div>
+                  ))}
+                </div>
+                <span className="font-medium">Join 50,000+ successful professionals</span>
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Features Grid */}
-          <div className="mb-20">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                Why 25,000+ Professionals Choose SproutCV
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Real results, backed by data and trusted by professionals worldwide
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {features.map((feature, index) => (
-                <Card key={index} className="p-6 text-center hover:shadow-xl transition-all duration-200 bg-white">
-                  <div className="bg-gradient-to-r from-green-100 to-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <feature.icon className="h-8 w-8 text-green-600" />
-                  </div>
-                  <div className="text-3xl font-black text-gray-900 mb-2">{feature.stat}</div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{feature.description}</p>
-                </Card>
-              ))}
-            </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Process Overview */}
+        <div className="py-20">
+          <div className="text-center mb-16">
+            <Badge className="bg-blue-100 text-blue-800 px-6 py-3 text-lg font-semibold mb-6">
+              <Zap className="h-5 w-5 mr-2" />
+              The Complete Journey
+            </Badge>
+            <h2 className="text-5xl font-black text-gray-900 mb-8">
+              From Upload to Success
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Experience every step of our proven optimization process that has helped 
+              50,000+ professionals land their dream jobs
+            </p>
           </div>
 
-          {/* Success Stories */}
-          <div className="mb-20">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                Real Success Stories
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                See how SproutCV has transformed careers across industries
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Sarah Chen",
-                  role: "Software Engineer at Google",
-                  quote: "SproutCV helped me identify exactly what keywords I was missing. Landed 5 interviews in 2 weeks!",
-                  improvement: "Interview rate increased by 500%"
-                },
-                {
-                  name: "Michael Rodriguez",
-                  role: "Product Manager at Microsoft",
-                  quote: "The AI suggestions were spot-on. My resume went from generic to compelling in minutes.",
-                  improvement: "Resume score: 45% → 94%"
-                },
-                {
-                  name: "Emily Johnson",
-                  role: "Marketing Director at Spotify",
-                  quote: "Finally, a tool that understands ATS systems. No more black hole applications!",
-                  improvement: "Response rate: 2% → 35%"
-                }
-              ].map((story, index) => (
-                <Card key={index} className="p-8 bg-white hover:shadow-xl transition-all duration-200">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4">
-                      {story.name[0]}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900">{story.name}</h4>
-                      <p className="text-sm text-gray-600">{story.role}</p>
-                    </div>
-                  </div>
-                  <p className="text-gray-700 mb-4 italic">"{story.quote}"</p>
-                  <Badge className="bg-green-100 text-green-800 text-xs">
-                    {story.improvement}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-16">
+            {processSteps.map((step, index) => (
+              <Card key={index} className="p-8 bg-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border-2 border-gray-100 group">
+                <div className={`w-20 h-20 bg-gradient-to-r ${step.gradient} rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl group-hover:scale-110 transition-transform duration-300`}>
+                  <step.icon className="h-10 w-10 text-white" />
+                </div>
+                
+                <div className="text-center">
+                  <Badge className="bg-gray-100 text-gray-800 px-3 py-1 text-sm mb-4">
+                    Step {step.step}
                   </Badge>
-                </Card>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
+                  <p className="text-gray-600 mb-6 leading-relaxed">{step.description}</p>
+                  
+                  <div className="space-y-2">
+                    {step.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-center justify-center space-x-2 text-green-700">
+                        <CheckCircle className="h-4 w-4" />
+                        <span className="text-sm font-medium">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Demo Section */}
+        <div className="py-20">
+          <div className="text-center mb-16">
+            <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 text-lg font-semibold mb-6 shadow-lg">
+              <Globe className="h-5 w-5 mr-2" />
+              Live Interactive Experience
+            </Badge>
+            <h2 className="text-5xl font-black text-gray-900 mb-8">
+              Real SproutCV Dashboard
+            </h2>
+            <p className="text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              This isn't just a demo—it's the actual SproutCV experience. 
+              Scroll through each step and watch as AI transforms a real resume in real-time.
+            </p>
+          </div>
+
+          <EnhancedAnimatedDemo />
+        </div>
+
+        {/* Achievement Stats */}
+        <div className="py-20">
+          <div className="text-center mb-16">
+            <Badge className="bg-yellow-100 text-yellow-800 px-6 py-3 text-lg font-semibold mb-6">
+              <Trophy className="h-5 w-5 mr-2" />
+              Proven Results
+            </Badge>
+            <h2 className="text-5xl font-black text-gray-900 mb-8">
+              Numbers Don't Lie
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Real data from real users who transformed their careers with SproutCV
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+            {achievements.map((achievement, index) => (
+              <Card key={index} className="p-8 text-center bg-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                <div className={`w-20 h-20 bg-gradient-to-r ${achievement.gradient} rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl`}>
+                  <achievement.icon className="h-10 w-10 text-white" />
+                </div>
+                <div className="text-4xl font-black text-gray-900 mb-2">{achievement.stat}</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{achievement.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{achievement.description}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Testimonials */}
+        <div className="py-20">
+          <div className="text-center mb-16">
+            <Badge className="bg-pink-100 text-pink-800 px-6 py-3 text-lg font-semibold mb-6">
+              <Heart className="h-5 w-5 mr-2" />
+              Success Stories
+            </Badge>
+            <h2 className="text-5xl font-black text-gray-900 mb-8">
+              Real People, Real Results
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Hear from professionals who transformed their careers using SproutCV
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="p-8 bg-white shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                <div className="flex items-center mb-6">
+                  <div className={`w-16 h-16 bg-gradient-to-r ${testimonial.gradient} rounded-2xl flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg`}>
+                    {testimonial.image}
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900">{testimonial.name}</h4>
+                    <p className="text-gray-600">{testimonial.role}</p>
+                  </div>
+                </div>
+                
+                <p className="text-gray-700 mb-6 leading-relaxed italic">"{testimonial.quote}"</p>
+                
+                <Badge className="bg-green-100 text-green-800 font-semibold">
+                  {testimonial.metrics}
+                </Badge>
+                
+                <div className="flex items-center mt-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Security & Trust */}
+        <div className="py-20">
+          <Card className="p-16 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 text-white text-center shadow-2xl">
+            <Shield className="h-20 w-20 mx-auto mb-8 opacity-90" />
+            <h2 className="text-4xl font-bold mb-8">Bank-Level Security</h2>
+            <p className="text-xl text-blue-100 mb-10 max-w-4xl mx-auto leading-relaxed">
+              Your privacy is our priority. All data is encrypted end-to-end, never stored permanently, 
+              and automatically deleted after processing. Trusted by Fortune 500 companies.
+            </p>
+            <div className="flex flex-wrap justify-center gap-8 text-lg">
+              {[
+                'End-to-End Encryption',
+                'SOC 2 Compliant', 
+                'GDPR Compliant',
+                'Zero Data Retention',
+                'ISO 27001 Certified'
+              ].map((feature, idx) => (
+                <div key={idx} className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5" />
+                  <span>{feature}</span>
+                </div>
               ))}
             </div>
-          </div>
+          </Card>
+        </div>
 
-          {/* Security & Trust */}
-          <div className="mb-20">
-            <Card className="p-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center">
-              <Shield className="h-16 w-16 mx-auto mb-6 opacity-90" />
-              <h2 className="text-3xl font-bold mb-6">Enterprise-Grade Security</h2>
-              <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
-                Your privacy is our priority. All data is encrypted, never shared, and automatically deleted 
-                after processing. We're SOC 2 compliant and trusted by Fortune 500 companies.
-              </p>
-              <div className="flex flex-wrap justify-center gap-8 text-sm">
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  End-to-End Encryption
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  SOC 2 Compliant
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  GDPR Compliant
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Zero Data Retention
-                </div>
+        {/* Final CTA */}
+        <div className="py-20 text-center">
+          <Card className="p-20 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white border-0 shadow-2xl">
+            <Sparkles className="h-20 w-20 mx-auto mb-8 opacity-90" />
+            <h2 className="text-5xl font-black mb-8">
+              Your Dream Job Awaits
+            </h2>
+            <p className="text-2xl mb-12 text-green-100 max-w-4xl mx-auto leading-relaxed">
+              You've seen the transformation. You've witnessed the results. 
+              Now it's time to experience the magic yourself and unlock your career potential.
+            </p>
+            
+            <div className="flex flex-col lg:flex-row gap-8 justify-center items-center mb-12">
+              <Button 
+                size="lg" 
+                className="bg-white text-green-600 hover:bg-gray-100 text-2xl px-16 py-8 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 font-bold"
+                onClick={() => navigate('/auth')}
+              >
+                <Rocket className="mr-4 h-8 w-8" />
+                Transform My Resume Now
+              </Button>
+              
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="border-4 border-white text-white hover:bg-white hover:text-green-600 text-2xl px-16 py-8 transition-all duration-300 font-bold"
+                onClick={() => navigate('/analyze')}
+              >
+                Try Free Analysis
+                <ArrowRight className="ml-4 h-8 w-8" />
+              </Button>
+            </div>
+            
+            <div className="flex items-center justify-center space-x-8 text-green-100">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-6 w-6" />
+                <span className="text-lg">No Credit Card Required</span>
               </div>
-            </Card>
-          </div>
-
-          {/* Final CTA */}
-          <div className="text-center mb-20">
-            <Card className="p-16 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-2xl">
-              <Star className="h-16 w-16 mx-auto mb-6 opacity-90" />
-              <h2 className="text-4xl font-bold mb-6">
-                Ready to Transform Your Career?
-              </h2>
-              <p className="text-xl mb-10 text-green-100 max-w-3xl mx-auto">
-                Join 25,000+ professionals who've accelerated their careers with SproutCV. 
-                Your next opportunity is just one optimized resume away.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-green-600 hover:bg-gray-100 text-lg px-10 py-6 shadow-xl hover:shadow-2xl transition-all duration-200"
-                  onClick={() => navigate('/auth')}
-                >
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="border-2 border-white text-white hover:bg-white hover:text-green-600 text-lg px-10 py-6 transition-all duration-200"
-                  onClick={() => navigate('/analyze')}
-                >
-                  See Live Demo
-                </Button>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-6 w-6" />
+                <span className="text-lg">Instant Results</span>
               </div>
-            </Card>
-          </div>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="h-6 w-6" />
+                <span className="text-lg">100% Secure</span>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
       
