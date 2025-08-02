@@ -254,15 +254,19 @@ const EnhancedAdminDashboard = () => {
 
   const loadUsersWithDetails = async () => {
     try {
-      // Load user profiles with extended data
+      // Load user profiles
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_roles!inner(id, role, created_at)
-        `);
+        .select('*');
 
       if (profileError) throw profileError;
+
+      // Load user roles separately
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role, created_at');
+
+      if (rolesError) throw rolesError;
 
       // Load additional user statistics
       const userIds = profiles?.map(p => p.id) || [];
@@ -283,11 +287,16 @@ const EnhancedAdminDashboard = () => {
       const processedUsers = (profiles || []).map(profile => {
         const userAnalyses = analysesData.data?.filter(a => a.user_id === profile.id) || [];
         const userPayments = paymentsData.data?.filter(p => p.user_id === profile.id) || [];
+        const profileRoles = userRoles?.filter(role => role.user_id === profile.id) || [];
         const totalSpent = userPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
 
         return {
           ...profile,
-          roles: profile.user_roles || [],
+          roles: profileRoles.map(role => ({
+            id: role.user_id,
+            role: role.role,
+            created_at: role.created_at
+          })),
           total_analyses: userAnalyses.length,
           total_spent: totalSpent,
           last_activity: profile.last_login,
