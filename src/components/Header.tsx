@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { Sprout } from 'lucide-react';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -10,8 +11,11 @@ const Header = () => {
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold text-gray-900">ResumeTailor</h1>
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
+              <Sprout className="h-5 w-5 text-green-600" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">SproutCV</h1>
           </div>
           <nav className="hidden md:flex space-x-8">
             <a href="#features" className="text-gray-600 hover:text-gray-900">Features</a>

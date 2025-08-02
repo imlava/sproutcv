@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sprout } from 'lucide-react';
 
 const AuthPage = () => {
   const { signIn, signUp } = useAuth();
@@ -70,11 +69,16 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center px-4">
       <Card className="w-full max-w-md p-6">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">ResumeTailor</h1>
-          <p className="text-gray-600 mt-2">Transform your resume with AI</p>
+          <div className="flex items-center justify-center mb-3">
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl">
+              <Sprout className="h-7 w-7 text-green-600" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">SproutCV</h1>
+          <p className="text-gray-600 mt-2">Grow your resume with AI</p>
         </div>
 
         <Tabs defaultValue="signin" className="w-full">

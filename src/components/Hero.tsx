@@ -4,34 +4,39 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Zap, Target, FileCheck, TrendingUp, ArrowRight } from 'lucide-react';
+import { CheckCircle, Zap, Target, FileCheck, TrendingUp, ArrowRight, Sprout } from 'lucide-react';
 
 const Hero = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50">
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
         <div className="text-center">
-          <Badge className="mb-4 bg-blue-100 text-blue-800 hover:bg-blue-200">
-            🚀 AI-Powered Resume Optimization
-          </Badge>
+          <div className="flex items-center justify-center mb-4">
+            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mr-3">
+              <Sprout className="h-7 w-7 text-green-600" />
+            </div>
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
+              🌱 AI-Powered Resume Growth
+            </Badge>
+          </div>
           <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            Transform Your Resume with
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600"> AI</span>
+            Grow Your Career with
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600"> SproutCV</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
             Get instant AI-powered analysis, ATS optimization, and personalized suggestions 
-            to land more interviews. Tailor your resume for every job in seconds.
+            to land more interviews. Watch your career sprout with every optimized resume.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="text-lg px-8 py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
               onClick={() => navigate('/auth')}
             >
-              Start Free Analysis
+              Start Growing Free
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             <Button 
@@ -48,7 +53,7 @@ const Hero = () => {
           <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-600 mb-16">
             <div className="flex items-center">
               <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-              10,000+ Resumes Analyzed
+              10,000+ Resumes Grown
             </div>
             <div className="flex items-center">
               <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
@@ -65,22 +70,22 @@ const Hero = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Get Your Resume Score in Seconds
+              Watch Your Resume Score Grow
             </h2>
             <p className="text-lg text-gray-600 mb-8">
-              Our AI analyzes your resume against job descriptions and provides 
-              actionable insights to improve your chances of landing interviews.
+              Our AI nurtures your resume against job descriptions and provides 
+              actionable insights to help your career flourish.
             </p>
             <div className="space-y-4">
               {[
-                { icon: Target, title: "Keyword Optimization", desc: "Match job requirements perfectly" },
+                { icon: Target, title: "Smart Keyword Growth", desc: "Match job requirements perfectly" },
                 { icon: FileCheck, title: "ATS Compatibility", desc: "Pass automated screening systems" },
-                { icon: TrendingUp, title: "Impact Scoring", desc: "Quantify your achievements" },
-                { icon: Zap, title: "Instant Feedback", desc: "Get results in under 30 seconds" }
+                { icon: TrendingUp, title: "Impact Cultivation", desc: "Quantify your achievements" },
+                { icon: Zap, title: "Instant Growth", desc: "Get results in under 30 seconds" }
               ].map((feature, index) => (
                 <div key={index} className="flex items-start space-x-3">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <feature.icon className="h-5 w-5 text-blue-600" />
+                  <div className="bg-green-100 p-2 rounded-lg">
+                    <feature.icon className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">{feature.title}</h4>
@@ -91,13 +96,13 @@ const Hero = () => {
             </div>
           </div>
           
-          <Card className="p-8 shadow-2xl border-0 bg-gradient-to-br from-white to-blue-50">
+          <Card className="p-8 shadow-2xl border-0 bg-gradient-to-br from-white to-green-50">
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
                 <span className="text-2xl font-bold text-green-600">87</span>
               </div>
-              <h3 className="text-xl font-bold text-gray-900">Overall Match Score</h3>
-              <p className="text-gray-600">Your resume is well-optimized!</p>
+              <h3 className="text-xl font-bold text-gray-900">Overall Growth Score</h3>
+              <p className="text-gray-600">Your resume is flourishing!</p>
             </div>
             
             <div className="space-y-4">
@@ -112,7 +117,7 @@ const Hero = () => {
                   <div className="flex items-center space-x-2">
                     <div className="w-24 bg-gray-200 rounded-full h-2">
                       <div 
-                        className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full" 
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full" 
                         style={{ width: `${metric.score}%` }}
                       ></div>
                     </div>
@@ -126,7 +131,7 @@ const Hero = () => {
 
         {/* Pricing Section */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple, Affordable Pricing</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple Growth Pricing</h2>
           <p className="text-lg text-gray-600 mb-12">
             Start free, pay only for what you need. No recurring subscriptions.
           </p>
@@ -177,17 +182,17 @@ const Hero = () => {
 
         {/* CTA Section */}
         <div className="text-center">
-          <Card className="p-12 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
-            <h2 className="text-3xl font-bold mb-4">Ready to Land Your Dream Job?</h2>
-            <p className="text-xl mb-8 text-blue-100">
-              Join thousands of job seekers who've improved their interview rates with ResumeTailor
+          <Card className="p-12 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0">
+            <h2 className="text-3xl font-bold mb-4">Ready to Sprout Your Dream Career?</h2>
+            <p className="text-xl mb-8 text-green-100">
+              Join thousands of professionals who've grown their interview rates with SproutCV
             </p>
             <Button 
               size="lg" 
-              className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-6"
+              className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-6"
               onClick={() => navigate('/auth')}
             >
-              Start Your Free Analysis
+              Start Your Growth Journey
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Card>

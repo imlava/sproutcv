@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CreditCard, FileText, History, LogOut, Plus } from 'lucide-react';
+import { CreditCard, FileText, History, LogOut, Plus, Sprout } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import PaymentModal from './PaymentModal';
 
@@ -71,8 +70,11 @@ const UserDashboard = () => {
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">ResumeTailor</h1>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
+                <Sprout className="h-5 w-5 text-green-600" />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900">SproutCV</h1>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -103,7 +105,7 @@ const UserDashboard = () => {
                 Welcome back, {userProfile?.full_name || user?.email}!
               </h2>
               <p className="text-gray-600 mb-4">
-                Ready to optimize your resume for your next dream job?
+                Ready to grow your resume for your next dream job?
               </p>
               <Button className="w-full sm:w-auto">
                 <FileText className="h-4 w-4 mr-2" />
