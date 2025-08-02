@@ -21,14 +21,14 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
 
   const plans = [
     {
-      name: 'Starter Pack',
-      credits: 5,
-      price: 4.99,
+      name: 'Basic',
+      credits: 3,
+      price: 5,
       popular: false,
-      description: 'Perfect for a few job applications'
+      description: 'Perfect for getting started'
     },
     {
-      name: 'Professional Pack',
+      name: 'Credit Pack',
       credits: 15,
       price: 12.99,
       popular: true,

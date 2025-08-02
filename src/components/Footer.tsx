@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Heart, Sprout, Shield, Award, Users, Mail, Phone, MapPin } from 'lucide-react';
+import { Heart, Sprout, Shield, Award, Users, Mail, MapPin } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 const Footer = () => {
@@ -96,10 +96,6 @@ const Footer = () => {
               <li className="flex items-center text-gray-400">
                 <Mail className="h-4 w-4 mr-2 text-green-500" />
                 hello@sproutcv.app
-              </li>
-              <li className="flex items-center text-gray-400">
-                <Phone className="h-4 w-4 mr-2 text-green-500" />
-                +91 9036689050
               </li>
               <li className="flex items-center text-gray-400">
                 <MapPin className="h-4 w-4 mr-2 text-green-500" />

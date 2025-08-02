@@ -9,6 +9,13 @@ import { CheckCircle, Zap, Target, FileCheck, TrendingUp, ArrowRight, Sprout, Sh
 const Hero = () => {
   const navigate = useNavigate();
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50">
       {/* Hero Section */}
@@ -136,7 +143,7 @@ const Hero = () => {
             Start free, pay only for what you need. No recurring subscriptions.
           </p>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
             <Card className="p-6 text-center">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Free Trial</h3>
               <div className="text-3xl font-bold text-gray-900 mb-4">$0</div>
@@ -149,6 +156,19 @@ const Hero = () => {
               <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>Get Started</Button>
             </Card>
             
+            <Card className="p-6 text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Basic</h3>
+              <div className="text-3xl font-bold text-gray-900 mb-4">$5</div>
+              <p className="text-gray-600 mb-6">3 Analyses</p>
+              <ul className="space-y-2 text-sm text-gray-600 mb-6">
+                <li>✓ Everything in Free</li>
+                <li>✓ Detailed Suggestions</li>
+                <li>✓ Export Reports</li>
+                <li>✓ No Expiration</li>
+              </ul>
+              <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>Buy Credits</Button>
+            </Card>
+            
             <Card className="p-6 text-center border-2 border-blue-500 relative">
               <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500">
                 Most Popular
@@ -157,10 +177,10 @@ const Hero = () => {
               <div className="text-3xl font-bold text-gray-900 mb-4">$12.99</div>
               <p className="text-gray-600 mb-6">15 Analyses</p>
               <ul className="space-y-2 text-sm text-gray-600 mb-6">
-                <li>✓ Everything in Free</li>
-                <li>✓ Detailed Suggestions</li>
-                <li>✓ Export Reports</li>
-                <li>✓ No Expiration</li>
+                <li>✓ Everything in Basic</li>
+                <li>✓ Priority Support</li>
+                <li>✓ Advanced Analytics</li>
+                <li>✓ Bulk Analysis</li>
               </ul>
               <Button className="w-full" onClick={() => navigate('/auth')}>Buy Credits</Button>
             </Card>
@@ -171,9 +191,9 @@ const Hero = () => {
               <p className="text-gray-600 mb-6">30 Analyses</p>
               <ul className="space-y-2 text-sm text-gray-600 mb-6">
                 <li>✓ Everything in Credit Pack</li>
-                <li>✓ Priority Support</li>
-                <li>✓ Advanced Analytics</li>
-                <li>✓ Bulk Analysis</li>
+                <li>✓ Premium Support</li>
+                <li>✓ Custom Branding</li>
+                <li>✓ API Access</li>
               </ul>
               <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>Buy Credits</Button>
             </Card>
