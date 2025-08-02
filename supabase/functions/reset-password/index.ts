@@ -15,6 +15,8 @@ serve(async (req) => {
   try {
     const { token, newPassword } = await req.json();
 
+    console.log("Password reset request received");
+
     if (!token || !newPassword) {
       throw new Error("Token and new password are required");
     }
@@ -30,18 +32,26 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Hash the token to find it in database
-    const crypto = await import("node:crypto");
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    // Hash the token to find it in database (same way as forgot-password function)
+    const encoder = new TextEncoder();
+    const data = encoder.encode(token);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const tokenHash = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    console.log("Looking for token hash:", tokenHash);
 
     // Find valid reset token
-    const { data: resetToken } = await supabaseAdmin
+    const { data: resetToken, error: tokenError } = await supabaseAdmin
       .from("password_reset_tokens")
       .select("user_id, expires_at, used_at")
       .eq("token_hash", tokenHash)
       .single();
 
-    if (!resetToken) {
+    console.log("Token lookup result:", { resetToken, tokenError });
+
+    if (!resetToken || tokenError) {
       throw new Error("Invalid or expired reset token");
     }
 
@@ -53,6 +63,8 @@ serve(async (req) => {
       throw new Error("Reset token has expired");
     }
 
+    console.log("Token validated, updating password for user:", resetToken.user_id);
+
     // Reset the user's password using Supabase Auth
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       resetToken.user_id,
@@ -61,8 +73,10 @@ serve(async (req) => {
 
     if (updateError) {
       console.error("Password update error:", updateError);
-      throw new Error("Failed to update password");
+      throw new Error("Failed to update password: " + updateError.message);
     }
+
+    console.log("Password updated successfully");
 
     // Mark token as used
     await supabaseAdmin
@@ -95,6 +109,8 @@ serve(async (req) => {
         ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
       });
 
+    console.log("Password reset completed successfully");
+
     return new Response(JSON.stringify({ 
       message: "Password has been reset successfully. You can now sign in with your new password." 
     }), {
@@ -104,7 +120,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Password reset error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message || "An error occurred during password reset"
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
     });

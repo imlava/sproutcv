@@ -16,6 +16,8 @@ serve(async (req) => {
   try {
     const { email } = await req.json();
 
+    console.log("Password reset request for:", email);
+
     if (!email) {
       throw new Error("Email is required");
     }
@@ -37,6 +39,7 @@ serve(async (req) => {
       .single();
 
     if (!userData) {
+      console.log("User not found for email:", email);
       // Return success even if user doesn't exist (security best practice)
       return new Response(JSON.stringify({ 
         message: "If an account with that email exists, we've sent a password reset link." 
@@ -52,16 +55,26 @@ serve(async (req) => {
       throw new Error(`Account is temporarily locked. Please try again in ${lockTimeRemaining} minutes.`);
     }
 
-    // Generate secure token
-    const crypto = await import("node:crypto");
-    const token = crypto.randomBytes(32).toString("hex");
-    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    // Generate secure token (32 bytes = 64 hex characters)
+    const tokenBytes = new Uint8Array(32);
+    crypto.getRandomValues(tokenBytes);
+    const token = Array.from(tokenBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+    
+    // Hash the token for storage
+    const encoder = new TextEncoder();
+    const data = encoder.encode(token);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const tokenHash = Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
     
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
 
+    console.log("Generated token for user:", userData.id);
+
     // Store reset token
-    await supabaseAdmin
+    const { error: insertError } = await supabaseAdmin
       .from("password_reset_tokens")
       .insert({
         user_id: userData.id,
@@ -69,6 +82,11 @@ serve(async (req) => {
         expires_at: expiresAt.toISOString(),
         ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
       });
+
+    if (insertError) {
+      console.error("Failed to store reset token:", insertError);
+      throw new Error("Failed to generate reset token");
+    }
 
     // Log security event
     await supabaseAdmin
@@ -85,6 +103,8 @@ serve(async (req) => {
 
     // Create reset link
     const resetLink = `${req.headers.get("origin")}/reset-password?token=${token}`;
+    
+    console.log("Sending reset email to:", email);
     
     // Send email using Resend with noreply address
     const emailResponse = await resend.emails.send({

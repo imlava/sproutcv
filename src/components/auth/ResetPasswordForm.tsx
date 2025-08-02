@@ -22,7 +22,10 @@ const ResetPasswordForm = () => {
 
   useEffect(() => {
     if (!token) {
+      console.log("No token found, redirecting to auth");
       navigate('/auth');
+    } else {
+      console.log("Token found:", token.substring(0, 10) + "...");
     }
   }, [token, navigate]);
 
@@ -64,26 +67,35 @@ const ResetPasswordForm = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.functions.invoke('reset-password', {
+      console.log("Submitting password reset request");
+      
+      const { data, error } = await supabase.functions.invoke('reset-password', {
         body: { 
           token: token,
           newPassword: newPassword
         }
       });
 
-      if (error) throw error;
+      console.log("Password reset response:", { data, error });
+
+      if (error) {
+        console.error("Password reset error:", error);
+        throw error;
+      }
 
       toast({
         title: "Password reset successful",
         description: "Your password has been updated. You can now sign in.",
       });
 
+      console.log("Password reset successful, redirecting to auth");
       navigate('/auth');
     } catch (error: any) {
+      console.error("Password reset failed:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to reset password. Please try again.",
       });
     } finally {
       setLoading(false);
