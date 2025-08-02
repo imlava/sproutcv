@@ -2,16 +2,15 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
-import Hero from '@/components/Hero';
+import UserDashboard from '@/components/dashboard/UserDashboard';
 
-const Index = () => {
+const Dashboard = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
+    if (!loading && !user) {
+      navigate('/auth');
     }
   }, [user, loading, navigate]);
 
@@ -23,16 +22,11 @@ const Index = () => {
     );
   }
 
-  if (user) {
-    return null; // Will redirect to dashboard
+  if (!user) {
+    return null; // Will redirect to auth
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <Hero />
-    </div>
-  );
+  return <UserDashboard />;
 };
 
-export default Index;
+export default Dashboard;

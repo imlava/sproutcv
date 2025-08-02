@@ -14,7 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          credits_purchased: number
+          id: string
+          status: string
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credits_purchased: number
+          id?: string
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credits_purchased?: number
+          id?: string
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          credits: number | null
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits?: number | null
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits?: number | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resume_analyses: {
+        Row: {
+          analysis_results: Json
+          ats_compatibility: number
+          company_name: string | null
+          created_at: string
+          experience_relevance: number
+          id: string
+          job_description: string
+          job_title: string | null
+          keyword_match: number
+          overall_score: number
+          resume_text: string
+          skills_alignment: number
+          suggestions: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_results: Json
+          ats_compatibility: number
+          company_name?: string | null
+          created_at?: string
+          experience_relevance: number
+          id?: string
+          job_description: string
+          job_title?: string | null
+          keyword_match: number
+          overall_score: number
+          resume_text: string
+          skills_alignment: number
+          suggestions?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_results?: Json
+          ats_compatibility?: number
+          company_name?: string | null
+          created_at?: string
+          experience_relevance?: number
+          id?: string
+          job_description?: string
+          job_title?: string | null
+          keyword_match?: number
+          overall_score?: number
+          resume_text?: string
+          skills_alignment?: number
+          suggestions?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
