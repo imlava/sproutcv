@@ -10,6 +10,10 @@ import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
 import Dashboard from "./pages/Dashboard";
 import AnalyzePage from "./pages/AnalyzePage";
 import DemoPage from "./pages/DemoPage";
+import HelpCenter from "./pages/HelpCenter";
+import ContactUs from "./pages/ContactUs";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -36,6 +40,10 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/analyze" element={<AnalyzePage />} />
             <Route path="/how-it-works" element={<DemoPage />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

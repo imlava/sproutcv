@@ -2,6 +2,7 @@
 import React from 'react';
 import { Heart, Sprout, Shield, Award, Users, Mail, MapPin } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
@@ -71,10 +72,10 @@ const Footer = () => {
           <div>
             <h4 className="text-white font-semibold mb-4">Product</h4>
             <ul className="space-y-2">
-              <li><a href="#features" className="text-gray-400 hover:text-white transition-colors">AI Analysis</a></li>
-              <li><a href="#features" className="text-gray-400 hover:text-white transition-colors">ATS Optimization</a></li>
-              <li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Keyword Matching</a></li>
-              <li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+              <li><Link to="/analyze" className="text-gray-400 hover:text-white transition-colors">AI Analysis</Link></li>
+              <li><Link to="/how-it-works" className="text-gray-400 hover:text-white transition-colors">How It Works</Link></li>
+              <li><Link to="/analyze" className="text-gray-400 hover:text-white transition-colors">ATS Optimization</Link></li>
+              <li><Link to="/analyze" className="text-gray-400 hover:text-white transition-colors">Keyword Matching</Link></li>
             </ul>
           </div>
 
@@ -82,10 +83,10 @@ const Footer = () => {
           <div>
             <h4 className="text-white font-semibold mb-4">Support</h4>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Help Center</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a></li>
+              <li><Link to="/help" className="text-gray-400 hover:text-white transition-colors">Help Center</Link></li>
+              <li><Link to="/contact" className="text-gray-400 hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link to="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="text-gray-400 hover:text-white transition-colors">Terms of Service</Link></li>
             </ul>
           </div>
 
