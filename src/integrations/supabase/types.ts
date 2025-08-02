@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      contact_messages: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          email: string
+          id: string
+          message: string
+          name: string
+          responded_at: string | null
+          responded_by: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          email: string
+          id?: string
+          message: string
+          name: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       credits_ledger: {
         Row: {
           balance_after: number
@@ -334,6 +376,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sessions: {
         Row: {
           created_at: string | null
@@ -378,12 +444,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_credits: {
+        Args: {
+          target_user_id: string
+          credits_to_add: number
+          admin_note?: string
+        }
+        Returns: boolean
+      }
       consume_analysis_credit: {
         Args: { target_user_id: string; analysis_id: string }
         Returns: boolean
       }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       process_successful_payment: {
         Args: { payment_id: string; provider_transaction_id?: string }
+        Returns: boolean
+      }
+      update_contact_message_status: {
+        Args: { message_id: string; new_status: string; admin_notes?: string }
         Returns: boolean
       }
       update_user_credits: {
@@ -399,7 +484,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -526,6 +611,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
