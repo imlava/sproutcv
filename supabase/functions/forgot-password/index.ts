@@ -86,11 +86,11 @@ serve(async (req) => {
     // Create reset link
     const resetLink = `${req.headers.get("origin")}/reset-password?token=${token}`;
     
-    // Send email using Resend
+    // Send email using Resend with noreply address
     const emailResponse = await resend.emails.send({
-      from: "ResumeAI <noreply@resend.dev>",
+      from: "SproutCV <noreply@sproutcv.app>",
       to: [email],
-      subject: "Reset Your Password - ResumeAI",
+      subject: "Reset Your Password - SproutCV",
       html: `
         <!DOCTYPE html>
         <html>
@@ -111,7 +111,7 @@ serve(async (req) => {
                   Hi ${userData.full_name || 'there'},
                 </p>
                 <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                  We received a request to reset your password for your ResumeAI account. Click the button below to create a new password:
+                  We received a request to reset your password for your SproutCV account. Click the button below to create a new password:
                 </p>
                 
                 <div style="text-align: center; margin: 32px 0;">
@@ -137,8 +137,9 @@ serve(async (req) => {
               
               <div style="text-align: center; border-top: 1px solid #e5e7eb; padding-top: 24px;">
                 <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-                  ResumeAI - AI-Powered Resume Analysis<br>
-                  This email was sent to ${email}
+                  SproutCV - AI-Powered Resume Analysis<br>
+                  This email was sent to ${email}<br>
+                  Need help? Contact us at <a href="mailto:support@sproutcv.app" style="color: #10b981;">support@sproutcv.app</a>
                 </p>
               </div>
             </div>
