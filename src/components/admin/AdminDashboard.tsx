@@ -74,7 +74,6 @@ interface CreditTransaction {
   balance_after: number;
   description: string;
   created_at: string;
-  profiles: { full_name: string | null; email: string } | null;
 }
 
 const AdminDashboard = () => {
@@ -87,6 +86,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [creditTransactions, setCreditTransactions] = useState<CreditTransaction[]>([]);
+  const [userMap, setUserMap] = useState<{[key: string]: UserProfile}>({});
   const [stats, setStats] = useState({
     totalUsers: 0,
     unreadMessages: 0,
@@ -154,6 +154,12 @@ const AdminDashboard = () => {
       });
     } else {
       setUsers(data || []);
+      // Create user map for quick lookup
+      const map = (data || []).reduce((acc, user) => {
+        acc[user.id] = user;
+        return acc;
+      }, {} as {[key: string]: UserProfile});
+      setUserMap(map);
     }
   };
 
@@ -393,22 +399,25 @@ const AdminDashboard = () => {
             <Card className="p-6">
               <h3 className="text-lg font-semibold mb-4">Recent Credit Transactions</h3>
               <div className="space-y-3">
-                {creditTransactions.slice(0, 5).map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                    <div>
-                      <p className="font-medium">{transaction.profiles.full_name || transaction.profiles.email}</p>
-                      <p className="text-sm text-muted-foreground">{transaction.description}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-medium ${transaction.credits_amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {transaction.credits_amount > 0 ? '+' : ''}{transaction.credits_amount}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(transaction.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  {creditTransactions.slice(0, 5).map((transaction) => {
+                    const user = userMap[transaction.user_id];
+                    return (
+                      <div key={transaction.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                        <div>
+                          <p className="font-medium">{user?.full_name || user?.email || 'Unknown User'}</p>
+                          <p className="text-sm text-muted-foreground">{transaction.description}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-medium ${transaction.credits_amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {transaction.credits_amount > 0 ? '+' : ''}{transaction.credits_amount}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(transaction.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </Card>
           </TabsContent>
@@ -584,28 +593,31 @@ const AdminDashboard = () => {
               <div className="p-6">
                 <h3 className="text-lg font-semibold mb-4">Credit Transaction History</h3>
                 <div className="space-y-3">
-                  {creditTransactions.map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                      <div className="flex-1">
-                        <h4 className="font-medium">{transaction.profiles.full_name || transaction.profiles.email}</h4>
-                        <p className="text-sm text-muted-foreground">{transaction.description}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(transaction.created_at).toLocaleString()}
-                        </p>
+                  {creditTransactions.map((transaction) => {
+                    const user = userMap[transaction.user_id];
+                    return (
+                      <div key={transaction.id} className="flex items-center justify-between py-3 border-b last:border-b-0">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{user?.full_name || user?.email || 'Unknown User'}</h4>
+                          <p className="text-sm text-muted-foreground">{transaction.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(transaction.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-medium ${transaction.credits_amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {transaction.credits_amount > 0 ? '+' : ''}{transaction.credits_amount}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Balance: {transaction.balance_after}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {transaction.transaction_type}
+                          </Badge>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-medium ${transaction.credits_amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {transaction.credits_amount > 0 ? '+' : ''}{transaction.credits_amount}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Balance: {transaction.balance_after}
-                        </p>
-                        <Badge variant="outline" className="text-xs">
-                          {transaction.transaction_type}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </Card>
