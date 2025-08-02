@@ -17,6 +17,7 @@ interface PaymentModalProps {
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'razorpay' | 'paypal'>('razorpay');
 
   const plans = [
     {
@@ -49,19 +50,30 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: {
           credits,
-          amount: Math.round(amount * 100) // Convert to cents
+          amount: Math.round(amount * 100), // Convert to smallest currency unit
+          paymentMethod: selectedPaymentMethod
         }
       });
 
       if (error) throw error;
 
       if (data?.url) {
-        // Open Stripe checkout in a new tab
-        window.open(data.url, '_blank');
+        if (selectedPaymentMethod === 'razorpay') {
+          // For Razorpay, we need to handle the payment differently
+          // This would typically involve loading the Razorpay SDK
+          toast({
+            title: "Razorpay Integration",
+            description: "Razorpay payment integration would be handled here",
+          });
+        } else if (selectedPaymentMethod === 'paypal') {
+          // Open PayPal checkout in a new tab
+          window.open(data.url, '_blank');
+        }
+        
         onClose();
         toast({
           title: "Redirecting to payment...",
-          description: "Complete your purchase in the new tab",
+          description: `Complete your purchase with ${selectedPaymentMethod === 'razorpay' ? 'Razorpay' : 'PayPal'}`,
         });
       }
     } catch (error: any) {
@@ -88,6 +100,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
           </p>
         </DialogHeader>
 
+        {/* Payment Method Selection */}
+        <div className="flex justify-center gap-4 mb-6">
+          <Button
+            variant={selectedPaymentMethod === 'razorpay' ? 'default' : 'outline'}
+            onClick={() => setSelectedPaymentMethod('razorpay')}
+          >
+            Razorpay
+          </Button>
+          <Button
+            variant={selectedPaymentMethod === 'paypal' ? 'default' : 'outline'}
+            onClick={() => setSelectedPaymentMethod('paypal')}
+          >
+            PayPal
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           {plans.map((plan) => (
             <Card key={plan.name} className={`relative p-6 ${plan.popular ? 'ring-2 ring-blue-500' : ''}`}>
@@ -100,7 +128,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
                 <div className="mt-4">
-                  <span className="text-3xl font-bold text-gray-900">${plan.price}</span>
+                  <span className="text-3xl font-bold text-gray-900">
+                    {selectedPaymentMethod === 'razorpay' ? '₹' : '$'}
+                    {selectedPaymentMethod === 'razorpay' ? (plan.price * 83).toFixed(0) : plan.price}
+                  </span>
                 </div>
                 <div className="flex items-center justify-center mt-2">
                   <Zap className="h-4 w-4 text-blue-500 mr-1" />
@@ -141,7 +172,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-600">
-          <p>💳 Secure payment powered by Stripe</p>
+          <p>💳 Secure payment powered by {selectedPaymentMethod === 'razorpay' ? 'Razorpay' : 'PayPal'}</p>
           <p>✨ Credits never expire</p>
         </div>
       </DialogContent>

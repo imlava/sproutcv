@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -14,10 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { session_id } = await req.json();
+    const { payment_id, payment_method } = await req.json();
 
-    if (!session_id) {
-      throw new Error("Missing session_id");
+    if (!payment_id || !payment_method) {
+      throw new Error("Missing payment_id or payment_method");
     }
 
     // Create Supabase client with service role key
@@ -26,20 +25,69 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2023-10-16",
-    });
+    let paymentStatus = "pending";
 
-    // Retrieve the session from Stripe
-    const session = await stripe.checkout.sessions.retrieve(session_id);
+    if (payment_method === "razorpay") {
+      // Verify Razorpay payment
+      const razorpayKey = Deno.env.get("RAZORPAY_KEY_SECRET");
+      const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
 
-    if (session.payment_status === "paid") {
+      if (!razorpayKey || !razorpayKeyId) {
+        throw new Error("Razorpay credentials not configured");
+      }
+
+      const razorpayResponse = await fetch(`https://api.razorpay.com/v1/orders/${payment_id}`, {
+        headers: {
+          "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKey}`)}`,
+        },
+      });
+
+      if (razorpayResponse.ok) {
+        const razorpayOrder = await razorpayResponse.json();
+        paymentStatus = razorpayOrder.status === "paid" ? "completed" : "pending";
+      }
+    } else if (payment_method === "paypal") {
+      // Verify PayPal payment
+      const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");
+      const paypalClientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
+      const paypalBaseUrl = Deno.env.get("PAYPAL_BASE_URL") || "https://api.sandbox.paypal.com";
+
+      if (!paypalClientId || !paypalClientSecret) {
+        throw new Error("PayPal credentials not configured");
+      }
+
+      // Get PayPal access token
+      const tokenResponse = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${btoa(`${paypalClientId}:${paypalClientSecret}`)}`,
+        },
+        body: "grant_type=client_credentials",
+      });
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Check PayPal order status
+      const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${payment_id}`, {
+        headers: {
+          "Authorization": `Bearer ${accessToken}`,
+        },
+      });
+
+      if (orderResponse.ok) {
+        const orderData = await orderResponse.json();
+        paymentStatus = orderData.status === "COMPLETED" ? "completed" : "pending";
+      }
+    }
+
+    if (paymentStatus === "completed") {
       // Update payment status in database
       const { data: payment } = await supabaseAdmin
         .from("payments")
         .select("*")
-        .eq("stripe_session_id", session_id)
+        .eq("stripe_session_id", payment_id)
         .single();
 
       if (payment && payment.status === "pending") {
@@ -47,7 +95,7 @@ serve(async (req) => {
         await supabaseAdmin
           .from("payments")
           .update({ status: "completed" })
-          .eq("stripe_session_id", session_id);
+          .eq("stripe_session_id", payment_id);
 
         // Add credits to user profile
         const { data: profile } = await supabaseAdmin
@@ -70,8 +118,8 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ 
-      status: session.payment_status,
-      credits_added: session.payment_status === "paid" ? parseInt(session.metadata?.credits || "0") : 0
+      status: paymentStatus,
+      credits_added: paymentStatus === "completed" ? payment?.credits_purchased || 0 : 0
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

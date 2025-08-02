@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -14,10 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { credits, amount } = await req.json();
+    const { credits, amount, paymentMethod } = await req.json();
 
-    if (!credits || !amount) {
-      throw new Error("Missing credits or amount");
+    if (!credits || !amount || !paymentMethod) {
+      throw new Error("Missing credits, amount, or paymentMethod");
     }
 
     // Create Supabase client with service role key
@@ -36,58 +35,107 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
-    // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2023-10-16",
-    });
+    let paymentUrl = "";
+    let paymentId = "";
 
-    // Check for existing Stripe customer
-    const customers = await stripe.customers.list({
-      email: user.email,
-      limit: 1,
-    });
+    if (paymentMethod === "razorpay") {
+      // Razorpay integration
+      const razorpayKey = Deno.env.get("RAZORPAY_KEY_SECRET");
+      const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
+      
+      if (!razorpayKey || !razorpayKeyId) {
+        throw new Error("Razorpay credentials not configured");
+      }
 
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    }
-
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `${credits} Resume Analysis Credits`,
-              description: `Get ${credits} credits to analyze and optimize your resumes with AI`,
-            },
-            unit_amount: amount,
-          },
-          quantity: 1,
+      const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKey}`)}`,
         },
-      ],
-      mode: "payment",
-      success_url: `${req.headers.get("origin")}/dashboard?payment=success`,
-      cancel_url: `${req.headers.get("origin")}/dashboard?payment=cancelled`,
-      metadata: {
-        user_id: user.id,
-        credits: credits.toString(),
-      },
-    });
+        body: JSON.stringify({
+          amount: amount, // Amount in paise
+          currency: "INR",
+          receipt: `receipt_${Date.now()}`,
+          notes: {
+            user_id: user.id,
+            credits: credits.toString(),
+          },
+        }),
+      });
+
+      if (!razorpayResponse.ok) {
+        throw new Error("Failed to create Razorpay order");
+      }
+
+      const razorpayOrder = await razorpayResponse.json();
+      paymentId = razorpayOrder.id;
+      paymentUrl = `razorpay://${razorpayOrder.id}`;
+    } else if (paymentMethod === "paypal") {
+      // PayPal integration
+      const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");
+      const paypalClientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
+      const paypalBaseUrl = Deno.env.get("PAYPAL_BASE_URL") || "https://api.sandbox.paypal.com";
+
+      if (!paypalClientId || !paypalClientSecret) {
+        throw new Error("PayPal credentials not configured");
+      }
+
+      // Get PayPal access token
+      const tokenResponse = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": `Basic ${btoa(`${paypalClientId}:${paypalClientSecret}`)}`,
+        },
+        body: "grant_type=client_credentials",
+      });
+
+      const tokenData = await tokenResponse.json();
+      const accessToken = tokenData.access_token;
+
+      // Create PayPal order
+      const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          intent: "CAPTURE",
+          purchase_units: [{
+            amount: {
+              currency_code: "USD",
+              value: (amount / 100).toString(),
+            },
+            description: `${credits} Resume Analysis Credits`,
+          }],
+          application_context: {
+            return_url: `${req.headers.get("origin")}/dashboard?payment=success`,
+            cancel_url: `${req.headers.get("origin")}/dashboard?payment=cancelled`,
+          },
+        }),
+      });
+
+      const orderData = await orderResponse.json();
+      paymentId = orderData.id;
+      paymentUrl = orderData.links.find((link: any) => link.rel === "approve")?.href || "";
+    }
 
     // Record payment in database
     await supabaseAdmin.from("payments").insert({
       user_id: user.id,
-      stripe_session_id: session.id,
+      stripe_session_id: paymentId, // Reusing this field for payment ID
       amount: amount,
       credits_purchased: credits,
       status: "pending",
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ 
+      url: paymentUrl,
+      paymentId: paymentId,
+      paymentMethod: paymentMethod 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

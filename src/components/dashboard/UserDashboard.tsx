@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { CreditCard, FileText, History, LogOut, Plus, Sprout } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 import PaymentModal from './PaymentModal';
 
 interface Analysis {
@@ -19,6 +21,7 @@ interface Analysis {
 const UserDashboard = () => {
   const { user, userProfile, signOut, refreshProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -57,6 +60,10 @@ const UserDashboard = () => {
     });
   };
 
+  const handleStartNewAnalysis = () => {
+    navigate('/analyze');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -70,7 +77,7 @@ const UserDashboard = () => {
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
               <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-lg">
                 <Sprout className="h-5 w-5 text-green-600" />
               </div>
@@ -107,7 +114,7 @@ const UserDashboard = () => {
               <p className="text-gray-600 mb-4">
                 Ready to grow your resume for your next dream job?
               </p>
-              <Button className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto" onClick={handleStartNewAnalysis}>
                 <FileText className="h-4 w-4 mr-2" />
                 Start New Analysis
               </Button>
@@ -177,7 +184,7 @@ const UserDashboard = () => {
             <Card className="p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full justify-start">
+                <Button variant="outline" className="w-full justify-start" onClick={handleStartNewAnalysis}>
                   <FileText className="h-4 w-4 mr-2" />
                   New Analysis
                 </Button>
