@@ -3,10 +3,9 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, Mail, CheckCircle } from 'lucide-react';
 
 interface ForgotPasswordFormProps {
   onBack: () => void;
@@ -56,72 +55,64 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }) => {
 
   if (sent) {
     return (
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <Mail className="w-6 h-6 text-green-600" />
-          </div>
-          <CardTitle>Check your email</CardTitle>
-          <CardDescription>
-            We've sent a password reset link to {email}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            onClick={onBack}
-            variant="outline" 
-            className="w-full"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to sign in
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="text-center space-y-6">
+        <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center">
+          <CheckCircle className="w-8 h-8 text-green-600" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Check your email</h3>
+          <p className="text-gray-600 mb-6">
+            We've sent a password reset link to <strong>{email}</strong>
+          </p>
+        </div>
+        <Button 
+          onClick={onBack}
+          variant="outline" 
+          className="w-full"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to sign in
+        </Button>
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Reset your password</CardTitle>
-        <CardDescription>
-          Enter your email address and we'll send you a link to reset your password
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-            />
-          </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={loading}
-          >
-            {loading ? "Sending..." : "Send reset link"}
-          </Button>
-          
-          <Button 
-            type="button"
-            onClick={onBack}
-            variant="outline" 
-            className="w-full"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to sign in
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email"
+            className="pl-10"
+            required
+          />
+        </div>
+      </div>
+      
+      <Button 
+        type="submit" 
+        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
+        disabled={loading}
+      >
+        {loading ? "Sending..." : "Send reset link"}
+      </Button>
+      
+      <Button 
+        type="button"
+        onClick={onBack}
+        variant="outline" 
+        className="w-full"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to sign in
+      </Button>
+    </form>
   );
 };
 

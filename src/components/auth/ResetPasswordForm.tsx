@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import { Lock, CheckCircle, XCircle } from 'lucide-react';
+import { AuthFormLayout } from './AuthFormLayout';
+import { PasswordInput } from './PasswordInput';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 
 const ResetPasswordForm = () => {
   const { toast } = useToast();
@@ -16,8 +18,6 @@ const ResetPasswordForm = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const token = searchParams.get('token');
 
   useEffect(() => {
@@ -28,17 +28,16 @@ const ResetPasswordForm = () => {
 
   const getPasswordStrength = (password: string) => {
     const checks = [
-      { label: 'At least 8 characters', valid: password.length >= 8 },
-      { label: 'Contains uppercase letter', valid: /[A-Z]/.test(password) },
-      { label: 'Contains lowercase letter', valid: /[a-z]/.test(password) },
-      { label: 'Contains number', valid: /\d/.test(password) },
-      { label: 'Contains special character', valid: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
+      { valid: password.length >= 8 },
+      { valid: /[A-Z]/.test(password) },
+      { valid: /[a-z]/.test(password) },
+      { valid: /\d/.test(password) },
+      { valid: /[!@#$%^&*(),.?":{}|<>]/.test(password) },
     ];
-    return checks;
+    return checks.every(check => check.valid);
   };
 
-  const passwordChecks = getPasswordStrength(newPassword);
-  const isPasswordValid = passwordChecks.every(check => check.valid);
+  const isPasswordValid = getPasswordStrength(newPassword);
   const passwordsMatch = newPassword === confirmPassword && newPassword.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,114 +95,69 @@ const ResetPasswordForm = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Set new password</CardTitle>
-          <CardDescription>
-            Enter your new password below
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              
-              {newPassword && (
-                <div className="space-y-1 text-sm">
-                  {passwordChecks.map((check, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      {check.valid ? (
-                        <CheckCircle className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <XCircle className="h-3 w-3 text-red-500" />
-                      )}
-                      <span className={check.valid ? 'text-green-700' : 'text-red-700'}>
-                        {check.label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+    <AuthFormLayout 
+      title="Set new password" 
+      description="Enter your new password below"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-3">
+          <Label htmlFor="password" className="text-gray-700 font-medium">New Password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+            <div className="pl-10">
+              <PasswordInput
+                id="password"
+                value={newPassword}
+                onChange={setNewPassword}
+                placeholder="Enter new password"
+                required
+              />
             </div>
+          </div>
+          <PasswordStrengthIndicator password={newPassword} />
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              
-              {confirmPassword && (
-                <div className="flex items-center space-x-2 text-sm">
-                  {passwordsMatch ? (
-                    <>
-                      <CheckCircle className="h-3 w-3 text-green-500" />
-                      <span className="text-green-700">Passwords match</span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-3 w-3 text-red-500" />
-                      <span className="text-red-700">Passwords don't match</span>
-                    </>
-                  )}
-                </div>
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword" className="text-gray-700 font-medium">Confirm Password</Label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+            <div className="pl-10">
+              <PasswordInput
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder="Confirm new password"
+                required
+              />
+            </div>
+          </div>
+          
+          {confirmPassword && (
+            <div className="flex items-center space-x-2 text-sm">
+              {passwordsMatch ? (
+                <>
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-green-700">Passwords match</span>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-3 w-3 text-red-500" />
+                  <span className="text-red-700">Passwords don't match</span>
+                </>
               )}
             </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={loading || !isPasswordValid || !passwordsMatch}
-            >
-              {loading ? "Updating..." : "Update password"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          )}
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
+          disabled={loading || !isPasswordValid || !passwordsMatch}
+        >
+          {loading ? "Updating..." : "Update password"}
+        </Button>
+      </form>
+    </AuthFormLayout>
   );
 };
 
