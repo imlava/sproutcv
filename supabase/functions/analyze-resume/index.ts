@@ -46,8 +46,8 @@ serve(async (req) => {
       throw new Error("Insufficient credits. Please purchase more credits to continue.");
     }
 
-    // Perform AI analysis
-    const analysisResults = await performResumeAnalysis(resume_text, job_description);
+    // Perform AI analysis with enhanced matching logic
+    const analysisResults = await performEnhancedResumeAnalysis(resume_text, job_description, job_title);
 
     // Save analysis to database first
     const { data: analysis, error: analysisError } = await supabaseAdmin
@@ -74,7 +74,7 @@ serve(async (req) => {
       throw analysisError;
     }
 
-    // Use the new secure function to consume credits
+    // Use the secure function to consume credits
     const { data: creditResult, error: creditError } = await supabaseAdmin.rpc(
       'consume_analysis_credit',
       {
@@ -85,7 +85,6 @@ serve(async (req) => {
 
     if (creditError || !creditResult) {
       console.error("Credit consumption error:", creditError);
-      // Delete the analysis if credit consumption fails
       await supabaseAdmin
         .from("resume_analyses")
         .delete()
@@ -107,37 +106,52 @@ serve(async (req) => {
   }
 });
 
-// AI Analysis function (simplified version - in production, use OpenAI/Claude)
-async function performResumeAnalysis(resumeText: string, jobDescription: string) {
-  // Convert to lowercase for analysis
+// Enhanced AI Analysis function
+async function performEnhancedResumeAnalysis(resumeText: string, jobDescription: string, jobTitle?: string) {
   const resume = resumeText.toLowerCase();
   const jobDesc = jobDescription.toLowerCase();
 
-  // Extract keywords from job description
-  const jobKeywords = extractKeywords(jobDesc);
-  const resumeKeywords = extractKeywords(resume);
+  // Extract comprehensive keywords and skills
+  const { jobKeywords, resumeKeywords, technicalSkills, softSkills } = extractComprehensiveKeywords(jobDesc, resume);
 
-  // Calculate keyword match
+  // Calculate detailed matching scores
   const matchingKeywords = jobKeywords.filter(keyword => 
     resume.includes(keyword.toLowerCase())
   );
   const keywordMatch = Math.round((matchingKeywords.length / jobKeywords.length) * 100);
 
-  // Calculate other scores (simplified scoring logic)
-  const skillsAlignment = calculateSkillsAlignment(resume, jobDesc);
+  // Enhanced calculations
+  const skillsAlignment = calculateEnhancedSkillsAlignment(resume, jobDesc, technicalSkills, softSkills);
   const atsCompatibility = calculateATSCompatibility(resumeText);
-  const experienceRelevance = calculateExperienceRelevance(resume, jobDesc);
-
-  // Overall score (weighted average)
-  const overallScore = Math.round(
-    (keywordMatch * 0.3) +
+  const experienceRelevance = calculateEnhancedExperienceRelevance(resume, jobDesc, jobTitle);
+  
+  // Experience mismatch detection
+  const experienceMismatch = detectExperienceMismatch(resume, jobDesc, jobTitle);
+  
+  // Overall score with enhanced weighting
+  let overallScore = Math.round(
+    (keywordMatch * 0.35) +
     (skillsAlignment * 0.25) +
-    (atsCompatibility * 0.2) +
+    (atsCompatibility * 0.15) +
     (experienceRelevance * 0.25)
   );
 
-  // Generate suggestions
-  const suggestions = generateSuggestions(resume, jobDesc, matchingKeywords, jobKeywords);
+  // Apply penalty for major mismatches
+  if (experienceMismatch.severity === 'high') {
+    overallScore = Math.max(overallScore - 30, 10);
+  } else if (experienceMismatch.severity === 'medium') {
+    overallScore = Math.max(overallScore - 15, 20);
+  }
+
+  // Generate enhanced suggestions
+  const suggestions = generateEnhancedSuggestions(
+    resume, 
+    jobDesc, 
+    matchingKeywords, 
+    jobKeywords, 
+    experienceMismatch,
+    overallScore
+  );
 
   return {
     overallScore,
@@ -145,42 +159,210 @@ async function performResumeAnalysis(resumeText: string, jobDescription: string)
     skillsAlignment,
     atsCompatibility,
     experienceRelevance,
+    experienceMismatch,
     suggestions,
     matchingKeywords: matchingKeywords.length,
-    totalKeywords: jobKeywords.length
+    totalKeywords: jobKeywords.length,
+    recommendedRoles: experienceMismatch.severity !== 'none' ? suggestBetterMatchingRoles(resume) : []
   };
 }
 
-function extractKeywords(text: string): string[] {
-  // Common technical and professional keywords
-  const commonKeywords = [
-    'javascript', 'python', 'react', 'node', 'sql', 'aws', 'docker', 'kubernetes',
-    'management', 'leadership', 'analysis', 'strategy', 'marketing', 'sales',
-    'communication', 'teamwork', 'problem solving', 'agile', 'scrum'
+function extractComprehensiveKeywords(jobDesc: string, resume: string) {
+  // Technical skills database
+  const technicalSkills = [
+    // Programming Languages
+    'javascript', 'python', 'java', 'typescript', 'c++', 'c#', 'php', 'ruby', 'go', 'rust',
+    'swift', 'kotlin', 'scala', 'r', 'matlab', 'sql', 'html', 'css',
+    
+    // Frameworks & Libraries
+    'react', 'angular', 'vue', 'node.js', 'express', 'django', 'flask', 'spring', 'laravel',
+    'jquery', 'bootstrap', 'tailwind', 'next.js', 'nuxt.js', 'gatsby',
+    
+    // Databases
+    'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'oracle', 'sqlite',
+    'dynamodb', 'cassandra', 'neo4j',
+    
+    // Cloud & DevOps
+    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'gitlab', 'github',
+    'terraform', 'ansible', 'chef', 'puppet', 'nagios', 'prometheus',
+    
+    // Tools & Technologies
+    'git', 'jira', 'confluence', 'slack', 'trello', 'asana', 'figma', 'sketch',
+    'adobe', 'photoshop', 'illustrator', 'indesign'
   ];
 
-  return commonKeywords.filter(keyword => text.includes(keyword));
+  const softSkills = [
+    'leadership', 'management', 'communication', 'teamwork', 'collaboration',
+    'problem solving', 'analytical', 'critical thinking', 'creativity', 'innovation',
+    'project management', 'time management', 'organization', 'planning',
+    'presentation', 'public speaking', 'writing', 'research'
+  ];
+
+  const industryTerms = [
+    'agile', 'scrum', 'kanban', 'devops', 'ci/cd', 'microservices', 'api',
+    'machine learning', 'artificial intelligence', 'data science', 'analytics',
+    'cybersecurity', 'blockchain', 'iot', 'mobile development', 'web development'
+  ];
+
+  // Extract job keywords
+  const allKeywords = [...technicalSkills, ...softSkills, ...industryTerms];
+  const jobKeywords = allKeywords.filter(keyword => jobDesc.includes(keyword));
+  const resumeKeywords = allKeywords.filter(keyword => resume.includes(keyword));
+
+  return { jobKeywords, resumeKeywords, technicalSkills, softSkills };
 }
 
-function calculateSkillsAlignment(resume: string, jobDesc: string): number {
-  const techSkills = ['javascript', 'python', 'react', 'sql', 'aws'];
-  const softSkills = ['leadership', 'communication', 'teamwork', 'management'];
+function calculateEnhancedSkillsAlignment(resume: string, jobDesc: string, technicalSkills: string[], softSkills: string[]) {
+  let score = 50; // Base score
   
-  let score = 60; // Base score
+  // Technical skills matching
+  const jobTechSkills = technicalSkills.filter(skill => jobDesc.includes(skill));
+  const resumeTechSkills = technicalSkills.filter(skill => resume.includes(skill));
+  const techMatches = jobTechSkills.filter(skill => resumeTechSkills.includes(skill));
   
-  techSkills.forEach(skill => {
-    if (jobDesc.includes(skill) && resume.includes(skill)) {
-      score += 8;
-    }
-  });
+  if (jobTechSkills.length > 0) {
+    score += Math.round((techMatches.length / jobTechSkills.length) * 30);
+  }
   
-  softSkills.forEach(skill => {
-    if (jobDesc.includes(skill) && resume.includes(skill)) {
-      score += 5;
-    }
-  });
+  // Soft skills matching
+  const jobSoftSkills = softSkills.filter(skill => jobDesc.includes(skill));
+  const resumeSoftSkills = softSkills.filter(skill => resume.includes(skill));
+  const softMatches = jobSoftSkills.filter(skill => resumeSoftSkills.includes(skill));
+  
+  if (jobSoftSkills.length > 0) {
+    score += Math.round((softMatches.length / jobSoftSkills.length) * 20);
+  }
   
   return Math.min(score, 100);
+}
+
+function calculateEnhancedExperienceRelevance(resume: string, jobDesc: string, jobTitle?: string) {
+  let score = 60; // Base score
+  
+  // Extract years of experience
+  const resumeYears = extractYearsOfExperience(resume);
+  const jobYears = extractYearsOfExperience(jobDesc);
+  
+  if (resumeYears && jobYears) {
+    if (resumeYears >= jobYears) score += 15;
+    else if (resumeYears >= jobYears * 0.7) score += 10;
+    else if (resumeYears >= jobYears * 0.5) score += 5;
+  }
+  
+  // Industry and role alignment
+  const industries = ['healthcare', 'finance', 'technology', 'education', 'retail', 'consulting', 'marketing'];
+  industries.forEach(industry => {
+    if (jobDesc.includes(industry) && resume.includes(industry)) {
+      score += 3;
+    }
+  });
+  
+  // Role-specific terms
+  if (jobTitle) {
+    const roleTerms = jobTitle.toLowerCase().split(' ');
+    roleTerms.forEach(term => {
+      if (term.length > 2 && resume.includes(term)) {
+        score += 2;
+      }
+    });
+  }
+  
+  return Math.min(score, 100);
+}
+
+function detectExperienceMismatch(resume: string, jobDesc: string, jobTitle?: string) {
+  const warnings = [];
+  let severity = 'none';
+  
+  // Check for major role mismatches
+  const seniorityLevels = {
+    'entry': ['entry', 'junior', 'associate', 'trainee', 'intern'],
+    'mid': ['mid-level', 'senior', 'lead'],
+    'senior': ['senior', 'principal', 'staff', 'lead', 'manager', 'director']
+  };
+  
+  const jobSeniority = detectSeniority(jobDesc + ' ' + (jobTitle || ''));
+  const resumeSeniority = detectSeniority(resume);
+  
+  if (jobSeniority === 'senior' && resumeSeniority === 'entry') {
+    warnings.push("This appears to be a senior-level position, but your resume shows entry-level experience.");
+    severity = 'high';
+  }
+  
+  // Check for technical vs non-technical mismatch
+  const techKeywords = ['developer', 'engineer', 'programmer', 'coding', 'software', 'technical'];
+  const jobIsTech = techKeywords.some(keyword => (jobTitle || '').toLowerCase().includes(keyword) || jobDesc.includes(keyword));
+  const resumeIsTech = techKeywords.some(keyword => resume.includes(keyword));
+  
+  if (jobIsTech && !resumeIsTech) {
+    warnings.push("This appears to be a technical role, but your resume doesn't show technical experience.");
+    severity = severity === 'none' ? 'high' : severity;
+  }
+  
+  // Check for experience gaps
+  const resumeYears = extractYearsOfExperience(resume);
+  const jobYears = extractYearsOfExperience(jobDesc);
+  
+  if (jobYears && resumeYears && resumeYears < jobYears * 0.5) {
+    warnings.push(`This role requires ${jobYears}+ years of experience, but you appear to have ${resumeYears} years.`);
+    severity = severity === 'none' ? 'medium' : severity;
+  }
+  
+  return { warnings, severity };
+}
+
+function detectSeniority(text: string) {
+  const seniorTerms = ['senior', 'principal', 'staff', 'lead', 'manager', 'director'];
+  const midTerms = ['mid-level', 'intermediate'];
+  const entryTerms = ['entry', 'junior', 'associate', 'trainee', 'intern'];
+  
+  if (seniorTerms.some(term => text.includes(term))) return 'senior';
+  if (midTerms.some(term => text.includes(term))) return 'mid';
+  if (entryTerms.some(term => text.includes(term))) return 'entry';
+  
+  return 'mid'; // Default
+}
+
+function extractYearsOfExperience(text: string): number | null {
+  const yearPatterns = [
+    /(\d+)\+?\s*years?\s*of\s*experience/gi,
+    /(\d+)\+?\s*years?\s*experience/gi,
+    /experience\s*of\s*(\d+)\+?\s*years?/gi,
+    /(\d+)\+?\s*yrs/gi
+  ];
+  
+  for (const pattern of yearPatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const years = parseInt(match[0].match(/\d+/)?.[0] || '0');
+      if (years > 0) return years;
+    }
+  }
+  
+  return null;
+}
+
+function suggestBetterMatchingRoles(resume: string) {
+  const suggestions = [];
+  
+  // Analyze resume content to suggest better roles
+  if (resume.includes('marketing') || resume.includes('social media')) {
+    suggestions.push('Marketing Specialist', 'Social Media Manager', 'Content Creator');
+  }
+  
+  if (resume.includes('sales') || resume.includes('customer')) {
+    suggestions.push('Sales Representative', 'Customer Success Manager', 'Account Manager');
+  }
+  
+  if (resume.includes('design') || resume.includes('creative')) {
+    suggestions.push('Graphic Designer', 'UI/UX Designer', 'Creative Director');
+  }
+  
+  if (resume.includes('data') || resume.includes('analysis')) {
+    suggestions.push('Data Analyst', 'Business Analyst', 'Research Analyst');
+  }
+  
+  return suggestions.slice(0, 3); // Return top 3 suggestions
 }
 
 function calculateATSCompatibility(resumeText: string): number {
@@ -193,33 +375,34 @@ function calculateATSCompatibility(resumeText: string): number {
   if (resumeText.includes('@')) score += 5; // Email
   if (resumeText.match(/\(\d{3}\)/)) score += 5; // Phone
   
+  // Penalize for problematic formatting
+  if (resumeText.includes('│') || resumeText.includes('─')) score -= 10; // Tables
+  if (resumeText.match(/\s{10,}/g)) score -= 5; // Excessive spacing
+  
   return Math.min(score, 95);
 }
 
-function calculateExperienceRelevance(resume: string, jobDesc: string): number {
-  let score = 65; // Base score
-  
-  // Look for years of experience mentioned
-  const yearsInResume = resume.match(/(\d+)\+?\s*years?/gi);
-  const yearsInJob = jobDesc.match(/(\d+)\+?\s*years?/gi);
-  
-  if (yearsInResume && yearsInJob) {
-    score += 10;
-  }
-  
-  // Industry-specific terms
-  const industries = ['healthcare', 'finance', 'technology', 'education', 'retail'];
-  industries.forEach(industry => {
-    if (jobDesc.includes(industry) && resume.includes(industry)) {
-      score += 5;
-    }
-  });
-  
-  return Math.min(score, 100);
-}
-
-function generateSuggestions(resume: string, jobDesc: string, matchingKeywords: string[], allKeywords: string[]) {
+function generateEnhancedSuggestions(resume: string, jobDesc: string, matchingKeywords: string[], allKeywords: string[], experienceMismatch: any, overallScore: number) {
   const suggestions = [];
+  
+  // Experience mismatch warnings
+  if (experienceMismatch.severity === 'high') {
+    suggestions.push({
+      type: 'warning',
+      priority: 'high',
+      title: 'Significant Experience Mismatch Detected',
+      description: experienceMismatch.warnings.join(' '),
+      action: 'Consider applying to roles that better match your experience level, or click "Proceed" if you still want to tailor your resume'
+    });
+  } else if (experienceMismatch.severity === 'medium') {
+    suggestions.push({
+      type: 'caution',
+      priority: 'medium',
+      title: 'Potential Experience Gap',
+      description: experienceMismatch.warnings.join(' '),
+      action: 'Consider highlighting transferable skills or relevant projects'
+    });
+  }
   
   // Missing keywords
   const missingKeywords = allKeywords.filter(keyword => !matchingKeywords.includes(keyword));
@@ -228,24 +411,24 @@ function generateSuggestions(resume: string, jobDesc: string, matchingKeywords: 
       type: 'keywords',
       priority: 'high',
       title: 'Add Missing Keywords',
-      description: `Consider adding these relevant keywords: ${missingKeywords.slice(0, 5).join(', ')}`,
-      action: 'Add to your skills or experience sections'
+      description: `Consider adding these relevant keywords: ${missingKeywords.slice(0, 8).join(', ')}`,
+      action: 'Incorporate these terms naturally into your experience and skills sections'
     });
   }
   
-  // Quantification
-  if (!resume.match(/\d+%|\d+\$|\d+k|\d+ million/gi)) {
+  // Quantification suggestions
+  if (!resume.match(/\d+%|\d+\$|\d+k|\d+ million|\d+x increase|\d+ team/gi)) {
     suggestions.push({
       type: 'quantification',
-      priority: 'medium',
+      priority: 'high',
       title: 'Quantify Your Achievements',
       description: 'Add specific numbers, percentages, or dollar amounts to your accomplishments',
-      action: 'Replace vague terms with concrete metrics'
+      action: 'Replace vague terms like "increased sales" with "increased sales by 25%" or "managed team of 8"'
     });
   }
   
-  // Action verbs
-  const weakVerbs = ['responsible for', 'worked on', 'helped with'];
+  // Action verbs improvement
+  const weakVerbs = ['responsible for', 'worked on', 'helped with', 'involved in', 'participated in'];
   const hasWeakVerbs = weakVerbs.some(verb => resume.includes(verb));
   if (hasWeakVerbs) {
     suggestions.push({
@@ -253,7 +436,18 @@ function generateSuggestions(resume: string, jobDesc: string, matchingKeywords: 
       priority: 'medium',
       title: 'Use Stronger Action Verbs',
       description: 'Replace passive language with dynamic action verbs',
-      action: 'Use verbs like "achieved", "implemented", "optimized", "led"'
+      action: 'Use verbs like "achieved", "implemented", "optimized", "led", "designed", "developed"'
+    });
+  }
+  
+  // Low overall score suggestions
+  if (overallScore < 40) {
+    suggestions.push({
+      type: 'major_revision',
+      priority: 'high',
+      title: 'Major Resume Revision Needed',
+      description: 'Your resume needs significant changes to match this job description',
+      action: 'Consider restructuring your resume to better highlight relevant experience and skills'
     });
   }
   

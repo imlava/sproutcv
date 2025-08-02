@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +20,9 @@ serve(async (req) => {
       throw new Error("Email is required");
     }
 
+    // Initialize Resend
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -28,7 +32,7 @@ serve(async (req) => {
     // Check if user exists
     const { data: userData } = await supabaseAdmin
       .from("profiles")
-      .select("id, email, failed_login_attempts, locked_until")
+      .select("id, email, full_name, failed_login_attempts, locked_until")
       .eq("email", email)
       .single();
 
@@ -71,7 +75,7 @@ serve(async (req) => {
       .from("security_events")
       .insert({
         user_id: userData.id,
-        event_type: "password_reset",
+        event_type: "password_reset_request",
         metadata: {
           email: email,
           reset_token_generated: true
@@ -79,16 +83,76 @@ serve(async (req) => {
         ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
       });
 
-    // In a real app, you would send this via email service
-    // For now, we'll return it (remove this in production)
+    // Create reset link
     const resetLink = `${req.headers.get("origin")}/reset-password?token=${token}`;
     
-    console.log("Password reset link:", resetLink);
+    // Send email using Resend
+    const emailResponse = await resend.emails.send({
+      from: "ResumeAI <noreply@resend.dev>",
+      to: [email],
+      subject: "Reset Your Password - ResumeAI",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Password Reset</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <div style="background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+              <div style="text-align: center; margin-bottom: 32px;">
+                <h1 style="color: #1f2937; font-size: 28px; margin: 0; font-weight: 700;">Reset Your Password</h1>
+              </div>
+              
+              <div style="margin-bottom: 32px;">
+                <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+                  Hi ${userData.full_name || 'there'},
+                </p>
+                <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
+                  We received a request to reset your password for your ResumeAI account. Click the button below to create a new password:
+                </p>
+                
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${resetLink}" 
+                     style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+                            color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; 
+                            font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                    Reset Password
+                  </a>
+                </div>
+                
+                <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 24px 0 0 0;">
+                  This link will expire in 1 hour for security reasons. If you didn't request this password reset, you can safely ignore this email.
+                </p>
+                
+                <div style="border-top: 1px solid #e5e7eb; margin-top: 32px; padding-top: 24px;">
+                  <p style="color: #9ca3af; font-size: 12px; line-height: 1.4; margin: 0;">
+                    If the button above doesn't work, copy and paste this link into your browser:<br>
+                    <a href="${resetLink}" style="color: #10b981; word-break: break-all;">${resetLink}</a>
+                  </p>
+                </div>
+              </div>
+              
+              <div style="text-align: center; border-top: 1px solid #e5e7eb; padding-top: 24px;">
+                <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+                  ResumeAI - AI-Powered Resume Analysis<br>
+                  This email was sent to ${email}
+                </p>
+              </div>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+
+    console.log("Password reset email sent:", emailResponse);
 
     return new Response(JSON.stringify({ 
       message: "If an account with that email exists, we've sent a password reset link.",
-      // Remove this in production:
-      resetLink: resetLink
+      emailSent: true
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
