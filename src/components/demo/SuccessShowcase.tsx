@@ -144,142 +144,143 @@ const SuccessShowcase = () => {
               Real People,
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 block">
                 Real Results
-            </span>
-          </h2>
-        </div>
-
-        {/* Featured Testimonial */}
-        <Card className="p-12 bg-gradient-to-r from-gray-900 via-purple-900 to-blue-900 text-white shadow-2xl rounded-3xl mb-12 overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10" />
-          <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row items-center space-y-8 lg:space-y-0 lg:space-x-12">
-              <div className="flex-shrink-0">
-                <div className={`w-32 h-32 bg-gradient-to-r ${testimonials[activeTestimonial].gradient} rounded-3xl flex items-center justify-center text-white font-black text-4xl shadow-2xl`}>
-                  {testimonials[activeTestimonial].image}
-                </div>
-              </div>
-              <div className="flex-1 text-center lg:text-left">
-                <Quote className="h-12 w-12 text-purple-300 mb-6 mx-auto lg:mx-0" />
-                <p className="text-2xl leading-relaxed mb-8 italic">
-                  "{testimonials[activeTestimonial].quote}"
-                </p>
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                  <div className="mb-6 lg:mb-0">
-                    <h4 className="text-2xl font-bold">{testimonials[activeTestimonial].name}</h4>
-                    <p className="text-xl text-purple-200">{testimonials[activeTestimonial].role}</p>
-                    <div className="flex items-center space-x-2 mt-2">
-                      <Building2 className="h-5 w-5 text-blue-300" />
-                      <span className="text-blue-300 font-medium">{testimonials[activeTestimonial].company}</span>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl">
-                    <div className="text-center">
-                      <div className="text-3xl font-black text-emerald-400 mb-1">
-                        {testimonials[activeTestimonial].metrics.improvement}
-                      </div>
-                      <div className="text-sm text-gray-300">
-                        {testimonials[activeTestimonial].metrics.before} → {testimonials[activeTestimonial].metrics.after}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Testimonial Navigation */}
-        <div className="flex justify-center space-x-4 mb-16">
-          {testimonials.map((_, index) => (
-            <button
-              key={index}
-              className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                index === activeTestimonial 
-                  ? 'bg-purple-600 scale-125 shadow-lg' 
-                  : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-              onClick={() => setActiveTestimonial(index)}
-            />
-          ))}
-        </div>
-
-        {/* Additional Testimonials Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-20">
-          {testimonials.map((testimonial, index) => (
-            <Card 
-              key={index} 
-              className={`p-8 transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                index === activeTestimonial 
-                  ? 'shadow-2xl border-2 border-purple-200 bg-gradient-to-br from-white to-purple-50' 
-                  : 'shadow-lg hover:shadow-xl bg-white'
-              }`}
-              onClick={() => setActiveTestimonial(index)}
-            >
-              <div className="flex items-center mb-6">
-                <div className={`w-16 h-16 bg-gradient-to-r ${testimonial.gradient} rounded-2xl flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg`}>
-                  {testimonial.image}
-                </div>
-                <div>
-                  <h4 className="text-xl font-bold text-gray-900">{testimonial.name}</h4>
-                  <p className="text-gray-600">{testimonial.role}</p>
-                  <p className="text-sm text-gray-500 flex items-center mt-1">
-                    <Building2 className="h-3 w-3 mr-1" />
-                    {testimonial.company}
-                  </p>
-                </div>
-              </div>
-              
-              <p className="text-gray-700 mb-6 leading-relaxed italic text-lg">
-                "{testimonial.quote.substring(0, 120)}..."
-              </p>
-              
-              <div className="flex items-center justify-between">
-                <Badge className={`bg-gradient-to-r ${testimonial.gradient} text-white font-semibold px-3 py-2`}>
-                  {testimonial.metrics.improvement}
-                </Badge>
-                
-                <div className="flex items-center space-x-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Final CTA */}
-        <div className="text-center">
-          <Card className="inline-block p-16 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white shadow-2xl rounded-3xl border-0 transform hover:scale-105 transition-transform duration-300">
-            <Rocket className="h-20 w-20 mx-auto mb-8 opacity-90" />
-            <h2 className="text-5xl font-black mb-6">
-              Ready to Join Them?
+              </span>
             </h2>
-            <p className="text-2xl mb-10 text-emerald-100 max-w-3xl mx-auto leading-relaxed">
-              Experience the same transformation that launched 50,000+ careers
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              <Button 
-                size="lg" 
-                className="bg-white text-emerald-600 hover:bg-gray-100 text-2xl px-12 py-6 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 font-bold rounded-2xl"
-                onClick={() => navigate('/auth')}
-              >
-                <Rocket className="mr-4 h-8 w-8" />
-                Start My Transformation
-              </Button>
-              
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="border-4 border-white text-white hover:bg-white hover:text-emerald-600 text-2xl px-12 py-6 transition-all duration-300 font-bold rounded-2xl"
-                onClick={() => navigate('/analyze')}
-              >
-                Try Free Analysis
-                <ArrowRight className="ml-4 h-8 w-8" />
-              </Button>
+          </div>
+
+          {/* Featured Testimonial */}
+          <Card className="p-12 bg-gradient-to-r from-gray-900 via-purple-900 to-blue-900 text-white shadow-2xl rounded-3xl mb-12 overflow-hidden relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10" />
+            <div className="relative z-10">
+              <div className="flex flex-col lg:flex-row items-center space-y-8 lg:space-y-0 lg:space-x-12">
+                <div className="flex-shrink-0">
+                  <div className={`w-32 h-32 bg-gradient-to-r ${testimonials[activeTestimonial].gradient} rounded-3xl flex items-center justify-center text-white font-black text-4xl shadow-2xl`}>
+                    {testimonials[activeTestimonial].image}
+                  </div>
+                </div>
+                <div className="flex-1 text-center lg:text-left">
+                  <Quote className="h-12 w-12 text-purple-300 mb-6 mx-auto lg:mx-0" />
+                  <p className="text-2xl leading-relaxed mb-8 italic">
+                    "{testimonials[activeTestimonial].quote}"
+                  </p>
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                    <div className="mb-6 lg:mb-0">
+                      <h4 className="text-2xl font-bold">{testimonials[activeTestimonial].name}</h4>
+                      <p className="text-xl text-purple-200">{testimonials[activeTestimonial].role}</p>
+                      <div className="flex items-center space-x-2 mt-2">
+                        <Building2 className="h-5 w-5 text-blue-300" />
+                        <span className="text-blue-300 font-medium">{testimonials[activeTestimonial].company}</span>
+                      </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl">
+                      <div className="text-center">
+                        <div className="text-3xl font-black text-emerald-400 mb-1">
+                          {testimonials[activeTestimonial].metrics.improvement}
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          {testimonials[activeTestimonial].metrics.before} → {testimonials[activeTestimonial].metrics.after}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </Card>
+
+          {/* Testimonial Navigation */}
+          <div className="flex justify-center space-x-4 mb-16">
+            {testimonials.map((_, index) => (
+              <button
+                key={index}
+                className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                  index === activeTestimonial 
+                    ? 'bg-purple-600 scale-125 shadow-lg' 
+                    : 'bg-gray-300 hover:bg-gray-400'
+                }`}
+                onClick={() => setActiveTestimonial(index)}
+              />
+            ))}
+          </div>
+
+          {/* Additional Testimonials Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-20">
+            {testimonials.map((testimonial, index) => (
+              <Card 
+                key={index} 
+                className={`p-8 transition-all duration-300 cursor-pointer transform hover:scale-105 ${
+                  index === activeTestimonial 
+                    ? 'shadow-2xl border-2 border-purple-200 bg-gradient-to-br from-white to-purple-50' 
+                    : 'shadow-lg hover:shadow-xl bg-white'
+                }`}
+                onClick={() => setActiveTestimonial(index)}
+              >
+                <div className="flex items-center mb-6">
+                  <div className={`w-16 h-16 bg-gradient-to-r ${testimonial.gradient} rounded-2xl flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg`}>
+                    {testimonial.image}
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-gray-900">{testimonial.name}</h4>
+                    <p className="text-gray-600">{testimonial.role}</p>
+                    <p className="text-sm text-gray-500 flex items-center mt-1">
+                      <Building2 className="h-3 w-3 mr-1" />
+                      {testimonial.company}
+                    </p>
+                  </div>
+                </div>
+                
+                <p className="text-gray-700 mb-6 leading-relaxed italic text-lg">
+                  "{testimonial.quote.substring(0, 120)}..."
+                </p>
+                
+                <div className="flex items-center justify-between">
+                  <Badge className={`bg-gradient-to-r ${testimonial.gradient} text-white font-semibold px-3 py-2`}>
+                    {testimonial.metrics.improvement}
+                  </Badge>
+                  
+                  <div className="flex items-center space-x-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Final CTA */}
+          <div className="text-center">
+            <Card className="inline-block p-16 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white shadow-2xl rounded-3xl border-0 transform hover:scale-105 transition-transform duration-300">
+              <Rocket className="h-20 w-20 mx-auto mb-8 opacity-90" />
+              <h2 className="text-5xl font-black mb-6">
+                Ready to Join Them?
+              </h2>
+              <p className="text-2xl mb-10 text-emerald-100 max-w-3xl mx-auto leading-relaxed">
+                Experience the same transformation that launched 50,000+ careers
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+                <Button 
+                  size="lg" 
+                  className="bg-white text-emerald-600 hover:bg-gray-100 text-2xl px-12 py-6 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 font-bold rounded-2xl"
+                  onClick={() => navigate('/auth')}
+                >
+                  <Rocket className="mr-4 h-8 w-8" />
+                  Start My Transformation
+                </Button>
+                
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="border-4 border-white text-white hover:bg-white hover:text-emerald-600 text-2xl px-12 py-6 transition-all duration-300 font-bold rounded-2xl"
+                  onClick={() => navigate('/analyze')}
+                >
+                  Try Free Analysis
+                  <ArrowRight className="ml-4 h-8 w-8" />
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
