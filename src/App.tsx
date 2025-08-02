@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import AuthPage from "./components/auth/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import AnalyzePage from "./pages/AnalyzePage";
+import DemoPage from "./pages/DemoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/analyze" element={<AnalyzePage />} />
+            <Route path="/demo" element={<DemoPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
