@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { AuthFormLayout } from './AuthFormLayout';
 import { SignInForm } from './SignInForm';
 import { SignUpForm } from './SignUpForm';
-import { ForgotPasswordForm } from './ForgotPasswordForm';
+import ForgotPasswordForm from './ForgotPasswordForm';
 
 const EnhancedAuthPage = () => {
   const [currentView, setCurrentView] = useState<'signin' | 'signup' | 'forgot'>('signin');
