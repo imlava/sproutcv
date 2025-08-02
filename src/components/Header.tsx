@@ -2,15 +2,21 @@
 import React from 'react';
 import { Sprout } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+    // If we're not on the home page, navigate there first
+    if (location.pathname !== '/') {
+      navigate('/', { state: { scrollTo: sectionId } });
+    } else {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 
@@ -41,10 +47,10 @@ const Header = () => {
               Pricing
             </button>
             <button 
-              onClick={() => navigate('/demo')}
+              onClick={() => navigate('/how-it-works')}
               className="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition-colors"
             >
-              Demo
+              How It Works
             </button>
             <button 
               onClick={() => scrollToSection('about')}

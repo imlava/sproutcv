@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,17 +16,24 @@ import {
   AlertTriangle,
   ArrowRight,
   Play,
-  RotateCcw
+  RotateCcw,
+  Download,
+  Star,
+  Users,
+  Clock,
+  DollarSign
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import TailoredResumePreview from '@/components/TailoredResumePreview';
 
 const DemoPage = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showTailoredResume, setShowTailoredResume] = useState(false);
   const [animatedScores, setAnimatedScores] = useState({
     overall: 0,
     keyword: 0,
@@ -88,8 +94,8 @@ const DemoPage = () => {
       component: 'analysis'
     },
     {
-      title: 'Get Results',
-      description: 'Review detailed insights and suggestions',
+      title: 'Get Tailored Resume',
+      description: 'Download your optimized, job-ready resume',
       icon: FileCheck,
       component: 'results'
     }
@@ -118,6 +124,7 @@ const DemoPage = () => {
         clearInterval(timer);
         setIsAnimating(false);
         setShowResults(true);
+        setTimeout(() => setShowTailoredResume(true), 1500);
       }
     }, interval);
   };
@@ -135,6 +142,7 @@ const DemoPage = () => {
   const resetDemo = () => {
     setCurrentStep(0);
     setShowResults(false);
+    setShowTailoredResume(false);
     setAnimatedScores({
       overall: 0,
       keyword: 0,
@@ -173,11 +181,27 @@ const DemoPage = () => {
       <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50 py-16">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            See How SproutCV Works
+            How SproutCV Works
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Watch our AI analyze a sample resume and job description in real-time
+          <p className="text-xl text-gray-600 mb-6">
+            Watch our AI transform your resume into a job-winning, tailored document in real-time
           </p>
+          
+          {/* Social Proof */}
+          <div className="flex items-center justify-center space-x-8 mb-8 text-sm text-gray-600">
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4" />
+              <span>10,000+ users</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Star className="h-4 w-4 text-yellow-500" />
+              <span>4.9/5 rating</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Clock className="h-4 w-4" />
+              <span>2 minutes</span>
+            </div>
+          </div>
           
           {currentStep === 0 && (
             <div className="space-y-6">
@@ -187,10 +211,10 @@ const DemoPage = () => {
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 text-lg"
               >
                 <Play className="mr-2 h-5 w-5" />
-                Start Demo
+                See How It Works
               </Button>
               <p className="text-sm text-gray-500">
-                This interactive demo shows you exactly how our resume analysis works
+                This interactive demo shows you exactly how our AI tailors your resume for any job
               </p>
             </div>
           )}
@@ -312,7 +336,7 @@ const DemoPage = () => {
                     </div>
                     <div className="flex items-center space-x-3">
                       <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-600 border-t-transparent"></div>
-                      <span className="text-purple-800">Checking ATS compatibility...</span>
+                      <span className="text-purple-800">Creating tailored version...</span>
                     </div>
                   </div>
                 </div>
@@ -322,6 +346,13 @@ const DemoPage = () => {
             {/* Step 4: Results */}
             {currentStep >= 4 && (
               <div className="space-y-8 animate-fade-in">
+                {/* Tailored Resume Output */}
+                {showTailoredResume && (
+                  <div className="animate-fade-in">
+                    <TailoredResumePreview />
+                  </div>
+                )}
+
                 {/* Overall Score */}
                 <Card className={`p-8 ${getScoreBgColor(animatedScores.overall)} border-2`}>
                   <div className="text-center">
@@ -333,13 +364,13 @@ const DemoPage = () => {
                         <div className="text-lg font-medium text-gray-600">/ 100</div>
                       </div>
                     </div>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-3">Overall Match Score</h2>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-3">Match Score Analysis</h2>
                     <p className="text-lg text-gray-700 max-w-2xl mx-auto">
                       {animatedScores.overall >= 80 
-                        ? '🎉 Excellent match! Your resume is well-optimized for this position.' 
+                        ? '🎉 Your tailored resume is now perfectly optimized for this position!' 
                         : animatedScores.overall >= 60 
-                        ? '👍 Good match with room for improvement. Follow the suggestions below.' 
-                        : '🔧 Needs significant improvements. Your resume has potential - let\'s optimize it!'}
+                        ? '👍 Great improvement! Your resume is now much more competitive.' 
+                        : '🔧 Significant improvements made. Your resume is now job-ready!'}
                     </p>
                   </div>
                 </Card>
@@ -375,51 +406,46 @@ const DemoPage = () => {
                   })}
                 </div>
 
-                {/* Suggestions */}
-                {showResults && (
-                  <Card className="p-6 animate-fade-in">
-                    <div className="flex items-center space-x-2 mb-6">
-                      <AlertTriangle className="h-6 w-6 text-orange-500" />
-                      <h3 className="text-xl font-semibold text-gray-900">Improvement Suggestions</h3>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      {mockSuggestions.map((suggestion, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <Badge className={getPriorityColor(suggestion.priority)}>
-                                {suggestion.priority.toUpperCase()}
-                              </Badge>
-                              <h4 className="font-semibold text-gray-900">{suggestion.title}</h4>
-                            </div>
-                          </div>
-                          <p className="text-gray-700 mb-3 leading-relaxed">{suggestion.description}</p>
-                          <div className="flex items-center text-sm text-blue-600">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            <span className="font-medium">Action: {suggestion.action}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                )}
-
                 {/* Call to Action */}
                 {showResults && (
                   <div className="text-center space-y-6 animate-fade-in">
                     <Card className="p-8 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4">Ready to Optimize Your Resume?</h3>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                        Ready to Create Your Own Tailored Resume?
+                      </h3>
                       <p className="text-gray-700 mb-6 text-lg">
-                        Get personalized analysis for your actual resume and job applications
+                        Get personalized analysis and tailored resumes for every job application
                       </p>
+                      
+                      {/* Pricing Teaser */}
+                      <div className="bg-white p-6 rounded-lg border border-green-200 mb-6 max-w-md mx-auto">
+                        <div className="flex items-center justify-center space-x-2 mb-4">
+                          <DollarSign className="h-5 w-5 text-green-600" />
+                          <span className="text-lg font-semibold text-gray-900">Starting at just $2 per analysis</span>
+                        </div>
+                        <div className="space-y-2 text-sm text-gray-600">
+                          <div className="flex items-center justify-center space-x-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span>Instant AI analysis</span>
+                          </div>
+                          <div className="flex items-center justify-center space-x-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span>Tailored resume download</span>
+                          </div>
+                          <div className="flex items-center justify-center space-x-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            <span>ATS optimization</span>
+                          </div>
+                        </div>
+                      </div>
+                      
                       <div className="space-x-4">
                         <Button 
                           onClick={() => navigate('/auth')}
                           size="lg"
                           className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                         >
-                          Start Your Analysis
+                          Start Optimizing Now
                         </Button>
                         <Button 
                           onClick={resetDemo}
@@ -427,7 +453,7 @@ const DemoPage = () => {
                           size="lg"
                         >
                           <RotateCcw className="mr-2 h-5 w-5" />
-                          Replay Demo
+                          Watch Again
                         </Button>
                       </div>
                     </Card>
