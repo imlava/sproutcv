@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
 import Dashboard from "./pages/Dashboard";
 import AnalyzePage from "./pages/AnalyzePage";
-import DemoPage from "./pages/DemoPage";
+import HowItWorksPage from "./pages/HowItWorksPage";
 import HelpCenter from "./pages/HelpCenter";
 import ContactUs from "./pages/ContactUs";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -39,7 +39,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/analyze" element={<AnalyzePage />} />
-            <Route path="/how-it-works" element={<DemoPage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/help" element={<HelpCenter />} />
             <Route path="/contact" element={<ContactUs />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
