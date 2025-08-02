@@ -110,6 +110,47 @@ export type Database = {
           },
         ]
       }
+      message_replies: {
+        Row: {
+          admin_user_id: string
+          contact_message_id: string
+          created_at: string
+          email_status: string | null
+          id: string
+          is_email_sent: boolean | null
+          reply_content: string
+          updated_at: string
+        }
+        Insert: {
+          admin_user_id: string
+          contact_message_id: string
+          created_at?: string
+          email_status?: string | null
+          id?: string
+          is_email_sent?: boolean | null
+          reply_content: string
+          updated_at?: string
+        }
+        Update: {
+          admin_user_id?: string
+          contact_message_id?: string
+          created_at?: string
+          email_status?: string | null
+          id?: string
+          is_email_sent?: boolean | null
+          reply_content?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_replies_contact_message_id_fkey"
+            columns: ["contact_message_id"]
+            isOneToOne: false
+            referencedRelation: "contact_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       password_reset_tokens: {
         Row: {
           created_at: string | null
@@ -197,7 +238,11 @@ export type Database = {
           payment_data: Json | null
           payment_method: string | null
           payment_provider_id: string | null
+          refund_amount: number | null
+          refund_reason: string | null
           refund_status: string | null
+          refunded_at: string | null
+          refunded_by: string | null
           status: string
           stripe_session_id: string | null
           updated_at: string
@@ -212,7 +257,11 @@ export type Database = {
           payment_data?: Json | null
           payment_method?: string | null
           payment_provider_id?: string | null
+          refund_amount?: number | null
+          refund_reason?: string | null
           refund_status?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           status?: string
           stripe_session_id?: string | null
           updated_at?: string
@@ -227,7 +276,11 @@ export type Database = {
           payment_data?: Json | null
           payment_method?: string | null
           payment_provider_id?: string | null
+          refund_amount?: number | null
+          refund_reason?: string | null
           refund_status?: string | null
+          refunded_at?: string | null
+          refunded_by?: string | null
           status?: string
           stripe_session_id?: string | null
           updated_at?: string
@@ -460,6 +513,14 @@ export type Database = {
         Args: {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      process_payment_refund: {
+        Args: {
+          payment_id: string
+          refund_amount: number
+          refund_reason: string
         }
         Returns: boolean
       }

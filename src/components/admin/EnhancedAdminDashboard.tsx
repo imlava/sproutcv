@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -251,6 +251,44 @@ const EnhancedAdminDashboard = () => {
       setRefreshing(false);
     }
   };
+
+  // Real-time subscription setup
+  const setupRealtimeSubscriptions = useCallback(() => {
+    const profilesChannel = supabase
+      .channel('admin-profiles-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        loadUsersWithDetails();
+      })
+      .subscribe();
+
+    const rolesChannel = supabase
+      .channel('admin-roles-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_roles' }, () => {
+        loadUsersWithDetails();
+      })
+      .subscribe();
+
+    const messagesChannel = supabase
+      .channel('admin-messages-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
+        loadContactMessages();
+      })
+      .subscribe();
+
+    const paymentsChannel = supabase
+      .channel('admin-payments-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+        loadAllData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(rolesChannel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(paymentsChannel);
+    };
+  }, []);
 
   const loadUsersWithDetails = async () => {
     try {
