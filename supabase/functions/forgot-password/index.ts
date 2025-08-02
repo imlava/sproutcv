@@ -73,6 +73,20 @@ serve(async (req) => {
 
     console.log("Generated token for user:", userData.id);
 
+    // Get client IP address (handle comma-separated IPs from x-forwarded-for)
+    const getClientIP = () => {
+      const forwardedFor = req.headers.get("x-forwarded-for");
+      const realIP = req.headers.get("x-real-ip");
+      
+      if (forwardedFor) {
+        // Take the first IP from comma-separated list
+        return forwardedFor.split(',')[0].trim();
+      }
+      return realIP;
+    };
+    
+    const clientIP = getClientIP();
+
     // Store reset token
     const { error: insertError } = await supabaseAdmin
       .from("password_reset_tokens")
@@ -80,7 +94,7 @@ serve(async (req) => {
         user_id: userData.id,
         token_hash: tokenHash,
         expires_at: expiresAt.toISOString(),
-        ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+        ip_address: clientIP
       });
 
     if (insertError) {
@@ -98,7 +112,7 @@ serve(async (req) => {
           email: email,
           reset_token_generated: true
         },
-        ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+        ip_address: clientIP
       });
 
     // Create reset link

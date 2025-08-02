@@ -96,6 +96,18 @@ serve(async (req) => {
       })
       .eq("id", resetToken.user_id);
 
+    // Get client IP address (handle comma-separated IPs from x-forwarded-for)
+    const getClientIP = () => {
+      const forwardedFor = req.headers.get("x-forwarded-for");
+      const realIP = req.headers.get("x-real-ip");
+      
+      if (forwardedFor) {
+        // Take the first IP from comma-separated list
+        return forwardedFor.split(',')[0].trim();
+      }
+      return realIP;
+    };
+
     // Log security event
     await supabaseAdmin
       .from("security_events")
@@ -106,7 +118,7 @@ serve(async (req) => {
           reset_via_token: true,
           password_strength: newPassword.length >= 12 ? "strong" : "medium"
         },
-        ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+        ip_address: getClientIP()
       });
 
     console.log("Password reset completed successfully");
