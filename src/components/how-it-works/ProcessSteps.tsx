@@ -25,8 +25,8 @@ const ProcessSteps = () => {
       subtitle: "Instant Document Analysis",
       description: "Simply upload your current resume in PDF, Word, or text format. Our AI instantly parses and analyzes every element.",
       features: ["Supports all formats", "Instant parsing", "Secure processing"],
-      color: "from-blue-500/10 to-blue-600/20",
-      iconColor: "text-blue-600",
+      color: "from-primary/10 to-primary/20",
+      iconColor: "text-primary",
       duration: "< 5 seconds"
     },
     {
@@ -36,8 +36,8 @@ const ProcessSteps = () => {
       subtitle: "AI-Powered Job Analysis",
       description: "Paste the job description you're targeting. Our AI analyzes requirements, keywords, and employer preferences.",
       features: ["Keyword extraction", "Requirements mapping", "Industry analysis"],
-      color: "from-purple-500/10 to-purple-600/20",
-      iconColor: "text-purple-600",
+      color: "from-primary/15 to-primary/25",
+      iconColor: "text-primary",
       duration: "10 seconds"
     },
     {
@@ -47,8 +47,8 @@ const ProcessSteps = () => {
       subtitle: "Deep Learning Optimization",
       description: "Our advanced AI rewrites your resume, optimizing keywords, formatting, and content structure for maximum ATS compatibility.",
       features: ["ATS optimization", "Keyword density", "Content enhancement"],
-      color: "from-green-500/10 to-green-600/20",
-      iconColor: "text-green-600",
+      color: "from-primary/20 to-primary/30",
+      iconColor: "text-primary",
       duration: "15 seconds"
     },
     {
@@ -58,8 +58,8 @@ const ProcessSteps = () => {
       subtitle: "Professional Resume Ready",
       description: "Get your optimized resume with a detailed analysis report. Track your improvement score and start applying with confidence.",
       features: ["Multiple formats", "Analysis report", "Improvement tracking"],
-      color: "from-orange-500/10 to-orange-600/20",
-      iconColor: "text-orange-600",
+      color: "from-primary/25 to-primary/35",
+      iconColor: "text-primary",
       duration: "Instant"
     }
   ];
@@ -181,7 +181,11 @@ const ProcessSteps = () => {
                   </div>
                 </div>
 
-                <Button className="w-full" size="lg">
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={() => window.location.href = '/analyze'}
+                >
                   <PlayCircle className="w-5 h-5 mr-2" />
                   See Step {steps[activeStep].id} in Action
                 </Button>
@@ -195,7 +199,11 @@ const ProcessSteps = () => {
           <p className="text-muted-foreground mb-6">
             Ready to see your resume transformed?
           </p>
-          <Button size="lg" className="px-8 py-6 text-lg">
+          <Button 
+            size="lg" 
+            className="px-8 py-6 text-lg"
+            onClick={() => window.location.href = '/analyze'}
+          >
             Start Your Free Analysis
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>

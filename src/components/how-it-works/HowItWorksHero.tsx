@@ -75,7 +75,12 @@ const HowItWorksHero = () => {
               variant="outline" 
               size="lg" 
               className="px-8 py-6 text-lg font-semibold border-2"
-              onClick={() => navigate('#process')}
+              onClick={() => {
+                const processSection = document.getElementById('process');
+                if (processSection) {
+                  processSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
             >
               Watch Process Video
             </Button>
