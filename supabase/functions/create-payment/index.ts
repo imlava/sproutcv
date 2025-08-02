@@ -65,6 +65,8 @@ serve(async (req) => {
       });
 
       if (!razorpayResponse.ok) {
+        const errorData = await razorpayResponse.text();
+        console.error("Razorpay API error:", errorData);
         throw new Error("Failed to create Razorpay order");
       }
 
@@ -117,24 +119,66 @@ serve(async (req) => {
         }),
       });
 
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.text();
+        console.error("PayPal API error:", errorData);
+        throw new Error("Failed to create PayPal order");
+      }
+
       const orderData = await orderResponse.json();
       paymentId = orderData.id;
       paymentUrl = orderData.links.find((link: any) => link.rel === "approve")?.href || "";
     }
 
-    // Record payment in database
-    await supabaseAdmin.from("payments").insert({
-      user_id: user.id,
-      stripe_session_id: paymentId, // Reusing this field for payment ID
-      amount: amount,
-      credits_purchased: credits,
-      status: "pending",
-    });
+    // Record payment in database with enhanced data
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
+
+    const { data: payment, error: paymentError } = await supabaseAdmin
+      .from("payments")
+      .insert({
+        user_id: user.id,
+        stripe_session_id: paymentId, // Reusing this field for payment ID
+        amount: amount,
+        credits_purchased: credits,
+        status: "pending",
+        payment_method: paymentMethod,
+        payment_provider_id: paymentId,
+        payment_data: {
+          user_email: user.email,
+          created_via: "web_app",
+          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+        },
+        expires_at: expiresAt.toISOString()
+      })
+      .select()
+      .single();
+
+    if (paymentError) {
+      console.error("Database error:", paymentError);
+      throw new Error("Failed to record payment");
+    }
+
+    // Log security event
+    await supabaseAdmin
+      .from("security_events")
+      .insert({
+        user_id: user.id,
+        event_type: "payment_initiated",
+        metadata: {
+          payment_method: paymentMethod,
+          amount: amount,
+          credits: credits,
+          payment_id: paymentId
+        },
+        ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+      });
 
     return new Response(JSON.stringify({ 
       url: paymentUrl,
       paymentId: paymentId,
-      paymentMethod: paymentMethod 
+      paymentMethod: paymentMethod,
+      expiresAt: expiresAt.toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

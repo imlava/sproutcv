@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { payment_id, payment_method } = await req.json();
+    const { payment_id, payment_method, signature } = await req.json();
 
     if (!payment_id || !payment_method) {
       throw new Error("Missing payment_id or payment_method");
@@ -26,6 +26,7 @@ serve(async (req) => {
     );
 
     let paymentStatus = "pending";
+    let providerTransactionId = payment_id;
 
     if (payment_method === "razorpay") {
       // Verify Razorpay payment
@@ -36,6 +37,20 @@ serve(async (req) => {
         throw new Error("Razorpay credentials not configured");
       }
 
+      // For Razorpay, we need to verify the signature
+      if (signature) {
+        const crypto = await import("node:crypto");
+        const expectedSignature = crypto
+          .createHmac("sha256", razorpayKey)
+          .update(payment_id)
+          .digest("hex");
+        
+        if (expectedSignature === signature) {
+          paymentStatus = "completed";
+        }
+      }
+
+      // Also verify with Razorpay API
       const razorpayResponse = await fetch(`https://api.razorpay.com/v1/orders/${payment_id}`, {
         headers: {
           "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKey}`)}`,
@@ -44,7 +59,9 @@ serve(async (req) => {
 
       if (razorpayResponse.ok) {
         const razorpayOrder = await razorpayResponse.json();
-        paymentStatus = razorpayOrder.status === "paid" ? "completed" : "pending";
+        if (razorpayOrder.status === "paid") {
+          paymentStatus = "completed";
+        }
       }
     } else if (payment_method === "paypal") {
       // Verify PayPal payment
@@ -78,48 +95,62 @@ serve(async (req) => {
 
       if (orderResponse.ok) {
         const orderData = await orderResponse.json();
-        paymentStatus = orderData.status === "COMPLETED" ? "completed" : "pending";
+        if (orderData.status === "COMPLETED") {
+          paymentStatus = "completed";
+          providerTransactionId = orderData.id;
+        }
       }
     }
 
     if (paymentStatus === "completed") {
-      // Update payment status in database
+      // Use the new secure function to process payment
+      const { data: result, error } = await supabaseAdmin.rpc(
+        'process_successful_payment',
+        {
+          payment_id: payment_id,
+          provider_transaction_id: providerTransactionId
+        }
+      );
+
+      if (error) {
+        console.error("Payment processing error:", error);
+        throw new Error("Failed to process payment");
+      }
+
+      // Log security event
+      await supabaseAdmin
+        .from("security_events")
+        .insert({
+          event_type: "payment_completed",
+          metadata: {
+            payment_method: payment_method,
+            payment_id: payment_id,
+            provider_transaction_id: providerTransactionId
+          },
+          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+        });
+
+      // Get the payment details to return credits added
       const { data: payment } = await supabaseAdmin
         .from("payments")
-        .select("*")
+        .select("credits_purchased, user_id")
         .eq("stripe_session_id", payment_id)
         .single();
 
-      if (payment && payment.status === "pending") {
-        // Update payment status
-        await supabaseAdmin
-          .from("payments")
-          .update({ status: "completed" })
-          .eq("stripe_session_id", payment_id);
-
-        // Add credits to user profile
-        const { data: profile } = await supabaseAdmin
-          .from("profiles")
-          .select("credits")
-          .eq("id", payment.user_id)
-          .single();
-
-        const currentCredits = profile?.credits || 0;
-        const newCredits = currentCredits + payment.credits_purchased;
-
-        await supabaseAdmin
-          .from("profiles")
-          .update({ 
-            credits: newCredits,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", payment.user_id);
-      }
+      return new Response(JSON.stringify({ 
+        status: "completed",
+        credits_added: payment?.credits_purchased || 0,
+        message: "Payment processed successfully"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
     return new Response(JSON.stringify({ 
       status: paymentStatus,
-      credits_added: paymentStatus === "completed" ? payment?.credits_purchased || 0 : 0
+      credits_added: 0,
+      message: "Payment verification pending"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

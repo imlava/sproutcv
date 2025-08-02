@@ -14,12 +14,148 @@ export type Database = {
   }
   public: {
     Tables: {
+      credits_ledger: {
+        Row: {
+          balance_after: number
+          created_at: string | null
+          credits_amount: number
+          description: string | null
+          id: string
+          metadata: Json | null
+          related_analysis_id: string | null
+          related_payment_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string | null
+          credits_amount: number
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          related_analysis_id?: string | null
+          related_payment_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string | null
+          credits_amount?: number
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          related_analysis_id?: string | null
+          related_payment_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credits_ledger_related_analysis_id_fkey"
+            columns: ["related_analysis_id"]
+            isOneToOne: false
+            referencedRelation: "resume_analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credits_ledger_related_payment_id_fkey"
+            columns: ["related_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      password_reset_tokens: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          token_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          token_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          token_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          id: string
+          payment_id: string | null
+          provider_response: Json | null
+          provider_transaction_id: string | null
+          status: string
+          transaction_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          payment_id?: string | null
+          provider_response?: Json | null
+          provider_transaction_id?: string | null
+          status?: string
+          transaction_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          payment_id?: string | null
+          provider_response?: Json | null
+          provider_transaction_id?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
           created_at: string
           credits_purchased: number
+          expires_at: string | null
           id: string
+          payment_data: Json | null
+          payment_method: string | null
+          payment_provider_id: string | null
+          refund_status: string | null
           status: string
           stripe_session_id: string | null
           updated_at: string
@@ -29,7 +165,12 @@ export type Database = {
           amount: number
           created_at?: string
           credits_purchased: number
+          expires_at?: string | null
           id?: string
+          payment_data?: Json | null
+          payment_method?: string | null
+          payment_provider_id?: string | null
+          refund_status?: string | null
           status?: string
           stripe_session_id?: string | null
           updated_at?: string
@@ -39,7 +180,12 @@ export type Database = {
           amount?: number
           created_at?: string
           credits_purchased?: number
+          expires_at?: string | null
           id?: string
+          payment_data?: Json | null
+          payment_method?: string | null
+          payment_provider_id?: string | null
+          refund_status?: string | null
           status?: string
           stripe_session_id?: string | null
           updated_at?: string
@@ -49,27 +195,54 @@ export type Database = {
       }
       profiles: {
         Row: {
+          backup_codes: string[] | null
           created_at: string
           credits: number | null
           email: string
+          email_verified: boolean | null
+          failed_login_attempts: number | null
           full_name: string | null
           id: string
+          last_login: string | null
+          locked_until: string | null
+          password_changed_at: string | null
+          security_preferences: Json | null
+          two_factor_enabled: boolean | null
+          two_factor_secret: string | null
           updated_at: string
         }
         Insert: {
+          backup_codes?: string[] | null
           created_at?: string
           credits?: number | null
           email: string
+          email_verified?: boolean | null
+          failed_login_attempts?: number | null
           full_name?: string | null
           id: string
+          last_login?: string | null
+          locked_until?: string | null
+          password_changed_at?: string | null
+          security_preferences?: Json | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string
         }
         Update: {
+          backup_codes?: string[] | null
           created_at?: string
           credits?: number | null
           email?: string
+          email_verified?: boolean | null
+          failed_login_attempts?: number | null
           full_name?: string | null
           id?: string
+          last_login?: string | null
+          locked_until?: string | null
+          password_changed_at?: string | null
+          security_preferences?: Json | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -128,12 +301,102 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          severity: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          severity?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          device_info: Json | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          is_active: boolean | null
+          last_activity: string | null
+          session_token: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_info?: Json | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string | null
+          session_token?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      consume_analysis_credit: {
+        Args: { target_user_id: string; analysis_id: string }
+        Returns: boolean
+      }
+      process_successful_payment: {
+        Args: { payment_id: string; provider_transaction_id?: string }
+        Returns: boolean
+      }
+      update_user_credits: {
+        Args: {
+          target_user_id: string
+          credit_change: number
+          transaction_type: string
+          description?: string
+          related_payment_id?: string
+          related_analysis_id?: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

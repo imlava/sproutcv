@@ -46,10 +46,10 @@ serve(async (req) => {
       throw new Error("Insufficient credits. Please purchase more credits to continue.");
     }
 
-    // Perform AI analysis (simplified version)
+    // Perform AI analysis
     const analysisResults = await performResumeAnalysis(resume_text, job_description);
 
-    // Save analysis to database
+    // Save analysis to database first
     const { data: analysis, error: analysisError } = await supabaseAdmin
       .from("resume_analyses")
       .insert({
@@ -70,17 +70,29 @@ serve(async (req) => {
       .single();
 
     if (analysisError) {
+      console.error("Analysis save error:", analysisError);
       throw analysisError;
     }
 
-    // Deduct credit from user
-    await supabaseAdmin
-      .from("profiles")
-      .update({ 
-        credits: profile.credits - 1,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", user.id);
+    // Use the new secure function to consume credits
+    const { data: creditResult, error: creditError } = await supabaseAdmin.rpc(
+      'consume_analysis_credit',
+      {
+        target_user_id: user.id,
+        analysis_id: analysis.id
+      }
+    );
+
+    if (creditError || !creditResult) {
+      console.error("Credit consumption error:", creditError);
+      // Delete the analysis if credit consumption fails
+      await supabaseAdmin
+        .from("resume_analyses")
+        .delete()
+        .eq("id", analysis.id);
+      
+      throw new Error("Failed to process credit transaction");
+    }
 
     return new Response(JSON.stringify(analysisResults), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
