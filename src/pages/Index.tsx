@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
+import Footer from '@/components/Footer';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -18,7 +19,7 @@ const Index = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
       </div>
     );
   }
@@ -31,6 +32,7 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <Hero />
+      <Footer />
     </div>
   );
 };

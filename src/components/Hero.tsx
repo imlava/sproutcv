@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Zap, Target, FileCheck, TrendingUp, ArrowRight, Sprout } from 'lucide-react';
+import { CheckCircle, Zap, Target, FileCheck, TrendingUp, ArrowRight, Sprout, Shield, Clock, Star } from 'lucide-react';
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -66,8 +66,8 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Feature Preview */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
+        {/* Features Section */}
+        <div id="features" className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
               Watch Your Resume Score Grow
@@ -130,7 +130,7 @@ const Hero = () => {
         </div>
 
         {/* Pricing Section */}
-        <div className="text-center mb-16">
+        <div id="pricing" className="text-center mb-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple Growth Pricing</h2>
           <p className="text-lg text-gray-600 mb-12">
             Start free, pay only for what you need. No recurring subscriptions.
@@ -146,7 +146,7 @@ const Hero = () => {
                 <li>✓ Basic Score Report</li>
                 <li>✓ ATS Compatibility Check</li>
               </ul>
-              <Button variant="outline" className="w-full">Get Started</Button>
+              <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>Get Started</Button>
             </Card>
             
             <Card className="p-6 text-center border-2 border-blue-500 relative">
@@ -162,7 +162,7 @@ const Hero = () => {
                 <li>✓ Export Reports</li>
                 <li>✓ No Expiration</li>
               </ul>
-              <Button className="w-full">Buy Credits</Button>
+              <Button className="w-full" onClick={() => navigate('/auth')}>Buy Credits</Button>
             </Card>
             
             <Card className="p-6 text-center">
@@ -175,7 +175,43 @@ const Hero = () => {
                 <li>✓ Advanced Analytics</li>
                 <li>✓ Bulk Analysis</li>
               </ul>
-              <Button variant="outline" className="w-full">Buy Credits</Button>
+              <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>Buy Credits</Button>
+            </Card>
+          </div>
+        </div>
+
+        {/* About Section */}
+        <div id="about" className="mb-16">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose SproutCV?</h2>
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+              We're committed to helping professionals like you achieve career success through cutting-edge AI technology and proven strategies.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Card className="p-6 text-center">
+              <Shield className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Secure & Private</h3>
+              <p className="text-gray-600">
+                Your data is encrypted and never shared. We maintain the highest security standards to protect your information.
+              </p>
+            </Card>
+            
+            <Card className="p-6 text-center">
+              <Clock className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Lightning Fast</h3>
+              <p className="text-gray-600">
+                Get comprehensive resume analysis and optimization suggestions in under 30 seconds with our advanced AI.
+              </p>
+            </Card>
+            
+            <Card className="p-6 text-center">
+              <Star className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Proven Results</h3>
+              <p className="text-gray-600">
+                Join thousands of successful professionals who've increased their interview rates by 3x using SproutCV.
+              </p>
             </Card>
           </div>
         </div>
