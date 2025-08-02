@@ -50,9 +50,9 @@ const Hero = () => {
               size="lg" 
               variant="outline" 
               className="text-lg px-8 py-6 border-2"
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/how-it-works')}
             >
-              View Sample Report
+              How It Works
             </Button>
           </div>
           
