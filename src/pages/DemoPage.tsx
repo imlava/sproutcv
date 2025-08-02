@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import AnimatedDemo from '@/components/AnimatedDemo';
 import { 
   ArrowRight, 
   Upload, 
@@ -119,14 +119,14 @@ const DemoPage = () => {
             </Button>
           </div>
 
-          {/* How It Works Steps */}
+          {/* Interactive Demo Section */}
           <div className="mb-20">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                4 Steps to Career Success
+                Live Interactive Demo
               </h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Our streamlined process makes resume optimization effortless and effective
+                Experience the complete SproutCV workflow with our automated demo
               </p>
             </div>
 
@@ -150,41 +150,8 @@ const DemoPage = () => {
                 ))}
               </div>
               
-              {/* Demo Video/Image Placeholder */}
-              <Card className="p-8 bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-2xl">
-                <div className="text-center mb-8">
-                  <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <BarChart3 className="h-10 w-10 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4">Live Demo</h3>
-                  <p className="text-gray-300 mb-6">
-                    See a real resume transformation in action
-                  </p>
-                </div>
-                
-                {/* Simulated Demo Interface */}
-                <div className="bg-gray-800 rounded-lg p-6 mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-sm text-gray-400">Resume Score</span>
-                    <span className="text-2xl font-bold text-green-400">87%</span>
-                  </div>
-                  <div className="space-y-3">
-                    {['ATS Compatibility: 94%', 'Keyword Match: 89%', 'Format Score: 92%'].map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm">
-                        <span className="text-gray-300">{item.split(':')[0]}</span>
-                        <span className="text-white font-semibold">{item.split(':')[1]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <Button 
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                  onClick={() => navigate('/auth')}
-                >
-                  Start Your Analysis
-                </Button>
-              </Card>
+              {/* Animated Demo Component */}
+              <AnimatedDemo />
             </div>
           </div>
 
