@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import UserDashboard from '@/components/dashboard/UserDashboard';
 
 const Dashboard = () => {
@@ -12,6 +13,25 @@ const Dashboard = () => {
     if (!loading && !user) {
       navigate('/auth');
     }
+  }, [user, loading, navigate]);
+
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (user && !loading) {
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .single();
+        
+        if (data) {
+          navigate('/admin');
+        }
+      }
+    };
+
+    checkAdminRole();
   }, [user, loading, navigate]);
 
   if (loading) {
