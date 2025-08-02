@@ -1,470 +1,333 @@
-import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Upload, 
-  FileText, 
-  Briefcase, 
-  Sparkles, 
-  Target, 
-  Zap, 
-  FileCheck, 
-  TrendingUp,
-  CheckCircle,
-  AlertTriangle,
-  ArrowRight,
-  Play,
-  RotateCcw,
-  Download,
-  Star,
-  Users,
-  Clock,
-  DollarSign
-} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import TailoredResumePreview from '@/components/TailoredResumePreview';
+import { 
+  ArrowRight, 
+  Upload, 
+  FileText, 
+  BarChart3, 
+  Download, 
+  CheckCircle, 
+  Target, 
+  Zap, 
+  Users,
+  Clock,
+  Star,
+  TrendingUp,
+  Shield
+} from 'lucide-react';
 
 const DemoPage = () => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [showTailoredResume, setShowTailoredResume] = useState(false);
-  const [animatedScores, setAnimatedScores] = useState({
-    overall: 0,
-    keyword: 0,
-    skills: 0,
-    ats: 0,
-    experience: 0
-  });
-
-  const finalScores = {
-    overall: 87,
-    keyword: 92,
-    skills: 85,
-    ats: 89,
-    experience: 82
-  };
-
-  const mockSuggestions = [
-    {
-      type: 'keyword',
-      priority: 'high' as const,
-      title: 'Add Missing Keywords',
-      description: 'Include "React", "Node.js", and "AWS" in your technical skills section to better match the job requirements.',
-      action: 'Add these 3 keywords to your skills section'
-    },
-    {
-      type: 'format',
-      priority: 'medium' as const,
-      title: 'Improve ATS Formatting',
-      description: 'Use standard section headers like "Work Experience" instead of creative titles for better ATS parsing.',
-      action: 'Update section headers to standard format'
-    },
-    {
-      type: 'content',
-      priority: 'low' as const,
-      title: 'Quantify Achievements',
-      description: 'Add specific numbers and metrics to showcase your impact in previous roles.',
-      action: 'Include 2-3 quantified achievements per role'
-    }
-  ];
 
   const steps = [
     {
-      title: 'Upload Your Resume',
-      description: 'Start by uploading your PDF resume',
+      step: 1,
       icon: Upload,
-      component: 'upload'
+      title: "Upload Your Resume",
+      description: "Simply drag and drop your resume (PDF, DOC, DOCX) or paste the content directly",
+      color: "bg-blue-100 text-blue-600"
     },
     {
-      title: 'Add Job Description',
-      description: 'Paste the job posting you\'re interested in',
-      icon: Briefcase,
-      component: 'job'
+      step: 2,
+      icon: FileText,
+      title: "Add Job Description",
+      description: "Paste the job description you're targeting to get personalized optimization",
+      color: "bg-green-100 text-green-600"
     },
     {
-      title: 'AI Analysis',
-      description: 'Our AI analyzes your match score',
-      icon: Sparkles,
-      component: 'analysis'
+      step: 3,
+      icon: BarChart3,
+      title: "AI Analysis & Scoring",
+      description: "Our AI analyzes your resume against the job requirements and provides detailed insights",
+      color: "bg-purple-100 text-purple-600"
     },
     {
-      title: 'Get Tailored Resume',
-      description: 'Download your optimized, job-ready resume',
-      icon: FileCheck,
-      component: 'results'
+      step: 4,
+      icon: Download,
+      title: "Export Optimized Resume",
+      description: "Download your tailored, ATS-friendly resume and land more interviews",
+      color: "bg-orange-100 text-orange-600"
     }
   ];
 
-  const animateScores = () => {
-    setIsAnimating(true);
-    const duration = 2000;
-    const steps = 50;
-    const interval = duration / steps;
-
-    let currentStep = 0;
-    const timer = setInterval(() => {
-      currentStep++;
-      const progress = currentStep / steps;
-      
-      setAnimatedScores({
-        overall: Math.floor(finalScores.overall * progress),
-        keyword: Math.floor(finalScores.keyword * progress),
-        skills: Math.floor(finalScores.skills * progress),
-        ats: Math.floor(finalScores.ats * progress),
-        experience: Math.floor(finalScores.experience * progress)
-      });
-
-      if (currentStep >= steps) {
-        clearInterval(timer);
-        setIsAnimating(false);
-        setShowResults(true);
-        setTimeout(() => setShowTailoredResume(true), 1500);
-      }
-    }, interval);
-  };
-
-  const startDemo = () => {
-    setCurrentStep(1);
-    setTimeout(() => setCurrentStep(2), 2000);
-    setTimeout(() => setCurrentStep(3), 4000);
-    setTimeout(() => {
-      setCurrentStep(4);
-      animateScores();
-    }, 6000);
-  };
-
-  const resetDemo = () => {
-    setCurrentStep(0);
-    setShowResults(false);
-    setShowTailoredResume(false);
-    setAnimatedScores({
-      overall: 0,
-      keyword: 0,
-      skills: 0,
-      ats: 0,
-      experience: 0
-    });
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getScoreBgColor = (score: number) => {
-    if (score >= 80) return 'bg-green-100 border-green-200';
-    if (score >= 60) return 'bg-yellow-100 border-yellow-200';
-    return 'bg-red-100 border-red-200';
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const features = [
+    {
+      icon: Target,
+      title: "99% ATS Compatibility",
+      description: "Ensure your resume passes through all major applicant tracking systems",
+      stat: "99%"
+    },
+    {
+      icon: TrendingUp,
+      title: "4x More Interviews",
+      description: "Our users see a 400% increase in interview requests on average",
+      stat: "4x"
+    },
+    {
+      icon: Clock,
+      title: "30-Second Analysis",
+      description: "Get comprehensive feedback faster than you can read through your resume",
+      stat: "30s"
+    },
+    {
+      icon: Users,
+      title: "25,000+ Success Stories",
+      description: "Join thousands of professionals who've accelerated their careers",
+      stat: "25k+"
     }
-  };
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Hero Section */}
-      <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50 py-16">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            How SproutCV Works
-          </h1>
-          <p className="text-xl text-gray-600 mb-6">
-            Watch our AI transform your resume into a job-winning, tailored document in real-time
-          </p>
-          
-          {/* Social Proof */}
-          <div className="flex items-center justify-center space-x-8 mb-8 text-sm text-gray-600">
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>10,000+ users</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Star className="h-4 w-4 text-yellow-500" />
-              <span>4.9/5 rating</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4" />
-              <span>2 minutes</span>
-            </div>
+      <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50 relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-gray-100 bg-[size:20px_20px] opacity-30" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          {/* Hero Section */}
+          <div className="pt-20 pb-16 text-center">
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-200 px-4 py-2 text-sm font-semibold mb-6">
+              🚀 See SproutCV In Action
+            </Badge>
+            
+            <h1 className="text-5xl sm:text-6xl font-black text-gray-900 mb-6 leading-tight">
+              How SproutCV
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600 block mt-2">
+                Transforms Resumes
+              </span>
+            </h1>
+            
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+              Watch how our AI-powered platform analyzes, optimizes, and transforms your resume 
+              into an interview-generating machine in just 4 simple steps.
+            </p>
+            
+            <Button 
+              size="lg" 
+              className="text-lg px-10 py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-105 mb-12"
+              onClick={() => navigate('/auth')}
+            >
+              Try It Free Now
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
-          
-          {currentStep === 0 && (
-            <div className="space-y-6">
-              <Button 
-                onClick={startDemo}
-                size="lg"
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-4 text-lg"
-              >
-                <Play className="mr-2 h-5 w-5" />
-                See How It Works
-              </Button>
-              <p className="text-sm text-gray-500">
-                This interactive demo shows you exactly how our AI tailors your resume for any job
+
+          {/* How It Works Steps */}
+          <div className="mb-20">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                4 Steps to Career Success
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Our streamlined process makes resume optimization effortless and effective
               </p>
             </div>
-          )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div className="space-y-8">
+                {steps.map((step, index) => (
+                  <div key={index} className="flex items-start space-x-6 p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200">
+                    <div className={`flex-shrink-0 w-16 h-16 ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}>
+                      <step.icon className="h-8 w-8" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center mb-3">
+                        <span className="bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm font-bold px-3 py-1 rounded-full mr-3">
+                          Step {step.step}
+                        </span>
+                        <h3 className="text-xl font-bold text-gray-900">{step.title}</h3>
+                      </div>
+                      <p className="text-gray-600 leading-relaxed">{step.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Demo Video/Image Placeholder */}
+              <Card className="p-8 bg-gradient-to-br from-gray-900 to-gray-800 text-white shadow-2xl">
+                <div className="text-center mb-8">
+                  <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <BarChart3 className="h-10 w-10 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4">Live Demo</h3>
+                  <p className="text-gray-300 mb-6">
+                    See a real resume transformation in action
+                  </p>
+                </div>
+                
+                {/* Simulated Demo Interface */}
+                <div className="bg-gray-800 rounded-lg p-6 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm text-gray-400">Resume Score</span>
+                    <span className="text-2xl font-bold text-green-400">87%</span>
+                  </div>
+                  <div className="space-y-3">
+                    {['ATS Compatibility: 94%', 'Keyword Match: 89%', 'Format Score: 92%'].map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-sm">
+                        <span className="text-gray-300">{item.split(':')[0]}</span>
+                        <span className="text-white font-semibold">{item.split(':')[1]}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <Button 
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  onClick={() => navigate('/auth')}
+                >
+                  Start Your Analysis
+                </Button>
+              </Card>
+            </div>
+          </div>
+
+          {/* Features Grid */}
+          <div className="mb-20">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Why 25,000+ Professionals Choose SproutCV
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Real results, backed by data and trusted by professionals worldwide
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {features.map((feature, index) => (
+                <Card key={index} className="p-6 text-center hover:shadow-xl transition-all duration-200 bg-white">
+                  <div className="bg-gradient-to-r from-green-100 to-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <feature.icon className="h-8 w-8 text-green-600" />
+                  </div>
+                  <div className="text-3xl font-black text-gray-900 mb-2">{feature.stat}</div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">{feature.title}</h3>
+                  <p className="text-gray-600 text-sm leading-relaxed">{feature.description}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Success Stories */}
+          <div className="mb-20">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                Real Success Stories
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                See how SproutCV has transformed careers across industries
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  name: "Sarah Chen",
+                  role: "Software Engineer at Google",
+                  quote: "SproutCV helped me identify exactly what keywords I was missing. Landed 5 interviews in 2 weeks!",
+                  improvement: "Interview rate increased by 500%"
+                },
+                {
+                  name: "Michael Rodriguez",
+                  role: "Product Manager at Microsoft",
+                  quote: "The AI suggestions were spot-on. My resume went from generic to compelling in minutes.",
+                  improvement: "Resume score: 45% → 94%"
+                },
+                {
+                  name: "Emily Johnson",
+                  role: "Marketing Director at Spotify",
+                  quote: "Finally, a tool that understands ATS systems. No more black hole applications!",
+                  improvement: "Response rate: 2% → 35%"
+                }
+              ].map((story, index) => (
+                <Card key={index} className="p-8 bg-white hover:shadow-xl transition-all duration-200">
+                  <div className="flex items-center mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-4">
+                      {story.name[0]}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">{story.name}</h4>
+                      <p className="text-sm text-gray-600">{story.role}</p>
+                    </div>
+                  </div>
+                  <p className="text-gray-700 mb-4 italic">"{story.quote}"</p>
+                  <Badge className="bg-green-100 text-green-800 text-xs">
+                    {story.improvement}
+                  </Badge>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Security & Trust */}
+          <div className="mb-20">
+            <Card className="p-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center">
+              <Shield className="h-16 w-16 mx-auto mb-6 opacity-90" />
+              <h2 className="text-3xl font-bold mb-6">Enterprise-Grade Security</h2>
+              <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
+                Your privacy is our priority. All data is encrypted, never shared, and automatically deleted 
+                after processing. We're SOC 2 compliant and trusted by Fortune 500 companies.
+              </p>
+              <div className="flex flex-wrap justify-center gap-8 text-sm">
+                <div className="flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  End-to-End Encryption
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  SOC 2 Compliant
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  GDPR Compliant
+                </div>
+                <div className="flex items-center">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Zero Data Retention
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Final CTA */}
+          <div className="text-center mb-20">
+            <Card className="p-16 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-2xl">
+              <Star className="h-16 w-16 mx-auto mb-6 opacity-90" />
+              <h2 className="text-4xl font-bold mb-6">
+                Ready to Transform Your Career?
+              </h2>
+              <p className="text-xl mb-10 text-green-100 max-w-3xl mx-auto">
+                Join 25,000+ professionals who've accelerated their careers with SproutCV. 
+                Your next opportunity is just one optimized resume away.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                  size="lg" 
+                  className="bg-white text-green-600 hover:bg-gray-100 text-lg px-10 py-6 shadow-xl hover:shadow-2xl transition-all duration-200"
+                  onClick={() => navigate('/auth')}
+                >
+                  Start Free Trial
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="border-2 border-white text-white hover:bg-white hover:text-green-600 text-lg px-10 py-6 transition-all duration-200"
+                  onClick={() => navigate('/analyze')}
+                >
+                  See Live Demo
+                </Button>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
-
-      {/* Progress Steps */}
-      {currentStep > 0 && (
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex items-center justify-center mb-12">
-            {steps.map((step, index) => {
-              const StepIcon = step.icon;
-              const isActive = currentStep >= index + 1;
-              const isCompleted = currentStep > index + 1;
-              
-              return (
-                <div key={index} className="flex items-center">
-                  <div className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-500 ${
-                    isActive ? 'bg-green-100 border border-green-200' : 'bg-gray-100'
-                  }`}>
-                    <div className={`p-2 rounded-full transition-colors ${
-                      isCompleted ? 'bg-green-600' : isActive ? 'bg-green-500' : 'bg-gray-400'
-                    }`}>
-                      {isCompleted ? (
-                        <CheckCircle className="h-5 w-5 text-white" />
-                      ) : (
-                        <StepIcon className="h-5 w-5 text-white" />
-                      )}
-                    </div>
-                    <div>
-                      <h3 className={`font-medium transition-colors ${
-                        isActive ? 'text-green-800' : 'text-gray-600'
-                      }`}>
-                        {step.title}
-                      </h3>
-                      <p className={`text-sm transition-colors ${
-                        isActive ? 'text-green-600' : 'text-gray-500'
-                      }`}>
-                        {step.description}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {index < steps.length - 1 && (
-                    <ArrowRight className="h-6 w-6 text-gray-400 mx-4" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Step Content */}
-          <div className="space-y-8">
-            {/* Step 1: Upload Resume */}
-            {currentStep >= 1 && (
-              <Card className={`p-6 transition-all duration-500 ${
-                currentStep === 1 ? 'animate-fade-in border-2 border-green-200' : 'opacity-70'
-              }`}>
-                <div className="flex items-center space-x-2 mb-4">
-                  <Upload className="h-5 w-5 text-green-600" />
-                  <h2 className="text-xl font-semibold">Step 1: Resume Upload</h2>
-                </div>
-                
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-6 w-6 text-green-600" />
-                    <div>
-                      <p className="font-medium text-green-800">Sample Resume Uploaded</p>
-                      <p className="text-sm text-green-600">john_doe_software_engineer.pdf</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Step 2: Job Description */}
-            {currentStep >= 2 && (
-              <Card className={`p-6 transition-all duration-500 ${
-                currentStep === 2 ? 'animate-fade-in border-2 border-green-200' : 'opacity-70'
-              }`}>
-                <div className="flex items-center space-x-2 mb-4">
-                  <Briefcase className="h-5 w-5 text-blue-600" />
-                  <h2 className="text-xl font-semibold">Step 2: Job Description Analysis</h2>
-                </div>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h3 className="font-medium text-blue-800 mb-2">Senior Software Engineer - Tech Corp</h3>
-                  <p className="text-sm text-blue-600 mb-4">
-                    We're looking for a Senior Software Engineer with expertise in React, Node.js, 
-                    and AWS to join our growing team...
-                  </p>
-                  <div className="flex items-center text-sm text-blue-600">
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Job requirements extracted and analyzed
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Step 3: AI Analysis */}
-            {currentStep >= 3 && (
-              <Card className={`p-6 transition-all duration-500 ${
-                currentStep === 3 ? 'animate-fade-in border-2 border-green-200' : 'opacity-70'
-              }`}>
-                <div className="flex items-center space-x-2 mb-4">
-                  <Sparkles className="h-5 w-5 text-purple-600" />
-                  <h2 className="text-xl font-semibold">Step 3: AI Analysis in Progress</h2>
-                </div>
-                
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-600 border-t-transparent"></div>
-                      <span className="text-purple-800">Analyzing resume content...</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-600 border-t-transparent"></div>
-                      <span className="text-purple-800">Matching keywords and skills...</span>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-purple-600 border-t-transparent"></div>
-                      <span className="text-purple-800">Creating tailored version...</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Step 4: Results */}
-            {currentStep >= 4 && (
-              <div className="space-y-8 animate-fade-in">
-                {/* Tailored Resume Output */}
-                {showTailoredResume && (
-                  <div className="animate-fade-in">
-                    <TailoredResumePreview />
-                  </div>
-                )}
-
-                {/* Overall Score */}
-                <Card className={`p-8 ${getScoreBgColor(animatedScores.overall)} border-2`}>
-                  <div className="text-center">
-                    <div className="inline-flex items-center justify-center w-32 h-32 bg-white rounded-full shadow-lg mb-6 border-4 border-white">
-                      <div className="text-center">
-                        <span className={`text-4xl font-bold ${getScoreColor(animatedScores.overall)}`}>
-                          {animatedScores.overall}
-                        </span>
-                        <div className="text-lg font-medium text-gray-600">/ 100</div>
-                      </div>
-                    </div>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-3">Match Score Analysis</h2>
-                    <p className="text-lg text-gray-700 max-w-2xl mx-auto">
-                      {animatedScores.overall >= 80 
-                        ? '🎉 Your tailored resume is now perfectly optimized for this position!' 
-                        : animatedScores.overall >= 60 
-                        ? '👍 Great improvement! Your resume is now much more competitive.' 
-                        : '🔧 Significant improvements made. Your resume is now job-ready!'}
-                    </p>
-                  </div>
-                </Card>
-
-                {/* Detailed Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[
-                    { name: 'Keyword Match', score: animatedScores.keyword, icon: Target, description: 'How well your resume matches job keywords' },
-                    { name: 'Skills Alignment', score: animatedScores.skills, icon: Zap, description: 'Relevance of your skills to requirements' },
-                    { name: 'ATS Compatibility', score: animatedScores.ats, icon: FileCheck, description: 'How well ATS systems will parse your resume' },
-                    { name: 'Experience Relevance', score: animatedScores.experience, icon: TrendingUp, description: 'How your experience aligns with the role' }
-                  ].map((metric, index) => {
-                    const IconComponent = metric.icon;
-                    return (
-                      <Card key={index} className="p-6 hover:shadow-lg transition-all duration-200">
-                        <div className="flex items-start space-x-4">
-                          <div className={`p-3 rounded-lg ${metric.score >= 80 ? 'bg-green-100' : metric.score >= 60 ? 'bg-yellow-100' : 'bg-red-100'}`}>
-                            <IconComponent className={`h-6 w-6 ${metric.score >= 80 ? 'text-green-600' : metric.score >= 60 ? 'text-yellow-600' : 'text-red-600'}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-3">
-                              <h3 className="font-semibold text-gray-900 text-lg">{metric.name}</h3>
-                              <span className={`text-2xl font-bold ${getScoreColor(metric.score)}`}>
-                                {metric.score}%
-                              </span>
-                            </div>
-                            <Progress value={metric.score} className="mb-3 h-3" />
-                            <p className="text-sm text-gray-600 leading-relaxed">{metric.description}</p>
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                {/* Call to Action */}
-                {showResults && (
-                  <div className="text-center space-y-6 animate-fade-in">
-                    <Card className="p-8 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                        Ready to Create Your Own Tailored Resume?
-                      </h3>
-                      <p className="text-gray-700 mb-6 text-lg">
-                        Get personalized analysis and tailored resumes for every job application
-                      </p>
-                      
-                      {/* Pricing Teaser */}
-                      <div className="bg-white p-6 rounded-lg border border-green-200 mb-6 max-w-md mx-auto">
-                        <div className="flex items-center justify-center space-x-2 mb-4">
-                          <DollarSign className="h-5 w-5 text-green-600" />
-                          <span className="text-lg font-semibold text-gray-900">Starting at just $2 per analysis</span>
-                        </div>
-                        <div className="space-y-2 text-sm text-gray-600">
-                          <div className="flex items-center justify-center space-x-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span>Instant AI analysis</span>
-                          </div>
-                          <div className="flex items-center justify-center space-x-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span>Tailored resume download</span>
-                          </div>
-                          <div className="flex items-center justify-center space-x-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
-                            <span>ATS optimization</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-x-4">
-                        <Button 
-                          onClick={() => navigate('/auth')}
-                          size="lg"
-                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                        >
-                          Start Optimizing Now
-                        </Button>
-                        <Button 
-                          onClick={resetDemo}
-                          variant="outline"
-                          size="lg"
-                        >
-                          <RotateCcw className="mr-2 h-5 w-5" />
-                          Watch Again
-                        </Button>
-                      </div>
-                    </Card>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
+      
       <Footer />
     </div>
   );

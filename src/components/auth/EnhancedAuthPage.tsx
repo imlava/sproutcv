@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { AuthFormLayout } from './AuthFormLayout';
 import { SignInForm } from './SignInForm';
@@ -10,24 +11,24 @@ const EnhancedAuthPage = () => {
   const getTitle = () => {
     switch (currentView) {
       case 'signin':
-        return 'Welcome back';
+        return 'Welcome back to SproutCV';
       case 'signup':
-        return 'Create your account';
+        return 'Start growing your career';
       case 'forgot':
         return 'Reset your password';
       default:
-        return 'Welcome';
+        return 'Welcome to SproutCV';
     }
   };
 
   const getDescription = () => {
     switch (currentView) {
       case 'signin':
-        return 'Sign in to your account to continue optimizing your resume';
+        return 'Sign in to continue optimizing your resume and accelerating your career growth';
       case 'signup':
-        return 'Join thousands of professionals improving their resumes with AI';
+        return 'Join 25,000+ professionals who\'ve transformed their careers with AI-powered resume optimization';
       case 'forgot':
-        return 'Enter your email to receive a password reset link';
+        return 'Enter your email address and we\'ll send you a secure link to reset your password';
       default:
         return '';
     }

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Zap, Target, FileCheck, TrendingUp, ArrowRight, Sprout, Shield, Clock, Star } from 'lucide-react';
+import { CheckCircle, Zap, Target, FileCheck, TrendingUp, ArrowRight, Sprout, Shield, Clock, Star, Users, Award, BarChart3 } from 'lucide-react';
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -17,30 +17,40 @@ const Hero = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50">
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-        <div className="text-center">
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-xl mr-3">
-              <Sprout className="h-7 w-7 text-green-600" />
+    <div className="bg-gradient-to-br from-green-50 via-white to-emerald-50 relative overflow-hidden">
+      {/* Background Elements */}
+      <div className="absolute inset-0 bg-grid-gray-100 bg-[size:20px_20px] opacity-30" />
+      <div className="absolute top-0 -right-4 w-72 h-72 bg-green-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob" />
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-emerald-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000" />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        {/* Hero Section */}
+        <div className="pt-20 pb-16 text-center">
+          <div className="flex items-center justify-center mb-6">
+            <div className="flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-xl mr-4">
+              <Sprout className="h-8 w-8 text-white" />
             </div>
-            <Badge className="bg-green-100 text-green-800 hover:bg-green-200">
-              🌱 AI-Powered Resume Growth
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-200 px-4 py-2 text-sm font-semibold">
+              🚀 AI-Powered Career Growth
             </Badge>
           </div>
-          <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+          
+          <h1 className="text-5xl sm:text-7xl font-black text-gray-900 mb-6 leading-tight tracking-tight">
             Grow Your Career with
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600"> SproutCV</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600 block mt-2">
+              SproutCV
+            </span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Get instant AI-powered analysis, ATS optimization, and personalized suggestions 
-            to land more interviews. Watch your career sprout with every optimized resume.
+          
+          <p className="text-xl sm:text-2xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed font-light">
+            Transform your resume with AI-powered analysis, ATS optimization, and personalized insights. 
+            <span className="font-semibold text-green-700"> Join 25,000+ professionals</span> who've accelerated their careers.
           </p>
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button 
               size="lg" 
-              className="text-lg px-8 py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              className="text-lg px-10 py-6 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-xl hover:shadow-2xl transition-all duration-200 transform hover:scale-105"
               onClick={() => navigate('/auth')}
             >
               Start Growing Free
@@ -49,208 +59,296 @@ const Hero = () => {
             <Button 
               size="lg" 
               variant="outline" 
-              className="text-lg px-8 py-6 border-2"
+              className="text-lg px-10 py-6 border-2 border-gray-300 hover:border-green-300 hover:bg-green-50 transition-all duration-200"
               onClick={() => navigate('/how-it-works')}
             >
-              How It Works
+              See How It Works
             </Button>
           </div>
           
           {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-600 mb-16">
-            <div className="flex items-center">
-              <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-              10,000+ Resumes Grown
+          <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-600 mb-20">
+            <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm">
+              <Users className="h-4 w-4 text-green-500 mr-2" />
+              25,000+ Users
             </div>
-            <div className="flex items-center">
-              <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-              95% ATS Compatibility
+            <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm">
+              <Award className="h-4 w-4 text-blue-500 mr-2" />
+              98% ATS Compatible
             </div>
-            <div className="flex items-center">
-              <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-              3x More Interviews
+            <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm">
+              <BarChart3 className="h-4 w-4 text-purple-500 mr-2" />
+              4x More Interviews
             </div>
           </div>
         </div>
 
         {/* Features Section */}
-        <div id="features" className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Watch Your Resume Score Grow
+        <div id="features" className="mb-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
+              AI-Powered Resume Intelligence
             </h2>
-            <p className="text-lg text-gray-600 mb-8">
-              Our AI nurtures your resume against job descriptions and provides 
-              actionable insights to help your career flourish.
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Our advanced AI analyzes your resume against job descriptions and provides 
+              actionable insights to maximize your interview potential.
             </p>
-            <div className="space-y-4">
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-8">
               {[
-                { icon: Target, title: "Smart Keyword Growth", desc: "Match job requirements perfectly" },
-                { icon: FileCheck, title: "ATS Compatibility", desc: "Pass automated screening systems" },
-                { icon: TrendingUp, title: "Impact Cultivation", desc: "Quantify your achievements" },
-                { icon: Zap, title: "Instant Growth", desc: "Get results in under 30 seconds" }
+                { 
+                  icon: Target, 
+                  title: "Smart Keyword Optimization", 
+                  desc: "AI identifies and suggests the exact keywords recruiters are looking for",
+                  color: "bg-blue-100 text-blue-600"
+                },
+                { 
+                  icon: FileCheck, 
+                  title: "ATS Compatibility Check", 
+                  desc: "Ensure your resume passes through applicant tracking systems flawlessly",
+                  color: "bg-green-100 text-green-600"
+                },
+                { 
+                  icon: TrendingUp, 
+                  title: "Impact Quantification", 
+                  desc: "Transform weak bullet points into powerful, metrics-driven achievements",
+                  color: "bg-purple-100 text-purple-600"
+                },
+                { 
+                  icon: Zap, 
+                  title: "Instant Analysis", 
+                  desc: "Get comprehensive feedback and optimization suggestions in under 30 seconds",
+                  color: "bg-orange-100 text-orange-600"
+                }
               ].map((feature, index) => (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className="bg-green-100 p-2 rounded-lg">
-                    <feature.icon className="h-5 w-5 text-green-600" />
+                <div key={index} className="flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200">
+                  <div className={`p-3 rounded-xl ${feature.color}`}>
+                    <feature.icon className="h-6 w-6" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">{feature.title}</h4>
-                    <p className="text-gray-600">{feature.desc}</p>
+                    <h4 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h4>
+                    <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-          
-          <Card className="p-8 shadow-2xl border-0 bg-gradient-to-br from-white to-green-50">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-                <span className="text-2xl font-bold text-green-600">87</span>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900">Overall Growth Score</h3>
-              <p className="text-gray-600">Your resume is flourishing!</p>
-            </div>
             
-            <div className="space-y-4">
-              {[
-                { name: "Keyword Match", score: 92 },
-                { name: "ATS Compatibility", score: 85 },
-                { name: "Skills Alignment", score: 89 },
-                { name: "Experience Fit", score: 82 }
-              ].map((metric, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">{metric.name}</span>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
+            <Card className="p-8 shadow-2xl border-0 bg-gradient-to-br from-white to-green-50 transform hover:scale-105 transition-all duration-200">
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-6 shadow-xl">
+                  <span className="text-3xl font-black text-white">94</span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Resume Score</h3>
+                <p className="text-gray-600">Optimized for maximum impact!</p>
+              </div>
+              
+              <div className="space-y-6">
+                {[
+                  { name: "Keyword Match", score: 96, color: "from-green-500 to-emerald-500" },
+                  { name: "ATS Compatibility", score: 94, color: "from-blue-500 to-cyan-500" },
+                  { name: "Skills Alignment", score: 92, color: "from-purple-500 to-pink-500" },
+                  { name: "Experience Match", score: 89, color: "from-orange-500 to-red-500" }
+                ].map((metric, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">{metric.name}</span>
+                      <span className="text-sm font-bold text-gray-900">{metric.score}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                       <div 
-                        className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full" 
+                        className={`bg-gradient-to-r ${metric.color} h-3 rounded-full transition-all duration-1000 ease-out`}
                         style={{ width: `${metric.score}%` }}
                       ></div>
                     </div>
-                    <span className="text-sm font-bold text-gray-900 w-8">{metric.score}%</span>
                   </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
+          </div>
         </div>
 
         {/* Pricing Section */}
-        <div id="pricing" className="text-center mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple Growth Pricing</h2>
-          <p className="text-lg text-gray-600 mb-12">
-            Start free, pay only for what you need. No recurring subscriptions.
-          </p>
+        <div id="pricing" className="mb-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
+              Simple, Transparent Pricing
+            </h2>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Pay only for what you need. No subscriptions, no hidden fees. 
+              Start free and scale as you grow your career.
+            </p>
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
-            <Card className="p-6 text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Free Trial</h3>
-              <div className="text-3xl font-bold text-gray-900 mb-4">$0</div>
-              <p className="text-gray-600 mb-6">Try it risk-free</p>
-              <ul className="space-y-2 text-sm text-gray-600 mb-6">
-                <li>✓ 1 Free Analysis</li>
-                <li>✓ Basic Score Report</li>
-                <li>✓ ATS Compatibility Check</li>
-              </ul>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>Get Started</Button>
-            </Card>
-            
-            <Card className="p-6 text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Basic</h3>
-              <div className="text-3xl font-bold text-gray-900 mb-4">$5</div>
-              <p className="text-gray-600 mb-6">3 Analyses</p>
-              <ul className="space-y-2 text-sm text-gray-600 mb-6">
-                <li>✓ Everything in Free</li>
-                <li>✓ Detailed Suggestions</li>
-                <li>✓ Export Reports</li>
-                <li>✓ No Expiration</li>
-              </ul>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>Buy Credits</Button>
-            </Card>
-            
-            <Card className="p-6 text-center border-2 border-blue-500 relative">
-              <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500">
-                Most Popular
-              </Badge>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Credit Pack</h3>
-              <div className="text-3xl font-bold text-gray-900 mb-4">$12.99</div>
-              <p className="text-gray-600 mb-6">15 Analyses</p>
-              <ul className="space-y-2 text-sm text-gray-600 mb-6">
-                <li>✓ Everything in Basic</li>
-                <li>✓ Priority Support</li>
-                <li>✓ Advanced Analytics</li>
-                <li>✓ Bulk Analysis</li>
-              </ul>
-              <Button className="w-full" onClick={() => navigate('/auth')}>Buy Credits</Button>
-            </Card>
-            
-            <Card className="p-6 text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Power Pack</h3>
-              <div className="text-3xl font-bold text-gray-900 mb-4">$24.99</div>
-              <p className="text-gray-600 mb-6">30 Analyses</p>
-              <ul className="space-y-2 text-sm text-gray-600 mb-6">
-                <li>✓ Everything in Credit Pack</li>
-                <li>✓ Premium Support</li>
-                <li>✓ Custom Branding</li>
-                <li>✓ API Access</li>
-              </ul>
-              <Button variant="outline" className="w-full" onClick={() => navigate('/auth')}>Buy Credits</Button>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            {[
+              {
+                name: "Free Trial",
+                price: "$0",
+                description: "Perfect for getting started",
+                features: [
+                  "1 Resume Analysis",
+                  "Basic ATS Check",
+                  "Score Overview",
+                  "Email Support"
+                ],
+                popular: false,
+                cta: "Start Free"
+              },
+              {
+                name: "Starter",
+                price: "$9",
+                description: "For active job seekers",
+                features: [
+                  "5 Resume Analyses",
+                  "Detailed Suggestions",
+                  "ATS Optimization",
+                  "PDF Export",
+                  "Priority Support"
+                ],
+                popular: false,
+                cta: "Get Started"
+              },
+              {
+                name: "Professional",
+                price: "$19",
+                description: "Most popular choice",
+                features: [
+                  "15 Resume Analyses",
+                  "Advanced AI Insights",
+                  "Cover Letter Tips",
+                  "Interview Prep",
+                  "LinkedIn Optimization",
+                  "1-on-1 Support"
+                ],
+                popular: true,
+                cta: "Go Pro"
+              },
+              {
+                name: "Expert",
+                price: "$39",
+                description: "For career changers",
+                features: [
+                  "Unlimited Analyses",
+                  "Custom Templates",
+                  "Industry-Specific Tips",
+                  "Career Coaching Call",
+                  "White-label Reports",
+                  "API Access"
+                ],
+                popular: false,
+                cta: "Scale Up"
+              }
+            ].map((plan, index) => (
+              <Card key={index} className={`p-8 text-center relative ${
+                plan.popular 
+                  ? 'border-2 border-green-500 shadow-2xl scale-105 bg-gradient-to-br from-white to-green-50' 
+                  : 'border border-gray-200 shadow-lg hover:shadow-xl'
+              } transition-all duration-200`}>
+                {plan.popular && (
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white">
+                    Most Popular
+                  </Badge>
+                )}
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                <div className="text-4xl font-black text-gray-900 mb-2">{plan.price}</div>
+                <p className="text-gray-600 mb-6">{plan.description}</p>
+                <ul className="space-y-3 text-sm text-gray-600 mb-8 text-left">
+                  {plan.features.map((feature, idx) => (
+                    <li key={idx} className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-green-500 mr-3 flex-shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button 
+                  className={`w-full ${
+                    plan.popular 
+                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg' 
+                      : 'bg-white border-2 border-gray-200 text-gray-900 hover:border-green-300 hover:bg-green-50'
+                  } transition-all duration-200`}
+                  onClick={() => navigate('/auth')}
+                >
+                  {plan.cta}
+                </Button>
+              </Card>
+            ))}
           </div>
         </div>
 
         {/* About Section */}
-        <div id="about" className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose SproutCV?</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              We're committed to helping professionals like you achieve career success through cutting-edge AI technology and proven strategies.
+        <div id="about" className="mb-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
+              Why Choose SproutCV?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-4xl mx-auto">
+              We're on a mission to democratize career success through cutting-edge AI technology 
+              and proven optimization strategies.
             </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="p-6 text-center">
-              <Shield className="h-12 w-12 text-green-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Secure & Private</h3>
-              <p className="text-gray-600">
-                Your data is encrypted and never shared. We maintain the highest security standards to protect your information.
-              </p>
-            </Card>
-            
-            <Card className="p-6 text-center">
-              <Clock className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Lightning Fast</h3>
-              <p className="text-gray-600">
-                Get comprehensive resume analysis and optimization suggestions in under 30 seconds with our advanced AI.
-              </p>
-            </Card>
-            
-            <Card className="p-6 text-center">
-              <Star className="h-12 w-12 text-purple-600 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Proven Results</h3>
-              <p className="text-gray-600">
-                Join thousands of successful professionals who've increased their interview rates by 3x using SproutCV.
-              </p>
-            </Card>
+            {[
+              {
+                icon: Shield,
+                title: "Enterprise-Grade Security",
+                description: "Your data is encrypted at rest and in transit. We're SOC 2 compliant and never share your information with third parties.",
+                color: "bg-blue-100 text-blue-600"
+              },
+              {
+                icon: Clock,
+                title: "Lightning-Fast Analysis",
+                description: "Get comprehensive resume analysis and optimization suggestions in under 30 seconds with our advanced AI algorithms.",
+                color: "bg-green-100 text-green-600"
+              },
+              {
+                icon: Star,
+                title: "Proven Success Stories",
+                description: "Join 25,000+ professionals who've landed interviews at Google, Microsoft, Amazon, and other top companies.",
+                color: "bg-purple-100 text-purple-600"
+              }
+            ].map((benefit, index) => (
+              <Card key={index} className="p-8 text-center hover:shadow-xl transition-all duration-200 bg-white">
+                <div className={`inline-flex items-center justify-center w-16 h-16 ${benefit.color} rounded-2xl mb-6`}>
+                  <benefit.icon className="h-8 w-8" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{benefit.title}</h3>
+                <p className="text-gray-600 leading-relaxed">{benefit.description}</p>
+              </Card>
+            ))}
           </div>
         </div>
 
         {/* CTA Section */}
-        <div className="text-center">
-          <Card className="p-12 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0">
-            <h2 className="text-3xl font-bold mb-4">Ready to Sprout Your Dream Career?</h2>
-            <p className="text-xl mb-8 text-green-100">
-              Join thousands of professionals who've grown their interview rates with SproutCV
+        <div className="text-center mb-20">
+          <Card className="p-16 bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0 shadow-2xl">
+            <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+              Ready to Accelerate Your Career?
+            </h2>
+            <p className="text-xl mb-10 text-green-100 max-w-3xl mx-auto">
+              Join thousands of professionals who've transformed their careers with SproutCV. 
+              Your dream job is just one optimized resume away.
             </p>
-            <Button 
-              size="lg" 
-              className="bg-white text-green-600 hover:bg-gray-100 text-lg px-8 py-6"
-              onClick={() => navigate('/auth')}
-            >
-              Start Your Growth Journey
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                size="lg" 
+                className="bg-white text-green-600 hover:bg-gray-100 text-lg px-10 py-6 shadow-xl hover:shadow-2xl transition-all duration-200"
+                onClick={() => navigate('/auth')}
+              >
+                Start Your Growth Journey
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="border-2 border-white text-white hover:bg-white hover:text-green-600 text-lg px-10 py-6 transition-all duration-200"
+                onClick={() => navigate('/how-it-works')}
+              >
+                Watch Demo
+              </Button>
+            </div>
           </Card>
         </div>
       </div>
