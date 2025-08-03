@@ -57,6 +57,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -159,8 +160,9 @@ interface AnalyticsData {
 }
 
 const EnhancedAdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('analytics');
@@ -447,11 +449,58 @@ const EnhancedAdminDashboard = () => {
 
   const createUser = async () => {
     try {
-      // This would typically be done through Supabase Auth
-      toast({
-        title: "Feature Not Implemented",
-        description: "User creation through admin panel requires additional setup",
+      if (!userForm.email || !userForm.full_name) {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: "Email and name are required",
+        });
+        return;
+      }
+
+      // Create user through Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: userForm.email,
+        password: 'temporary123', // User will need to reset password
+        email_confirm: true,
+        user_metadata: {
+          full_name: userForm.full_name
+        }
       });
+
+      if (authError) throw authError;
+
+      // Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          full_name: userForm.full_name,
+          email: userForm.email,
+          credits: userForm.credits || 0,
+          email_verified: userForm.email_verified
+        });
+
+      if (profileError) throw profileError;
+
+      // Add role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role: userForm.role
+        });
+
+      if (roleError) throw roleError;
+
+      toast({
+        title: "User Created",
+        description: `User ${userForm.email} created successfully`,
+      });
+
+      setUserForm({ full_name: '', email: '', credits: 0, email_verified: true, role: 'user' });
+      setShowUserDialog(false);
+      await loadUsersWithDetails();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -547,10 +596,12 @@ const EnhancedAdminDashboard = () => {
 
   const addCreditsToUser = async (userId: string) => {
     try {
-      const { error } = await supabase.rpc('admin_add_credits', {
-        target_user_id: userId,
-        credits_to_add: parseInt(creditForm.amount),
-        admin_note: creditForm.note || 'Credits added by admin'
+      const { data, error } = await supabase.functions.invoke('admin-add-credits', {
+        body: {
+          target_user_id: userId,
+          credits_to_add: parseInt(creditForm.amount),
+          admin_note: creditForm.note || 'Credits added by admin'
+        }
       });
 
       if (error) throw error;
@@ -561,6 +612,7 @@ const EnhancedAdminDashboard = () => {
       });
 
       setCreditForm({ amount: '', note: '', type: 'admin_grant' });
+      setSelectedUser(null);
       await loadUsersWithDetails();
       await loadCreditTransactions();
     } catch (error: any) {
@@ -574,11 +626,16 @@ const EnhancedAdminDashboard = () => {
 
   const respondToMessage = async (messageId: string) => {
     try {
-      const { error } = await supabase.rpc('update_contact_message_status', {
-        message_id: messageId,
-        new_status: 'replied',
-        admin_notes: messageResponse
-      });
+      // Update message status directly
+      const { error } = await supabase
+        .from('contact_messages')
+        .update({
+          status: 'replied',
+          admin_notes: messageResponse,
+          responded_by: user?.id,
+          responded_at: new Date().toISOString()
+        })
+        .eq('id', messageId);
 
       if (error) throw error;
 
@@ -594,6 +651,30 @@ const EnhancedAdminDashboard = () => {
       toast({
         variant: "destructive",
         title: "Error responding to message",
+        description: error.message,
+      });
+    }
+  };
+
+  const updateMessageStatus = async (messageId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('contact_messages')
+        .update({ status: newStatus })
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status Updated",
+        description: `Message marked as ${newStatus}`,
+      });
+
+      await loadContactMessages();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error updating status",
         description: error.message,
       });
     }
@@ -670,6 +751,30 @@ const EnhancedAdminDashboard = () => {
                 <Shield className="h-4 w-4" />
                 <span>{user?.email}</span>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await signOut();
+                    navigate('/');
+                    toast({
+                      title: "Logged out successfully",
+                      description: "You have been logged out of your account",
+                    });
+                  } catch (error) {
+                    toast({
+                      variant: "destructive",
+                      title: "Logout failed",
+                      description: "There was an error logging out",
+                    });
+                  }
+                }}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -1024,17 +1129,51 @@ const EnhancedAdminDashboard = () => {
                         {new Date(message.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedMessage(message);
-                            setShowMessageDialog(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedMessage(message);
+                              setShowMessageDialog(true);
+                            }}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {message.status === 'unread' && (
+                                <DropdownMenuItem onClick={() => updateMessageStatus(message.id, 'read')}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Mark as Read
+                                </DropdownMenuItem>
+                              )}
+                              {message.status !== 'replied' && (
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedMessage(message);
+                                  setShowMessageDialog(true);
+                                }}>
+                                  <MessageSquare className="h-4 w-4 mr-2" />
+                                  Reply
+                                </DropdownMenuItem>
+                              )}
+                              {message.status !== 'archived' && (
+                                <DropdownMenuItem onClick={() => updateMessageStatus(message.id, 'archived')}>
+                                  <Archive className="h-4 w-4 mr-2" />
+                                  Archive
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1152,47 +1291,124 @@ const EnhancedAdminDashboard = () => {
       </div>
 
       {/* Dialogs */}
-      {selectedUser && creditForm.amount && (
-        <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Credits</DialogTitle>
-              <DialogDescription>
-                Add credits to {selectedUser.full_name || selectedUser.email}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="credits">Number of Credits</Label>
-                <Input
-                  id="credits"
-                  type="number"
-                  value={creditForm.amount}
-                  onChange={(e) => setCreditForm({...creditForm, amount: e.target.value})}
-                  placeholder="Enter number of credits"
-                />
-              </div>
-              <div>
-                <Label htmlFor="note">Admin Note</Label>
-                <Textarea
-                  id="note"
-                  value={creditForm.note}
-                  onChange={(e) => setCreditForm({...creditForm, note: e.target.value})}
-                  placeholder="Reason for adding credits..."
-                />
-              </div>
+      
+      {/* User Creation/Edit Dialog */}
+      <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedUser ? 'Edit User' : 'Create New User'}</DialogTitle>
+            <DialogDescription>
+              {selectedUser ? 'Update user information' : 'Create a new user account'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="full_name">Full Name</Label>
+              <Input
+                id="full_name"
+                value={userForm.full_name}
+                onChange={(e) => setUserForm({...userForm, full_name: e.target.value})}
+                placeholder="Enter full name"
+              />
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSelectedUser(null)}>
-                Cancel
-              </Button>
-              <Button onClick={() => addCreditsToUser(selectedUser.id)}>
-                Add Credits
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={userForm.email}
+                onChange={(e) => setUserForm({...userForm, email: e.target.value})}
+                placeholder="Enter email address"
+              />
+            </div>
+            <div>
+              <Label htmlFor="credits">Initial Credits</Label>
+              <Input
+                id="credits"
+                type="number"
+                value={userForm.credits}
+                onChange={(e) => setUserForm({...userForm, credits: parseInt(e.target.value) || 0})}
+                placeholder="Enter initial credits"
+              />
+            </div>
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Select value={userForm.role} onValueChange={(value: 'admin' | 'user') => setUserForm({...userForm, role: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="email_verified"
+                checked={userForm.email_verified}
+                onCheckedChange={(checked) => setUserForm({...userForm, email_verified: checked as boolean})}
+              />
+              <Label htmlFor="email_verified">Email Verified</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUserDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={createUser}>
+              {selectedUser ? 'Update User' : 'Create User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credit Addition Dialog */}
+      <Dialog open={!!selectedUser && !!creditForm.amount} onOpenChange={() => {
+        setSelectedUser(null);
+        setCreditForm({ amount: '', note: '', type: 'admin_grant' });
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Credits</DialogTitle>
+            <DialogDescription>
+              Add credits to {selectedUser?.full_name || selectedUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="credits">Number of Credits</Label>
+              <Input
+                id="credits"
+                type="number"
+                value={creditForm.amount}
+                onChange={(e) => setCreditForm({...creditForm, amount: e.target.value})}
+                placeholder="Enter number of credits"
+              />
+            </div>
+            <div>
+              <Label htmlFor="note">Admin Note</Label>
+              <Textarea
+                id="note"
+                value={creditForm.note}
+                onChange={(e) => setCreditForm({...creditForm, note: e.target.value})}
+                placeholder="Reason for adding credits..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setSelectedUser(null);
+              setCreditForm({ amount: '', note: '', type: 'admin_grant' });
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={() => selectedUser && addCreditsToUser(selectedUser.id)}>
+              Add Credits
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedMessage && showMessageDialog && (
         <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>

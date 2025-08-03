@@ -27,6 +27,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -77,8 +78,9 @@ interface CreditTransaction {
 }
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -103,6 +105,23 @@ const AdminDashboard = () => {
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [creditAmount, setCreditAmount] = useState('');
   const [creditNote, setCreditNote] = useState('');
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/');
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Logout failed",
+        description: "There was an error logging out",
+      });
+    }
+  };
 
   useEffect(() => {
     checkAdminAccess();
@@ -229,10 +248,12 @@ const AdminDashboard = () => {
     if (!selectedUser || !creditAmount) return;
 
     try {
-      const { error } = await supabase.rpc('admin_add_credits', {
-        target_user_id: selectedUser.id,
-        credits_to_add: parseInt(creditAmount),
-        admin_note: creditNote || `Credits added by admin`
+      const { data, error } = await supabase.functions.invoke('admin-add-credits', {
+        body: {
+          target_user_id: selectedUser.id,
+          credits_to_add: parseInt(creditAmount),
+          admin_note: creditNote || `Credits added by admin`
+        }
       });
 
       if (error) throw error;
@@ -322,9 +343,20 @@ const AdminDashboard = () => {
               <Crown className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold">Admin Dashboard</h1>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <span>Welcome,</span>
-              <span className="font-medium">{user?.email}</span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <span>Welcome,</span>
+                <span className="font-medium">{user?.email}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </Button>
             </div>
           </div>
         </div>

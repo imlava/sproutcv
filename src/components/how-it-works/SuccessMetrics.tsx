@@ -53,26 +53,7 @@ const SuccessMetrics = () => {
     { industry: "Sales", success: "88%", interviews: "3.2x" }
   ];
 
-  const testimonialData = [
-    {
-      quote: "Got 3 interview calls in the first week after using SproutCV. The transformation was incredible!",
-      author: "Sarah Chen",
-      role: "Software Engineer",
-      company: "Google"
-    },
-    {
-      quote: "My resume score jumped from 45% to 94%. I landed my dream job within 2 weeks.",
-      author: "Michael Rodriguez",
-      role: "Marketing Manager",
-      company: "Spotify"
-    },
-    {
-      quote: "The AI understood exactly what recruiters in my industry were looking for. Amazing technology!",
-      author: "Emily Watson",
-      role: "Data Scientist",
-      company: "Tesla"
-    }
-  ];
+
 
   return (
     <section className="py-20 bg-gradient-to-b from-primary/5 to-background">
@@ -159,31 +140,7 @@ const SuccessMetrics = () => {
           </CardContent>
         </Card>
 
-        {/* Testimonials */}
-        <div className="grid md:grid-cols-3 gap-6 mb-16">
-          {testimonialData.map((testimonial, index) => (
-            <Card key={index} className="border-2 border-border hover:border-primary/30 transition-all duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                
-                <blockquote className="text-muted-foreground mb-4 italic">
-                  "{testimonial.quote}"
-                </blockquote>
-                
-                <div>
-                  <div className="font-semibold text-foreground">{testimonial.author}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {testimonial.role} at {testimonial.company}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+
 
         {/* Final CTA */}
         <Card className="bg-gradient-to-r from-primary to-foreground text-primary-foreground">

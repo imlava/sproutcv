@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
-import TestimonialsSection from '@/components/TestimonialsSection';
 import SecurityBadges from '@/components/SecurityBadges';
 import Footer from '@/components/Footer';
 
@@ -49,7 +48,6 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <Hero />
-      <TestimonialsSection />
       <SecurityBadges />
       <Footer />
     </div>
