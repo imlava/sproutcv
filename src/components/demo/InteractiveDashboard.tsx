@@ -86,7 +86,7 @@ const InteractiveDashboard = () => {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">SproutCV Dashboard</h1>
-                  <p className="text-gray-300 text-lg">Welcome back, Sarah Chen</p>
+                  <p className="text-gray-300 text-lg">Welcome back, User</p>
                 </div>
               </div>
               <div className="flex items-center space-x-6">
@@ -147,9 +147,9 @@ const InteractiveDashboard = () => {
               </h3>
               <div className="space-y-4">
                 {[
-                  { role: 'Senior Software Engineer', company: 'Google', score: 98, status: 'success', time: '2 min ago' },
-                  { role: 'Product Manager', company: 'Microsoft', score: 94, status: 'excellent', time: '5 min ago' },
-                  { role: 'Data Scientist', company: 'Meta', score: 96, status: 'outstanding', time: '8 min ago' }
+                          { role: 'Senior Software Engineer', company: 'Tech Company', score: 98, status: 'success', time: '2 min ago' },
+        { role: 'Product Manager', company: 'Startup', score: 94, status: 'excellent', time: '5 min ago' },
+        { role: 'Data Scientist', company: 'Enterprise', score: 96, status: 'outstanding', time: '8 min ago' }
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between p-6 bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow border border-gray-100">
                     <div className="flex items-center space-x-4">

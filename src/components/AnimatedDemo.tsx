@@ -122,9 +122,9 @@ const AnimatedDemo = () => {
                 <h3 className="text-xl font-semibold text-gray-900 mb-4">Recent Analyses</h3>
                 <div className="space-y-3">
                   {[
-                    { role: 'Senior Software Engineer', company: 'Google', score: 94, date: '2 hours ago' },
-                    { role: 'Product Manager', company: 'Meta', score: 87, date: '1 day ago' },
-                    { role: 'Data Scientist', company: 'Netflix', score: 91, date: '3 days ago' }
+                            { role: 'Senior Software Engineer', company: 'Tech Company', score: 94, date: '2 hours ago' },
+        { role: 'Product Manager', company: 'Startup', score: 87, date: '1 day ago' },
+        { role: 'Data Scientist', company: 'Enterprise', score: 91, date: '3 days ago' }
                   ].map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg animate-fade-in" style={{ animationDelay: `${idx * 0.2}s` }}>
                       <div>
@@ -507,7 +507,7 @@ const AnimatedDemo = () => {
               <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-8 rounded-2xl shadow-xl text-white">
                 <h4 className="text-2xl font-bold mb-3">Start Your Success Story Today!</h4>
                 <p className="text-emerald-100 text-lg mb-6">
-                  Join 25,000+ professionals who've accelerated their careers with SproutCV
+                  Join thousands of professionals who've accelerated their careers with SproutCV
                 </p>
                 <Button size="lg" className="bg-white text-emerald-600 hover:bg-gray-100 text-lg px-8 py-4 font-bold shadow-lg">
                   Create Your Account - Free Trial

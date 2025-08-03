@@ -26,7 +26,7 @@ const EnhancedAuthPage = () => {
       case 'signin':
         return 'Sign in to continue optimizing your resume and accelerating your career growth';
       case 'signup':
-        return 'Join 25,000+ professionals who\'ve transformed their careers with AI-powered resume optimization';
+        return 'Join thousands of professionals who\'ve transformed their careers with AI-powered resume optimization';
       case 'forgot':
         return 'Enter your email address and we\'ll send you a secure link to reset your password';
       default:

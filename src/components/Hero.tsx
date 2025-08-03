@@ -44,7 +44,7 @@ const Hero = () => {
           
           <p className="text-xl sm:text-2xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed font-light">
             Transform your resume with AI-powered analysis, ATS optimization, and personalized insights. 
-            <span className="font-semibold text-green-700"> Join 25,000+ professionals</span> who've accelerated their careers.
+            <span className="font-semibold text-green-700"> Join thousands of professionals</span> who've accelerated their careers.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -70,11 +70,11 @@ const Hero = () => {
           <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-600 mb-20">
             <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm">
               <Users className="h-4 w-4 text-green-500 mr-2" />
-              25,000+ Users
+              Thousands of Users
             </div>
             <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm">
               <Award className="h-4 w-4 text-blue-500 mr-2" />
-              98% ATS Compatible
+              95% ATS Compatible
             </div>
             <div className="flex items-center bg-white px-4 py-2 rounded-full shadow-sm">
               <BarChart3 className="h-4 w-4 text-purple-500 mr-2" />
@@ -315,7 +315,7 @@ const Hero = () => {
               {
                 icon: Star,
                 title: "Proven Success Stories",
-                description: "Join 25,000+ professionals who've landed interviews at Google, Microsoft, Amazon, and other top companies.",
+                description: "Join thousands of professionals who've accelerated their careers with AI-powered resume optimization.",
                 color: "bg-purple-100 text-purple-600"
               }
             ].map((benefit, index) => (
@@ -352,7 +352,7 @@ const Hero = () => {
               <Button 
                 size="lg" 
                 variant="outline"
-                className="border-2 border-white/90 text-white hover:bg-white hover:text-primary text-lg px-10 py-6 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="border-2 border-white/90 text-white hover:bg-white hover:text-green-600 text-lg px-10 py-6 transition-all duration-200 shadow-lg hover:shadow-xl"
                 onClick={() => navigate('/how-it-works')}
               >
                 Watch Demo

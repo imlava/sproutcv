@@ -232,7 +232,7 @@ const EnhancedAnimatedDemo = () => {
                           </div>
                           <div>
                             <h1 className="text-2xl font-bold">SproutCV Dashboard</h1>
-                            <p className="text-emerald-100">Welcome back, Sarah Chen</p>
+                            <p className="text-emerald-100">Welcome back, User</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -281,9 +281,9 @@ const EnhancedAnimatedDemo = () => {
                       </h4>
                       <div className="space-y-4">
                         {[
-                          { role: 'Senior Software Engineer', company: 'Google', score: 97, time: '2 hours ago', status: 'success' },
-                          { role: 'Product Manager', company: 'Microsoft', score: 89, time: '1 day ago', status: 'good' },
-                          { role: 'UX Designer', company: 'Apple', score: 92, time: '2 days ago', status: 'success' }
+                                  { role: 'Senior Software Engineer', company: 'Tech Company', score: 97, time: '2 hours ago', status: 'success' },
+        { role: 'Product Manager', company: 'Startup', score: 89, time: '1 day ago', status: 'good' },
+        { role: 'UX Designer', company: 'Enterprise', score: 92, time: '2 days ago', status: 'success' }
                         ].map((item, idx) => (
                           <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                             <div className="flex items-center space-x-4">

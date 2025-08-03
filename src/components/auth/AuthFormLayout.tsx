@@ -65,7 +65,7 @@ export const AuthFormLayout: React.FC<AuthFormLayoutProps> = ({ title, descripti
 
           <div className="relative z-10">
             <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
-              Trusted by 25,000+ professionals
+              Trusted by thousands of professionals
             </Badge>
           </div>
         </div>

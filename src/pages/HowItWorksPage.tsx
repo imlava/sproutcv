@@ -162,7 +162,7 @@ const HowItWorksPage = () => {
             </div>
             <div className="flex items-center space-x-2">
               <Star className="h-4 w-4 text-yellow-500" />
-              <span>4.9/5 rating</span>
+              <span>Highly rated</span>
             </div>
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4" />

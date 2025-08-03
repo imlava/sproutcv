@@ -7,44 +7,6 @@ import { Link } from 'react-router-dom';
 const Footer = () => {
   return (
     <footer className="bg-gray-900 text-gray-300">
-      {/* Trust Section */}
-      <div className="border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-12">
-            <h3 className="text-2xl font-bold text-white mb-4">Trusted by Professionals Worldwide</h3>
-            <p className="text-gray-400 max-w-2xl mx-auto">
-              Join thousands of job seekers who have successfully landed their dream jobs with SproutCV's AI-powered resume optimization.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <Card className="bg-gray-800 border-gray-700 p-6 text-center">
-              <Users className="h-8 w-8 text-green-500 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-white">10,000+</div>
-              <div className="text-sm text-gray-400">Happy Users</div>
-            </Card>
-            
-            <Card className="bg-gray-800 border-gray-700 p-6 text-center">
-              <Award className="h-8 w-8 text-blue-500 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-white">95%</div>
-              <div className="text-sm text-gray-400">ATS Success Rate</div>
-            </Card>
-            
-            <Card className="bg-gray-800 border-gray-700 p-6 text-center">
-              <Shield className="h-8 w-8 text-purple-500 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-white">100%</div>
-              <div className="text-sm text-gray-400">Secure & Private</div>
-            </Card>
-            
-            <Card className="bg-gray-800 border-gray-700 p-6 text-center">
-              <Sprout className="h-8 w-8 text-green-500 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-white">3x</div>
-              <div className="text-sm text-gray-400">More Interviews</div>
-            </Card>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

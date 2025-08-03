@@ -198,6 +198,7 @@ const EnhancedAdminDashboard = () => {
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [showCreditDialog, setShowCreditDialog] = useState(false);
   
   // Form states
   const [userForm, setUserForm] = useState({
@@ -458,28 +459,17 @@ const EnhancedAdminDashboard = () => {
         return;
       }
 
-      // Create user through Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userForm.email,
-        password: 'temporary123', // User will need to reset password
-        email_confirm: true,
-        user_metadata: {
-          full_name: userForm.full_name
-        }
-      });
-
-      if (authError) throw authError;
-
-      // Create profile
-      const { error: profileError } = await supabase
+      // Create profile directly (user will sign up through normal flow)
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert({
-          id: authData.user.id,
           full_name: userForm.full_name,
           email: userForm.email,
           credits: userForm.credits || 0,
           email_verified: userForm.email_verified
-        });
+        })
+        .select()
+        .single();
 
       if (profileError) throw profileError;
 
@@ -487,15 +477,15 @@ const EnhancedAdminDashboard = () => {
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
-          user_id: authData.user.id,
+          user_id: profileData.id,
           role: userForm.role
         });
 
       if (roleError) throw roleError;
 
       toast({
-        title: "User Created",
-        description: `User ${userForm.email} created successfully`,
+        title: "User Profile Created",
+        description: `Profile for ${userForm.email} created successfully. User will need to sign up through the normal flow.`,
       });
 
       setUserForm({ full_name: '', email: '', credits: 0, email_verified: true, role: 'user' });
@@ -504,7 +494,7 @@ const EnhancedAdminDashboard = () => {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error creating user",
+        title: "Error creating user profile",
         description: error.message,
       });
     }
@@ -613,6 +603,7 @@ const EnhancedAdminDashboard = () => {
 
       setCreditForm({ amount: '', note: '', type: 'admin_grant' });
       setSelectedUser(null);
+      setShowCreditDialog(false);
       await loadUsersWithDetails();
       await loadCreditTransactions();
     } catch (error: any) {
@@ -1001,6 +992,8 @@ const EnhancedAdminDashboard = () => {
                             <DropdownMenuItem onClick={() => {
                               setSelectedUser(user);
                               setCreditForm({ amount: '', note: '', type: 'admin_grant' });
+                              // Open the credit dialog immediately
+                              setShowCreditDialog(true);
                             }}>
                               <Plus className="h-4 w-4 mr-2" />
                               Add Credits
@@ -1184,6 +1177,57 @@ const EnhancedAdminDashboard = () => {
 
           {/* Enhanced Credits Management */}
           <TabsContent value="credits" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Credit Management</h3>
+                <p className="text-sm text-muted-foreground">
+                  Monitor and manage user credits across the system
+                </p>
+              </div>
+              <Button
+                onClick={() => {
+                  setSelectedUser(null);
+                  setCreditForm({ amount: '', note: '', type: 'admin_grant' });
+                  setShowCreditDialog(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Credits to User
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Total Credits Distributed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{analytics.totalCreditsDistributed}</div>
+                  <p className="text-sm text-muted-foreground">All time</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Average Credits per User</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{analytics.averageCreditsPerUser}</div>
+                  <p className="text-sm text-muted-foreground">Current average</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Users</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{analytics.activeUsers}</div>
+                  <p className="text-sm text-muted-foreground">With credits</p>
+                </CardContent>
+              </Card>
+            </div>
+
             <Card>
               <CardHeader>
                 <CardTitle>Credit Transactions</CardTitle>
@@ -1295,12 +1339,12 @@ const EnhancedAdminDashboard = () => {
       {/* User Creation/Edit Dialog */}
       <Dialog open={showUserDialog} onOpenChange={setShowUserDialog}>
         <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedUser ? 'Edit User' : 'Create New User'}</DialogTitle>
-            <DialogDescription>
-              {selectedUser ? 'Update user information' : 'Create a new user account'}
-            </DialogDescription>
-          </DialogHeader>
+                      <DialogHeader>
+              <DialogTitle>Create User Profile</DialogTitle>
+              <DialogDescription>
+                Create a new user profile. The user will need to sign up through the normal authentication flow.
+              </DialogDescription>
+            </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label htmlFor="full_name">Full Name</Label>
@@ -1352,21 +1396,30 @@ const EnhancedAdminDashboard = () => {
               <Label htmlFor="email_verified">Email Verified</Label>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowUserDialog(false)}>
-              Cancel
-            </Button>
-            <Button onClick={createUser}>
-              {selectedUser ? 'Update User' : 'Create User'}
-            </Button>
-          </DialogFooter>
+                      <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setShowUserDialog(false);
+                setUserForm({ full_name: '', email: '', credits: 0, email_verified: true, role: 'user' });
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={createUser}
+                disabled={!userForm.email || !userForm.full_name}
+              >
+                Create User Profile
+              </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Credit Addition Dialog */}
-      <Dialog open={!!selectedUser && !!creditForm.amount} onOpenChange={() => {
-        setSelectedUser(null);
-        setCreditForm({ amount: '', note: '', type: 'admin_grant' });
+      <Dialog open={showCreditDialog && !!selectedUser} onOpenChange={(open) => {
+        if (!open) {
+          setShowCreditDialog(false);
+          setSelectedUser(null);
+          setCreditForm({ amount: '', note: '', type: 'admin_grant' });
+        }
       }}>
         <DialogContent>
           <DialogHeader>
@@ -1376,6 +1429,31 @@ const EnhancedAdminDashboard = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {!selectedUser && (
+              <div>
+                <Label htmlFor="user">Select User</Label>
+                <Select onValueChange={(userId) => setSelectedUser(users.find(u => u.id === userId) || null)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a user" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.full_name || user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {selectedUser && (
+              <div>
+                <Label>Selected User</Label>
+                <p className="text-sm text-muted-foreground">
+                  {selectedUser.full_name || selectedUser.email}
+                </p>
+              </div>
+            )}
             <div>
               <Label htmlFor="credits">Number of Credits</Label>
               <Input
@@ -1396,17 +1474,21 @@ const EnhancedAdminDashboard = () => {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setSelectedUser(null);
-              setCreditForm({ amount: '', note: '', type: 'admin_grant' });
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={() => selectedUser && addCreditsToUser(selectedUser.id)}>
-              Add Credits
-            </Button>
-          </DialogFooter>
+                      <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setSelectedUser(null);
+                setCreditForm({ amount: '', note: '', type: 'admin_grant' });
+                setShowCreditDialog(false);
+              }}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => selectedUser && addCreditsToUser(selectedUser.id)}
+                disabled={!selectedUser || !creditForm.amount}
+              >
+                Add Credits
+              </Button>
+            </DialogFooter>
         </DialogContent>
       </Dialog>
 
