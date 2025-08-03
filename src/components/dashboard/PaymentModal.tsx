@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Check, Loader2, Zap } from 'lucide-react';
+import CouponSystem from '../CouponSystem';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -17,29 +17,24 @@ interface PaymentModalProps {
 const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'razorpay' | 'paypal'>('razorpay');
+  const [discountPercent, setDiscountPercent] = useState(0);
 
   const plans = [
     {
-      name: 'Basic',
-      credits: 3,
+      name: 'Starter',
+      credits: 5,
       price: 5,
+      originalPrice: 6.25,
       popular: false,
       description: 'Perfect for getting started'
     },
     {
-      name: 'Credit Pack',
+      name: 'Pro Pack',
       credits: 15,
-      price: 12.99,
+      price: 15,
+      originalPrice: 18.75,
       popular: true,
-      description: 'Great for active job seekers'
-    },
-    {
-      name: 'Power Pack',
-      credits: 30,
-      price: 24.99,
-      popular: false,
-      description: 'For comprehensive job search'
+      description: 'Most popular choice'
     }
   ];
 
@@ -47,35 +42,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('create-payment', {
-        body: {
-          credits,
-          amount: Math.round(amount * 100), // Convert to smallest currency unit
-          paymentMethod: selectedPaymentMethod
-        }
+      // Payment gateway integration coming soon
+      toast({
+        title: "Payment Integration Coming Soon",
+        description: "Dodo Payments integration is being finalized. Please contact support for manual credit top-up.",
       });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        if (selectedPaymentMethod === 'razorpay') {
-          // For Razorpay, we need to handle the payment differently
-          // This would typically involve loading the Razorpay SDK
-          toast({
-            title: "Razorpay Integration",
-            description: "Razorpay payment integration would be handled here",
-          });
-        } else if (selectedPaymentMethod === 'paypal') {
-          // Open PayPal checkout in a new tab
-          window.open(data.url, '_blank');
-        }
-        
-        onClose();
-        toast({
-          title: "Redirecting to payment...",
-          description: `Complete your purchase with ${selectedPaymentMethod === 'razorpay' ? 'Razorpay' : 'PayPal'}`,
-        });
-      }
+      onClose();
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
@@ -100,27 +72,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
           </p>
         </DialogHeader>
 
-        {/* Payment Method Selection */}
-        <div className="flex justify-center gap-4 mb-6">
-          <Button
-            variant={selectedPaymentMethod === 'razorpay' ? 'default' : 'outline'}
-            onClick={() => setSelectedPaymentMethod('razorpay')}
-          >
-            Razorpay
-          </Button>
-          <Button
-            variant={selectedPaymentMethod === 'paypal' ? 'default' : 'outline'}
-            onClick={() => setSelectedPaymentMethod('paypal')}
-          >
-            PayPal
-          </Button>
+        {/* Coupon System */}
+        <div className="max-w-md mx-auto mb-6">
+          <CouponSystem onCouponApplied={setDiscountPercent} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 max-w-3xl mx-auto">
           {plans.map((plan) => (
-            <Card key={plan.name} className={`relative p-6 ${plan.popular ? 'ring-2 ring-blue-500' : ''}`}>
+            <Card key={plan.name} className={`relative p-6 ${plan.popular ? 'ring-2 ring-primary' : ''}`}>
               {plan.popular && (
-                <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500">
+                <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-primary">
                   Most Popular
                 </Badge>
               )}
@@ -128,14 +89,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
               <div className="text-center">
                 <h3 className="text-lg font-semibold text-gray-900">{plan.name}</h3>
                 <div className="mt-4">
-                  <span className="text-3xl font-bold text-gray-900">
-                    {selectedPaymentMethod === 'razorpay' ? '₹' : '$'}
-                    {selectedPaymentMethod === 'razorpay' ? (plan.price * 83).toFixed(0) : plan.price}
-                  </span>
+                  <div className="text-3xl font-bold text-gray-900">
+                    ${discountPercent > 0 ? (plan.price * (1 - discountPercent / 100)).toFixed(2) : plan.price}
+                  </div>
+                  {(plan.originalPrice || discountPercent > 0) && (
+                    <div className="text-lg text-gray-500 line-through">
+                      ${plan.originalPrice || plan.price}
+                    </div>
+                  )}
+                  {(plan.originalPrice || discountPercent > 0) && (
+                    <div className="text-sm text-green-600 font-semibold">
+                      Save ${discountPercent > 0 
+                        ? (plan.price * (discountPercent / 100)).toFixed(2)
+                        : (plan.originalPrice - plan.price).toFixed(2)
+                      }
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-center mt-2">
-                  <Zap className="h-4 w-4 text-blue-500 mr-1" />
-                  <span className="text-lg font-semibold text-blue-600">{plan.credits} Credits</span>
+                  <Zap className="h-4 w-4 text-primary mr-1" />
+                  <span className="text-lg font-semibold text-primary">{plan.credits} Credits</span>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">{plan.description}</p>
               </div>
@@ -160,7 +133,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
               </div>
 
               <Button 
-                className={`w-full mt-6 ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+                className={`w-full mt-6 ${plan.popular ? 'bg-primary hover:bg-primary/90' : ''}`}
                 onClick={() => handlePurchase(plan.credits, plan.price)}
                 disabled={loading}
               >
@@ -172,8 +145,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-600">
-          <p>💳 Secure payment powered by {selectedPaymentMethod === 'razorpay' ? 'Razorpay' : 'PayPal'}</p>
-          <p>✨ Credits never expire</p>
+          <p>💳 Secure payment processing (Payment gateway integration coming soon)</p>
+          <p>✨ Credits never expire • 🔒 Enterprise-grade security</p>
         </div>
       </DialogContent>
     </Dialog>

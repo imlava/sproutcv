@@ -198,7 +198,8 @@ const Hero = () => {
               },
               {
                 name: "Starter",
-                price: "$9",
+                price: "$5",
+                originalPrice: "$6.25",
                 description: "For active job seekers",
                 features: [
                   "5 Resume Analyses",
@@ -211,8 +212,9 @@ const Hero = () => {
                 cta: "Get Started"
               },
               {
-                name: "Professional",
-                price: "$19",
+                name: "Pro",
+                price: "$15",
+                originalPrice: "$18.75",
                 description: "Most popular choice",
                 features: [
                   "15 Resume Analyses",
@@ -226,19 +228,18 @@ const Hero = () => {
                 cta: "Go Pro"
               },
               {
-                name: "Expert",
-                price: "$39",
-                description: "For career changers",
+                name: "Expert Services",
+                price: "Contact Us",
+                description: "For customized solutions",
                 features: [
                   "Unlimited Analyses",
+                  "Personal Career Coach",
                   "Custom Templates",
-                  "Industry-Specific Tips",
-                  "Career Coaching Call",
-                  "White-label Reports",
-                  "API Access"
+                  "Priority Review",
+                  "Dedicated Support"
                 ],
                 popular: false,
-                cta: "Scale Up"
+                cta: "Contact Us"
               }
             ].map((plan, index) => (
               <Card key={index} className={`p-8 text-center relative ${
@@ -252,7 +253,15 @@ const Hero = () => {
                   </Badge>
                 )}
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                <div className="text-4xl font-black text-gray-900 mb-2">{plan.price}</div>
+                <div className="mb-2">
+                  <div className="text-4xl font-black text-gray-900">{plan.price}</div>
+                  {plan.originalPrice && (
+                    <div className="text-lg text-gray-500 line-through">{plan.originalPrice}</div>
+                  )}
+                  {plan.originalPrice && (
+                    <div className="text-sm text-green-600 font-semibold">20% Launch Discount</div>
+                  )}
+                </div>
                 <p className="text-gray-600 mb-6">{plan.description}</p>
                 <ul className="space-y-3 text-sm text-gray-600 mb-8 text-left">
                   {plan.features.map((feature, idx) => (
@@ -343,7 +352,7 @@ const Hero = () => {
               <Button 
                 size="lg" 
                 variant="outline"
-                className="border-2 border-white text-white hover:bg-white hover:text-green-600 text-lg px-10 py-6 transition-all duration-200"
+                className="border-2 border-white/90 text-white hover:bg-white hover:text-primary text-lg px-10 py-6 transition-all duration-200 shadow-lg hover:shadow-xl"
                 onClick={() => navigate('/how-it-works')}
               >
                 Watch Demo
