@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, Target, Zap } from 'lucide-react';
+import { CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, Target, Zap, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import PaymentModal from './PaymentModal';
@@ -280,7 +280,11 @@ const UserDashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {analyses.map((analysis) => (
-                      <div key={analysis.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                      <div 
+                        key={analysis.id} 
+                        className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                        onClick={() => navigate(`/analysis/${analysis.id}`)}
+                      >
                         <div className="flex-1">
                           <h4 className="font-medium">
                             {analysis.job_title || 'Untitled Analysis'}
@@ -293,7 +297,7 @@ const UserDashboard = () => {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric'
-                            })}
+                            })} • Available for 30 days
                           </p>
                         </div>
                         <div className="flex items-center space-x-3">
@@ -306,6 +310,9 @@ const UserDashboard = () => {
                                analysis.overall_score >= 60 ? 'Good' : 'Needs Work'}
                             </p>
                           </div>
+                          <Button variant="ghost" size="sm">
+                            View Details
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -384,6 +391,10 @@ const UserDashboard = () => {
                 <Button variant="outline" className="w-full justify-start" onClick={() => setShowPaymentModal(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Purchase Credits
+                </Button>
+                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/referrals')}>
+                  <Gift className="h-4 w-4 mr-2" />
+                  Refer Friends
                 </Button>
               </div>
             </Card>

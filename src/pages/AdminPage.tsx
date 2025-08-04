@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import AdminDashboard from '@/components/admin/AdminDashboard';
+import MasterAdminDashboard from '@/components/admin/MasterAdminDashboard';
 
 const AdminPage = () => {
   const { user, loading } = useAuth();
@@ -25,7 +25,7 @@ const AdminPage = () => {
     return null; // Will redirect to auth
   }
 
-  return <AdminDashboard />;
+  return <MasterAdminDashboard />;
 };
 
 export default AdminPage;

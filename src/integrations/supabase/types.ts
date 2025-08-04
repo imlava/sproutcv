@@ -301,6 +301,8 @@ export type Database = {
           last_login: string | null
           locked_until: string | null
           password_changed_at: string | null
+          referral_code: string | null
+          referred_by: string | null
           security_preferences: Json | null
           two_factor_enabled: boolean | null
           two_factor_secret: string | null
@@ -318,6 +320,8 @@ export type Database = {
           last_login?: string | null
           locked_until?: string | null
           password_changed_at?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           security_preferences?: Json | null
           two_factor_enabled?: boolean | null
           two_factor_secret?: string | null
@@ -335,10 +339,51 @@ export type Database = {
           last_login?: string | null
           locked_until?: string | null
           password_changed_at?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           security_preferences?: Json | null
           two_factor_enabled?: boolean | null
           two_factor_secret?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string | null
+          credits_awarded: boolean | null
+          email_referred: string | null
+          id: string
+          is_payment_completed: boolean | null
+          is_signup_completed: boolean | null
+          referral_code: string
+          referred_id: string | null
+          referrer_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_awarded?: boolean | null
+          email_referred?: string | null
+          id?: string
+          is_payment_completed?: boolean | null
+          is_signup_completed?: boolean | null
+          referral_code: string
+          referred_id?: string | null
+          referrer_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_awarded?: boolean | null
+          email_referred?: string | null
+          id?: string
+          is_payment_completed?: boolean | null
+          is_signup_completed?: boolean | null
+          referral_code?: string
+          referred_id?: string | null
+          referrer_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -348,11 +393,16 @@ export type Database = {
           ats_compatibility: number
           company_name: string | null
           created_at: string
+          detailed_feedback: Json | null
           experience_relevance: number
+          expires_at: string | null
           id: string
+          improvement_areas: string[] | null
           job_description: string
           job_title: string | null
           keyword_match: number
+          keywords_found: string[] | null
+          missing_keywords: string[] | null
           overall_score: number
           resume_text: string
           skills_alignment: number
@@ -365,11 +415,16 @@ export type Database = {
           ats_compatibility: number
           company_name?: string | null
           created_at?: string
+          detailed_feedback?: Json | null
           experience_relevance: number
+          expires_at?: string | null
           id?: string
+          improvement_areas?: string[] | null
           job_description: string
           job_title?: string | null
           keyword_match: number
+          keywords_found?: string[] | null
+          missing_keywords?: string[] | null
           overall_score: number
           resume_text: string
           skills_alignment: number
@@ -382,11 +437,16 @@ export type Database = {
           ats_compatibility?: number
           company_name?: string | null
           created_at?: string
+          detailed_feedback?: Json | null
           experience_relevance?: number
+          expires_at?: string | null
           id?: string
+          improvement_areas?: string[] | null
           job_description?: string
           job_title?: string | null
           keyword_match?: number
+          keywords_found?: string[] | null
+          missing_keywords?: string[] | null
           overall_score?: number
           resume_text?: string
           skills_alignment?: number
@@ -505,9 +565,37 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_get_user_details: {
+        Args: { target_user_id: string }
+        Returns: {
+          user_id: string
+          email: string
+          full_name: string
+          credits: number
+          total_analyses: number
+          total_spent: number
+          referrals_made: number
+          last_analysis: string
+          signup_date: string
+        }[]
+      }
+      admin_get_user_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_users: number
+          active_users: number
+          total_analyses: number
+          total_revenue: number
+          pending_messages: number
+        }[]
+      }
       consume_analysis_credit: {
         Args: { target_user_id: string; analysis_id: string }
         Returns: boolean
+      }
+      generate_referral_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       has_role: {
         Args: {
@@ -522,6 +610,10 @@ export type Database = {
           refund_amount: number
           refund_reason: string
         }
+        Returns: boolean
+      }
+      process_referral_credit: {
+        Args: { referred_user_id: string; payment_amount: number }
         Returns: boolean
       }
       process_successful_payment: {

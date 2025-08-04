@@ -460,13 +460,16 @@ const AdminDashboard = () => {
       }
 
       // Create profile directly (user will sign up through normal flow)
+      const userId = crypto.randomUUID();
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .insert({
+          id: userId,
           full_name: userForm.full_name,
           email: userForm.email,
           credits: userForm.credits || 0,
-          email_verified: userForm.email_verified
+          email_verified: userForm.email_verified,
+          referral_code: crypto.randomUUID().substring(0, 8).toUpperCase()
         })
         .select()
         .single();
