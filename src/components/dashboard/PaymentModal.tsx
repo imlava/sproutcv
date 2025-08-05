@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -166,9 +166,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
           <DialogTitle className="text-center text-2xl font-bold">
             Choose Your Credit Pack
           </DialogTitle>
-          <p className="text-center text-gray-600 mt-2">
+          <DialogDescription className="text-center text-gray-600 mt-2">
             Get more credits to analyze and optimize your resumes
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         {/* Coupon System */}

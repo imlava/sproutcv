@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -653,6 +653,9 @@ const MasterAdminDashboard = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Credits</DialogTitle>
+            <DialogDescription>
+              Add credits to user account. This action will immediately update the user's credit balance.
+            </DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">

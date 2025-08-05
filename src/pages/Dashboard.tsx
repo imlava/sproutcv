@@ -18,15 +18,24 @@ const Dashboard = () => {
   useEffect(() => {
     const checkAdminRole = async () => {
       if (user && !loading) {
-        const { data } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .eq('role', 'admin')
-          .single();
-        
-        if (data) {
-          navigate('/admin');
+        try {
+          // Use the has_role function instead of direct query
+          const { data, error } = await supabase.rpc('has_role', {
+            _user_id: user.id,
+            _role: 'admin'
+          });
+          
+          if (error) {
+            console.error('Error checking admin role:', error);
+            // If there's an error, we'll assume user is not admin
+            return;
+          }
+          
+          if (data) {
+            navigate('/admin');
+          }
+        } catch (error) {
+          console.error('Error checking admin role:', error);
         }
       }
     };
