@@ -352,7 +352,7 @@ const Hero = () => {
               <Button 
                 size="lg" 
                 variant="outline"
-                className="border-2 border-white/90 text-white hover:bg-white hover:text-green-600 text-lg px-10 py-6 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="border-2 border-white text-white bg-transparent hover:bg-white hover:text-green-600 text-lg px-10 py-6 transition-all duration-200 shadow-lg hover:shadow-xl"
                 onClick={() => navigate('/how-it-works')}
               >
                 Watch Demo
