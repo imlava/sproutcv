@@ -64,7 +64,12 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-3">
             <Button 
               variant="ghost" 
-              onClick={() => handleNavigation('/auth')}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Sign In button clicked');
+                handleNavigation('/auth');
+              }}
               className="text-gray-700 hover:text-green-600 hover:bg-green-50"
             >
               Sign In
