@@ -42,12 +42,36 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
     setLoading(true);
 
     try {
-      // Payment gateway integration coming soon
-      toast({
-        title: "Payment Integration Coming Soon",
-        description: "Dodo Payments integration is being finalized. Please contact support for manual credit top-up.",
+      // Apply discount if any
+      const finalAmount = discountPercent > 0 
+        ? Math.round(amount * (1 - discountPercent / 100) * 100) // Convert to cents
+        : amount * 100; // Convert to cents
+
+      // Create payment with Dodo Payments
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { 
+          credits,
+          amount: finalAmount
+        }
       });
-      onClose();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.url) {
+        // Open Dodo Payments checkout in a new tab
+        window.open(data.url, '_blank');
+        
+        toast({
+          title: "Payment Initiated",
+          description: "Complete your payment in the new tab to add credits to your account.",
+        });
+        
+        onClose();
+      } else {
+        throw new Error("No payment URL received");
+      }
     } catch (error: any) {
       console.error('Payment error:', error);
       toast({
@@ -145,7 +169,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-600">
-          <p>💳 Secure payment processing (Payment gateway integration coming soon)</p>
+          <p>💳 Secure payment processing powered by Dodo Payments</p>
           <p>✨ Credits never expire • 🔒 Enterprise-grade security</p>
         </div>
       </DialogContent>

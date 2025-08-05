@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import DodoPayments from "https://esm.sh/dodopayments@1.44.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,10 +14,10 @@ serve(async (req) => {
   }
 
   try {
-    const { credits, amount, paymentMethod } = await req.json();
+    const { credits, amount } = await req.json();
 
-    if (!credits || !amount || !paymentMethod) {
-      throw new Error("Missing credits, amount, or paymentMethod");
+    if (!credits || !amount) {
+      throw new Error("Missing credits or amount");
     }
 
     // Create Supabase client with service role key
@@ -35,106 +36,52 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
-    let paymentUrl = "";
-    let paymentId = "";
-
-    if (paymentMethod === "razorpay") {
-      // Razorpay integration
-      const razorpayKey = Deno.env.get("RAZORPAY_KEY_SECRET");
-      const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
-      
-      if (!razorpayKey || !razorpayKeyId) {
-        throw new Error("Razorpay credentials not configured");
-      }
-
-      const razorpayResponse = await fetch("https://api.razorpay.com/v1/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKey}`)}`,
-        },
-        body: JSON.stringify({
-          amount: amount, // Amount in paise
-          currency: "INR",
-          receipt: `receipt_${Date.now()}`,
-          notes: {
-            user_id: user.id,
-            credits: credits.toString(),
-          },
-        }),
-      });
-
-      if (!razorpayResponse.ok) {
-        const errorData = await razorpayResponse.text();
-        console.error("Razorpay API error:", errorData);
-        throw new Error("Failed to create Razorpay order");
-      }
-
-      const razorpayOrder = await razorpayResponse.json();
-      paymentId = razorpayOrder.id;
-      paymentUrl = `razorpay://${razorpayOrder.id}`;
-    } else if (paymentMethod === "paypal") {
-      // PayPal integration
-      const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");
-      const paypalClientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
-      const paypalBaseUrl = Deno.env.get("PAYPAL_BASE_URL") || "https://api.sandbox.paypal.com";
-
-      if (!paypalClientId || !paypalClientSecret) {
-        throw new Error("PayPal credentials not configured");
-      }
-
-      // Get PayPal access token
-      const tokenResponse = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Authorization": `Basic ${btoa(`${paypalClientId}:${paypalClientSecret}`)}`,
-        },
-        body: "grant_type=client_credentials",
-      });
-
-      const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
-
-      // Create PayPal order
-      const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          intent: "CAPTURE",
-          purchase_units: [{
-            amount: {
-              currency_code: "USD",
-              value: (amount / 100).toString(),
-            },
-            description: `${credits} Resume Analysis Credits`,
-          }],
-          application_context: {
-            return_url: `${req.headers.get("origin")}/dashboard?payment=success`,
-            cancel_url: `${req.headers.get("origin")}/dashboard?payment=cancelled`,
-          },
-        }),
-      });
-
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.text();
-        console.error("PayPal API error:", errorData);
-        throw new Error("Failed to create PayPal order");
-      }
-
-      const orderData = await orderResponse.json();
-      paymentId = orderData.id;
-      paymentUrl = orderData.links.find((link: any) => link.rel === "approve")?.href || "";
+    // Initialize Dodo Payments client
+    const dodoApiKey = Deno.env.get("DODO_PAYMENTS_API_KEY");
+    if (!dodoApiKey) {
+      throw new Error("Dodo Payments API key not configured");
     }
+
+    const dodoClient = new DodoPayments({
+      bearerToken: dodoApiKey,
+    });
+
+    // Get user profile for customer details
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+
+    // Create payment link with Dodo Payments
+    const payment = await dodoClient.payments.create({
+      payment_link: true,
+      customer: {
+        email: user.email,
+        name: profile?.full_name || user.email.split('@')[0],
+      },
+      product_cart: [{
+        product_id: "resume_credits", // You'll need to create this product in Dodo dashboard
+        quantity: 1,
+        unit_amount: amount, // Amount in cents
+      }],
+      metadata: {
+        user_id: user.id,
+        credits: credits.toString(),
+        source: "web_app",
+      },
+      success_url: `${req.headers.get("origin")}/dashboard?payment=success`,
+      cancel_url: `${req.headers.get("origin")}/dashboard?payment=cancelled`,
+    });
+
+    const paymentId = payment.payment_id;
+    const paymentUrl = payment.payment_link;
 
     // Record payment in database with enhanced data
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
 
-    const { data: payment, error: paymentError } = await supabaseAdmin
+    const { data: paymentRecord, error: paymentError } = await supabaseAdmin
       .from("payments")
       .insert({
         user_id: user.id,
@@ -142,7 +89,7 @@ serve(async (req) => {
         amount: amount,
         credits_purchased: credits,
         status: "pending",
-        payment_method: paymentMethod,
+        payment_method: "dodo_payments",
         payment_provider_id: paymentId,
         payment_data: {
           user_email: user.email,
@@ -166,7 +113,7 @@ serve(async (req) => {
         user_id: user.id,
         event_type: "payment_initiated",
         metadata: {
-          payment_method: paymentMethod,
+          payment_method: "dodo_payments",
           amount: amount,
           credits: credits,
           payment_id: paymentId
@@ -177,7 +124,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       url: paymentUrl,
       paymentId: paymentId,
-      paymentMethod: paymentMethod,
+      paymentMethod: "dodo_payments",
       expiresAt: expiresAt.toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
