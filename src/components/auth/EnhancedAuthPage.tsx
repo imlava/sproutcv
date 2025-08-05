@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthFormLayout } from './AuthFormLayout';
 import { SignInForm } from './SignInForm';
 import { SignUpForm } from './SignUpForm';
@@ -7,6 +7,10 @@ import ForgotPasswordForm from './ForgotPasswordForm';
 
 const EnhancedAuthPage = () => {
   const [currentView, setCurrentView] = useState<'signin' | 'signup' | 'forgot'>('signin');
+
+  useEffect(() => {
+    console.log('EnhancedAuthPage mounted');
+  }, []);
 
   const getTitle = () => {
     switch (currentView) {

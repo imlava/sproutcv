@@ -15,16 +15,19 @@ import NotFound from "./pages/NotFound";
 import AdminPage from "./pages/AdminPage";
 import ReferralPage from "./pages/ReferralPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
+import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/toaster";
 
 function App() {
+  console.log('App component rendered');
+  
   return (
     <AuthProvider>
       <Router>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Index />} />
+          <Route path="/auth" element={<EnhancedAuthPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/analyze" element={<AnalyzePage />} />
           <Route path="/how-it-works" element={<HowItWorksPage />} />
