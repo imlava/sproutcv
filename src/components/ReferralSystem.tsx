@@ -55,7 +55,11 @@ const ReferralSystem = () => {
   const copyReferralLink = () => {
     if (!userProfile?.referral_code) return;
     
-    const referralLink = `${window.location.origin}?ref=${userProfile.referral_code}`;
+    // Use proper domain configuration
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://sproutcv.app' 
+      : window.location.origin;
+    const referralLink = `${baseUrl}?ref=${userProfile.referral_code}`;
     navigator.clipboard.writeText(referralLink);
     
     toast({
@@ -184,18 +188,14 @@ const ReferralSystem = () => {
 
           <div>
             <Label>Your Referral Link</Label>
-            <div className="flex mt-2">
-              <Input 
-                value={`${window.location.origin}?ref=${userProfile?.referral_code || ''}`} 
-                readOnly 
-                className="text-sm"
+            <div className="flex items-center space-x-2">
+              <Input
+                readOnly
+                value={`${process.env.NODE_ENV === 'production' ? 'https://sproutcv.app' : window.location.origin}?ref=${userProfile?.referral_code || ''}`}
+                className="flex-1"
               />
-              <Button 
-                variant="outline" 
-                onClick={copyReferralLink}
-                className="ml-2"
-              >
-                <Share2 className="h-4 w-4" />
+              <Button onClick={copyReferralLink} variant="outline">
+                <Copy className="h-4 w-4" />
               </Button>
             </div>
           </div>

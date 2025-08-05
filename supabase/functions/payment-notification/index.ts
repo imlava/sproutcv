@@ -8,68 +8,96 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Get the proper domain for links
+const getDomain = (origin: string | null) => {
+  if (origin && origin.includes('localhost')) {
+    return 'http://localhost:5173'; // Development
+  }
+  return 'https://sproutcv.app'; // Production
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { userId, email, fullName, credits, amount, paymentMethod, transactionType } = await req.json();
+    const { userId, paymentId, credits } = await req.json();
 
-    if (!userId || !email) {
-      throw new Error("User ID and email are required");
+    if (!userId || !paymentId || !credits) {
+      throw new Error("User ID, payment ID, and credits are required");
+    }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get user profile
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', userId)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error("User profile not found");
+    }
+
+    // Get payment details
+    const { data: payment, error: paymentError } = await supabaseClient
+      .from('payments')
+      .select('amount, status')
+      .eq('id', paymentId)
+      .single();
+
+    if (paymentError || !payment) {
+      throw new Error("Payment not found");
     }
 
     // Initialize Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
-    let subject = "";
-    let emailContent = "";
     
-    if (transactionType === "purchase") {
-      subject = "Payment Confirmed - Credits Added to Your SproutCV Account";
+    // Get proper domain
+    const domain = getDomain(req.headers.get("origin"));
+
+    // Determine email content based on payment status
+    let subject = "Payment Confirmation - SproutCV";
+    let emailContent = `
+      <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+        Thank you for your purchase! Your payment has been processed successfully.
+      </p>
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <h3 style="color: #065f46; margin: 0 0 12px 0; font-size: 18px;">🎉 Credits Added!</h3>
+        <p style="color: #047857; margin: 0; font-size: 14px;">
+          <strong>${credits} credits</strong> have been added to your account.
+        </p>
+      </div>
+      <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+        You can now use these credits to analyze and optimize your resume with our AI-powered tools.
+      </p>
+    `;
+
+    if (payment.status === 'pending') {
+      subject = "Payment Processing - SproutCV";
       emailContent = `
-        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-          Your payment has been successfully processed! We've added <strong>${credits} credits</strong> to your SproutCV account.
+        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
+          Your payment is being processed. You will receive another email once it's confirmed.
         </p>
-        
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin: 24px 0;">
-          <h3 style="color: #065f46; margin: 0 0 12px 0; font-size: 18px;">Payment Details:</h3>
-          <ul style="color: #047857; margin: 0; padding-left: 20px;">
-            <li><strong>Credits Purchased:</strong> ${credits}</li>
-            <li><strong>Amount:</strong> ${amount/100} ${paymentMethod === 'razorpay' ? 'INR' : 'USD'}</li>
-            <li><strong>Payment Method:</strong> ${paymentMethod === 'razorpay' ? 'Razorpay' : 'PayPal'}</li>
-          </ul>
-        </div>
-        
-        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-          You can now use these credits to analyze and optimize your resumes with our AI-powered tools.
-        </p>
-      `;
-    } else if (transactionType === "credit_used") {
-      subject = "Credit Used - Resume Analysis Complete";
-      emailContent = `
-        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-          We've successfully analyzed your resume! <strong>1 credit</strong> has been deducted from your account.
-        </p>
-        
-        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; margin: 24px 0;">
-          <h3 style="color: #1e40af; margin: 0 0 12px 0; font-size: 18px;">Analysis Complete:</h3>
-          <p style="color: #1d4ed8; margin: 0;">
-            Your detailed resume analysis and optimization suggestions are now available in your dashboard.
+        <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 20px; margin: 24px 0;">
+          <h3 style="color: #92400e; margin: 0 0 12px 0; font-size: 18px;">⏳ Payment Processing</h3>
+          <p style="color: #a16207; margin: 0; font-size: 14px;">
+            Amount: $${(payment.amount / 100).toFixed(2)}<br>
+            Credits: ${credits}
           </p>
         </div>
-        
-        <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-          Remaining credits: <strong>${credits}</strong>
-        </p>
       `;
     }
 
     // Send notification email
     const emailResponse = await resend.emails.send({
       from: "SproutCV Notifications <notifications@sproutcv.app>",
-      to: [email],
+      to: [profile.email],
       subject: subject,
       html: `
         <!DOCTYPE html>
@@ -89,12 +117,12 @@ serve(async (req) => {
               
               <div style="margin-bottom: 32px;">
                 <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
-                  Hi ${fullName || 'there'},
+                  Hi ${profile.full_name || 'there'},
                 </p>
                 ${emailContent}
                 
                 <div style="text-align: center; margin: 32px 0;">
-                  <a href="${req.headers.get("origin")}/dashboard" 
+                  <a href="${domain}/dashboard" 
                      style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
                             color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; 
                             font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
@@ -107,7 +135,7 @@ serve(async (req) => {
                 <p style="color: #9ca3af; font-size: 12px; margin: 0;">
                   SproutCV - AI-Powered Resume Analysis<br>
                   Questions about your account? Contact us at <a href="mailto:support@sproutcv.app" style="color: #10b981;">support@sproutcv.app</a><br>
-                  This email was sent to ${email}
+                  This email was sent to ${profile.email}
                 </p>
               </div>
             </div>
@@ -121,14 +149,14 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       message: "Payment notification email sent successfully",
-      emailSent: true
+      success: true
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
   } catch (error) {
-    console.error("Payment notification email error:", error);
+    console.error("Payment notification error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

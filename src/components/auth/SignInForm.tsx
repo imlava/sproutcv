@@ -30,9 +30,17 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
     setLoading(true);
 
     try {
+      console.log('Starting signin process for:', formData.email);
+      
       const { error } = await signIn(formData.email, formData.password);
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Signin error:', error);
+        throw error;
+      }
 
+      console.log('Signin successful');
+      
       toast({
         title: "Welcome back!",
         description: "You've been signed in successfully.",
@@ -40,10 +48,25 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
       
       navigate('/dashboard');
     } catch (error: any) {
+      console.error('Signin exception:', error);
+      
+      let errorMessage = error.message || "Invalid email or password";
+      
+      // Handle specific error cases
+      if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials.';
+      } else if (error.message?.includes('Email not confirmed')) {
+        errorMessage = 'Please verify your email address before signing in.';
+      } else if (error.message?.includes('Too many requests')) {
+        errorMessage = 'Too many login attempts. Please try again later.';
+      } else if (error.message?.includes('User not found')) {
+        errorMessage = 'No account found with this email address.';
+      }
+      
       toast({
         variant: "destructive",
         title: "Sign in failed",
-        description: error.message || "Invalid email or password",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);

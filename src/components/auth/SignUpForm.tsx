@@ -65,20 +65,42 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
     setLoading(true);
 
     try {
+      console.log('Starting signup process for:', formData.email);
+      
       const { error } = await signUp(formData.email, formData.password, formData.fullName);
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Signup error:', error);
+        throw error;
+      }
 
+      console.log('Signup successful, showing success message');
+      
       toast({
         title: "Account created successfully!",
-        description: "Welcome to SproutCV! You've received 5 free credits to get started.",
+        description: "Please check your email to verify your account and get started with 5 free credits.",
       });
       
-      navigate('/dashboard');
+      // Don't navigate immediately - let user verify email first
+      // navigate('/dashboard');
     } catch (error: any) {
+      console.error('Signup exception:', error);
+      
+      let errorMessage = error.message || 'Sign up failed. Please try again.';
+      
+      // Handle specific error cases
+      if (error.message?.includes('already registered')) {
+        errorMessage = 'An account with this email already exists. Please sign in instead.';
+      } else if (error.message?.includes('password')) {
+        errorMessage = 'Please ensure your password meets all requirements.';
+      } else if (error.message?.includes('email')) {
+        errorMessage = 'Please enter a valid email address.';
+      }
+      
       toast({
         variant: "destructive",
         title: "Sign up failed",
-        description: error.message,
+        description: errorMessage,
       });
     } finally {
       setLoading(false);

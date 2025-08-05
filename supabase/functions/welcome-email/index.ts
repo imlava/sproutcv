@@ -8,6 +8,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Get the proper domain for links
+const getDomain = (origin: string | null) => {
+  if (origin && origin.includes('localhost')) {
+    return 'http://localhost:5173'; // Development
+  }
+  return 'https://sproutcv.app'; // Production
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -22,6 +30,9 @@ serve(async (req) => {
 
     // Initialize Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    
+    // Get proper domain
+    const domain = getDomain(req.headers.get("origin"));
 
     // Send welcome email
     const emailResponse = await resend.emails.send({
@@ -68,7 +79,7 @@ serve(async (req) => {
                 </ul>
                 
                 <div style="text-align: center; margin: 32px 0;">
-                  <a href="${req.headers.get("origin")}/dashboard" 
+                  <a href="${domain}/dashboard" 
                      style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
                             color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; 
                             font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">

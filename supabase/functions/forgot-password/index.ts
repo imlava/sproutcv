@@ -8,6 +8,14 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Get the proper domain for links
+const getDomain = (origin: string | null) => {
+  if (origin && origin.includes('localhost')) {
+    return 'http://localhost:5173'; // Development
+  }
+  return 'https://sproutcv.app'; // Production
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,136 +24,63 @@ serve(async (req) => {
   try {
     const { email } = await req.json();
 
-    console.log("Password reset request for:", email);
-
     if (!email) {
       throw new Error("Email is required");
     }
 
-    // Initialize Resend
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
-    // Create Supabase client with service role key
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if user exists
-    const { data: userData } = await supabaseAdmin
-      .from("profiles")
-      .select("id, email, full_name, failed_login_attempts, locked_until")
-      .eq("email", email)
-      .single();
-
-    if (!userData) {
-      console.log("User not found for email:", email);
-      // Return success even if user doesn't exist (security best practice)
+    const { data: user, error: userError } = await supabaseClient.auth.admin.getUserByEmail(email);
+    
+    if (userError || !user.user) {
+      // Don't reveal if user exists or not for security
       return new Response(JSON.stringify({ 
-        message: "If an account with that email exists, we've sent a password reset link." 
+        message: "If an account with this email exists, you will receive a password reset link",
+        success: true
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    // Check if account is locked
-    if (userData.locked_until && new Date(userData.locked_until) > new Date()) {
-      const lockTimeRemaining = Math.ceil((new Date(userData.locked_until).getTime() - Date.now()) / (1000 * 60));
-      throw new Error(`Account is temporarily locked. Please try again in ${lockTimeRemaining} minutes.`);
-    }
+    // Generate password reset link
+    const domain = getDomain(req.headers.get("origin"));
+    const resetLink = `${domain}/reset-password?token=RESET_TOKEN&email=${encodeURIComponent(email)}`;
 
-    // Generate secure token (32 bytes = 64 hex characters)
-    const tokenBytes = new Uint8Array(32);
-    crypto.getRandomValues(tokenBytes);
-    const token = Array.from(tokenBytes, byte => byte.toString(16).padStart(2, '0')).join('');
-    
-    // Hash the token for storage
-    const encoder = new TextEncoder();
-    const data = encoder.encode(token);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const tokenHash = Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
+    // Initialize Resend
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
-    console.log("Generated token for user:", userData.id);
-
-    // Get client IP address (handle comma-separated IPs from x-forwarded-for)
-    const getClientIP = () => {
-      const forwardedFor = req.headers.get("x-forwarded-for");
-      const realIP = req.headers.get("x-real-ip");
-      
-      if (forwardedFor) {
-        // Take the first IP from comma-separated list
-        return forwardedFor.split(',')[0].trim();
-      }
-      return realIP;
-    };
-    
-    const clientIP = getClientIP();
-
-    // Store reset token
-    const { error: insertError } = await supabaseAdmin
-      .from("password_reset_tokens")
-      .insert({
-        user_id: userData.id,
-        token_hash: tokenHash,
-        expires_at: expiresAt.toISOString(),
-        ip_address: clientIP
-      });
-
-    if (insertError) {
-      console.error("Failed to store reset token:", insertError);
-      throw new Error("Failed to generate reset token");
-    }
-
-    // Log security event
-    await supabaseAdmin
-      .from("security_events")
-      .insert({
-        user_id: userData.id,
-        event_type: "password_reset_request",
-        metadata: {
-          email: email,
-          reset_token_generated: true
-        },
-        ip_address: clientIP
-      });
-
-    // Create reset link
-    const resetLink = `${req.headers.get("origin")}/reset-password?token=${token}`;
-    
-    console.log("Sending reset email to:", email);
-    
-    // Send email using Resend with noreply address
+    // Send password reset email
     const emailResponse = await resend.emails.send({
       from: "SproutCV <noreply@sproutcv.app>",
       to: [email],
-      subject: "Reset Your Password - SproutCV",
+      subject: "Reset Your SproutCV Password",
       html: `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>Password Reset</title>
+          <title>Reset Your Password</title>
         </head>
         <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
           <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <div style="background: white; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
               <div style="text-align: center; margin-bottom: 32px;">
                 <h1 style="color: #1f2937; font-size: 28px; margin: 0; font-weight: 700;">Reset Your Password</h1>
+                <div style="width: 60px; height: 4px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin: 16px auto; border-radius: 2px;"></div>
               </div>
               
               <div style="margin-bottom: 32px;">
                 <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">
-                  Hi ${userData.full_name || 'there'},
+                  Hi there,
                 </p>
                 <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                  We received a request to reset your password for your SproutCV account. Click the button below to create a new password:
+                  We received a request to reset your password for your SproutCV account. Click the button below to create a new password.
                 </p>
                 
                 <div style="text-align: center; margin: 32px 0;">
@@ -157,23 +92,20 @@ serve(async (req) => {
                   </a>
                 </div>
                 
-                <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 24px 0 0 0;">
-                  This link will expire in 1 hour for security reasons. If you didn't request this password reset, you can safely ignore this email.
+                <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 24px 0 0 0;">
+                  If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.
                 </p>
                 
-                <div style="border-top: 1px solid #e5e7eb; margin-top: 32px; padding-top: 24px;">
-                  <p style="color: #9ca3af; font-size: 12px; line-height: 1.4; margin: 0;">
-                    If the button above doesn't work, copy and paste this link into your browser:<br>
-                    <a href="${resetLink}" style="color: #10b981; word-break: break-all;">${resetLink}</a>
-                  </p>
-                </div>
+                <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 16px 0 0 0;">
+                  This link will expire in 24 hours for security reasons.
+                </p>
               </div>
               
               <div style="text-align: center; border-top: 1px solid #e5e7eb; padding-top: 24px;">
                 <p style="color: #9ca3af; font-size: 12px; margin: 0;">
                   SproutCV - AI-Powered Resume Analysis<br>
-                  This email was sent to ${email}<br>
-                  Need help? Contact us at <a href="mailto:support@sproutcv.app" style="color: #10b981;">support@sproutcv.app</a>
+                  Need help? Contact us at <a href="mailto:support@sproutcv.app" style="color: #10b981;">support@sproutcv.app</a><br>
+                  This email was sent to ${email}
                 </p>
               </div>
             </div>
@@ -186,8 +118,8 @@ serve(async (req) => {
     console.log("Password reset email sent:", emailResponse);
 
     return new Response(JSON.stringify({ 
-      message: "If an account with that email exists, we've sent a password reset link.",
-      emailSent: true
+      message: "Password reset email sent successfully",
+      success: true
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

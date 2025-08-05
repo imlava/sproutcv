@@ -294,3 +294,49 @@ SELECT create_admin_user('hello@sproutcv.app', 'SproutCV2024!Admin', 'SproutCV A
 
 -- Clean up the function (one-time use)
 DROP FUNCTION create_admin_user(text, text, text);
+
+-- Update the handle_new_user function to include proper role assignment
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+    -- Insert user profile
+    INSERT INTO public.profiles (
+        id, email, full_name, credits, email_verified, referral_code
+    ) VALUES (
+        NEW.id,
+        NEW.email,
+        NEW.raw_user_meta_data->>'full_name',
+        5, -- Give 5 free credits to new users
+        COALESCE((NEW.raw_user_meta_data->>'email_verified')::boolean, false),
+        upper(substring(md5(random()::text) from 1 for 8)) -- Generate referral code
+    );
+    
+    -- Assign default user role
+    INSERT INTO public.user_roles (
+        user_id, role
+    ) VALUES (
+        NEW.id, 'user'
+    );
+    
+    -- Log new user registration
+    INSERT INTO public.security_events (
+        user_id, event_type, metadata
+    ) VALUES (
+        NEW.id, 'user_registration', 
+        jsonb_build_object('event', 'user_registration', 'email', NEW.email, 'full_name', NEW.raw_user_meta_data->>'full_name')
+    );
+    
+    -- Add initial credits to ledger
+    INSERT INTO public.credits_ledger (
+        user_id, transaction_type, credits_amount, balance_after, description
+    ) VALUES (
+        NEW.id, 'bonus', 5, 5, 'Welcome bonus credits'
+    );
+    
+    RETURN NEW;
+END;
+$$;
