@@ -1,11 +1,18 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import DodoPayments from "https://esm.sh/dodopayments@1.44.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// Get the proper domain for redirects
+const getDomain = (origin: string | null) => {
+  if (origin && origin.includes('localhost')) {
+    return 'http://localhost:5173'; // Development
+  }
+  return 'https://sproutcv.app'; // Production
 };
 
 serve(async (req) => {
@@ -20,6 +27,11 @@ serve(async (req) => {
       throw new Error("Missing credits or amount");
     }
 
+    // Validate input
+    if (credits <= 0 || amount <= 0) {
+      throw new Error("Invalid credits or amount");
+    }
+
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -27,57 +39,91 @@ serve(async (req) => {
     );
 
     // Get authenticated user
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseAdmin.auth.getUser(token);
-    const user = data.user;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header");
+    }
 
-    if (!user?.email) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (userError || !userData.user) {
       throw new Error("User not authenticated");
     }
 
-    // Initialize Dodo Payments client
+    const user = userData.user;
+
+    // Get user profile for customer details
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      console.error("Profile fetch error:", profileError);
+      throw new Error("Failed to fetch user profile");
+    }
+
+    // Initialize Dodo Payments API
     const dodoApiKey = Deno.env.get("DODO_PAYMENTS_API_KEY");
     if (!dodoApiKey) {
       throw new Error("Dodo Payments API key not configured");
     }
 
-    const dodoClient = new DodoPayments({
-      bearerToken: dodoApiKey,
-    });
+    const domain = getDomain(req.headers.get("origin"));
 
-    // Get user profile for customer details
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
-
-    // Create payment link with Dodo Payments
-    const payment = await dodoClient.payments.create({
-      payment_link: true,
+    // Create payment with Dodo Payments API
+    const paymentData = {
+      amount: amount, // Amount in cents
+      currency: "USD",
       customer: {
-        email: user.email,
-        name: profile?.full_name || user.email.split('@')[0],
+        email: profile.email || user.email,
+        name: profile?.full_name || user.email?.split('@')[0] || "Customer"
       },
-      product_cart: [{
-        product_id: "resume_credits", // You'll need to create this product in Dodo dashboard
-        quantity: 1,
-        unit_amount: amount, // Amount in cents
-      }],
       metadata: {
         user_id: user.id,
         credits: credits.toString(),
         source: "web_app",
+        product: "resume_credits"
       },
-      success_url: `${req.headers.get("origin")}/dashboard?payment=success`,
-      cancel_url: `${req.headers.get("origin")}/dashboard?payment=cancelled`,
+      success_url: `${domain}/payments?payment_id={payment_id}&status=success&amount=${amount}&credits=${credits}`,
+      cancel_url: `${domain}/payments?payment_id={payment_id}&status=cancelled`,
+      webhook_url: `${domain}/functions/v1/payments-webhook`,
+      description: `${credits} Resume Analysis Credits`,
+      expires_in: 3600 // 1 hour
+    };
+
+    console.log("Creating Dodo payment with data:", paymentData);
+
+    // Make API call to Dodo Payments
+    const dodoResponse = await fetch("https://api.dodopayments.com/v1/payments", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${dodoApiKey}`,
+        "Content-Type": "application/json",
+        "User-Agent": "SproutCV/1.0"
+      },
+      body: JSON.stringify(paymentData)
     });
 
-    const paymentId = payment.payment_id;
-    const paymentUrl = payment.payment_link;
+    if (!dodoResponse.ok) {
+      const errorData = await dodoResponse.text();
+      console.error("Dodo API error:", dodoResponse.status, errorData);
+      throw new Error(`Payment creation failed: ${dodoResponse.status}`);
+    }
 
-    // Record payment in database with enhanced data
+    const dodoPayment = await dodoResponse.json();
+    console.log("Dodo payment created:", dodoPayment);
+
+    const paymentId = dodoPayment.id;
+    const paymentUrl = dodoPayment.payment_url;
+
+    if (!paymentId || !paymentUrl) {
+      throw new Error("Invalid response from Dodo Payments");
+    }
+
+    // Record payment in database
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
 
@@ -92,9 +138,10 @@ serve(async (req) => {
         payment_method: "dodo_payments",
         payment_provider_id: paymentId,
         payment_data: {
-          user_email: user.email,
+          user_email: profile.email || user.email,
           created_via: "web_app",
-          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
+          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),
+          dodo_payment_data: dodoPayment
         },
         expires_at: expiresAt.toISOString()
       })
@@ -121,11 +168,14 @@ serve(async (req) => {
         ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
       });
 
+    console.log("Payment created successfully:", paymentId);
+
     return new Response(JSON.stringify({ 
       url: paymentUrl,
       paymentId: paymentId,
       paymentMethod: "dodo_payments",
-      expiresAt: expiresAt.toISOString()
+      expiresAt: expiresAt.toISOString(),
+      status: "pending"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

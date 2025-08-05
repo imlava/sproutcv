@@ -13,10 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { payment_id, payment_method, signature } = await req.json();
+    const { paymentId, status, amount, credits } = await req.json();
 
-    if (!payment_id || !payment_method) {
-      throw new Error("Missing payment_id or payment_method");
+    if (!paymentId || !status) {
+      throw new Error("Payment ID and status are required");
     }
 
     // Create Supabase client with service role key
@@ -25,136 +25,150 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    let paymentStatus = "pending";
-    let providerTransactionId = payment_id;
-
-    if (payment_method === "razorpay") {
-      // Verify Razorpay payment
-      const razorpayKey = Deno.env.get("RAZORPAY_KEY_SECRET");
-      const razorpayKeyId = Deno.env.get("RAZORPAY_KEY_ID");
-
-      if (!razorpayKey || !razorpayKeyId) {
-        throw new Error("Razorpay credentials not configured");
-      }
-
-      // For Razorpay, we need to verify the signature
-      if (signature) {
-        const crypto = await import("node:crypto");
-        const expectedSignature = crypto
-          .createHmac("sha256", razorpayKey)
-          .update(payment_id)
-          .digest("hex");
-        
-        if (expectedSignature === signature) {
-          paymentStatus = "completed";
-        }
-      }
-
-      // Also verify with Razorpay API
-      const razorpayResponse = await fetch(`https://api.razorpay.com/v1/orders/${payment_id}`, {
-        headers: {
-          "Authorization": `Basic ${btoa(`${razorpayKeyId}:${razorpayKey}`)}`,
-        },
-      });
-
-      if (razorpayResponse.ok) {
-        const razorpayOrder = await razorpayResponse.json();
-        if (razorpayOrder.status === "paid") {
-          paymentStatus = "completed";
-        }
-      }
-    } else if (payment_method === "paypal") {
-      // Verify PayPal payment
-      const paypalClientId = Deno.env.get("PAYPAL_CLIENT_ID");
-      const paypalClientSecret = Deno.env.get("PAYPAL_CLIENT_SECRET");
-      const paypalBaseUrl = Deno.env.get("PAYPAL_BASE_URL") || "https://api.sandbox.paypal.com";
-
-      if (!paypalClientId || !paypalClientSecret) {
-        throw new Error("PayPal credentials not configured");
-      }
-
-      // Get PayPal access token
-      const tokenResponse = await fetch(`${paypalBaseUrl}/v1/oauth2/token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Authorization": `Basic ${btoa(`${paypalClientId}:${paypalClientSecret}`)}`,
-        },
-        body: "grant_type=client_credentials",
-      });
-
-      const tokenData = await tokenResponse.json();
-      const accessToken = tokenData.access_token;
-
-      // Check PayPal order status
-      const orderResponse = await fetch(`${paypalBaseUrl}/v2/checkout/orders/${payment_id}`, {
-        headers: {
-          "Authorization": `Bearer ${accessToken}`,
-        },
-      });
-
-      if (orderResponse.ok) {
-        const orderData = await orderResponse.json();
-        if (orderData.status === "COMPLETED") {
-          paymentStatus = "completed";
-          providerTransactionId = orderData.id;
-        }
-      }
+    // Get authenticated user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header");
     }
 
-    if (paymentStatus === "completed") {
-      // Use the new secure function to process payment
-      const { data: result, error } = await supabaseAdmin.rpc(
-        'process_successful_payment',
-        {
-          payment_id: payment_id,
-          provider_transaction_id: providerTransactionId
-        }
-      );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (userError || !userData.user) {
+      throw new Error("User not authenticated");
+    }
 
-      if (error) {
-        console.error("Payment processing error:", error);
-        throw new Error("Failed to process payment");
+    const user = userData.user;
+
+    console.log(`Verifying payment ${paymentId} with status ${status} for user ${user.id}`);
+
+    // Find the payment record
+    const { data: payment, error: paymentError } = await supabaseAdmin
+      .from("payments")
+      .select("*")
+      .eq("payment_provider_id", paymentId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (paymentError || !payment) {
+      console.error("Payment not found:", paymentError);
+      return new Response(JSON.stringify({ 
+        status: 'failed',
+        message: 'Payment not found or access denied'
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404,
+      });
+    }
+
+    console.log("Found payment record:", payment);
+
+    // Handle different status types
+    if (status === 'success' || status === 'completed') {
+      // Check if payment is already processed
+      if (payment.status === 'completed') {
+        return new Response(JSON.stringify({ 
+          status: 'success',
+          paymentId,
+          amount: payment.amount,
+          credits: payment.credits_purchased,
+          message: 'Payment already completed'
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
       }
 
-      // Log security event
-      await supabaseAdmin
-        .from("security_events")
-        .insert({
-          event_type: "payment_completed",
-          metadata: {
-            payment_method: payment_method,
-            payment_id: payment_id,
-            provider_transaction_id: providerTransactionId
-          },
-          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
-        });
+      // Process the payment if it's still pending
+      if (payment.status === 'pending') {
+        try {
+          const { data: success, error: processError } = await supabaseAdmin.rpc("process_successful_payment", {
+            payment_id: payment.id,
+            provider_transaction_id: paymentId
+          });
 
-      // Get the payment details to return credits added
-      const { data: payment } = await supabaseAdmin
+          if (processError) {
+            console.error("Failed to process payment:", processError);
+            throw new Error("Failed to process payment");
+          }
+
+          console.log("Payment processed successfully");
+
+          // Send payment notification email
+          try {
+            await supabaseAdmin.functions.invoke('payment-notification', {
+              body: {
+                userId: user.id,
+                paymentId: payment.id,
+                credits: payment.credits_purchased,
+                amount: payment.amount
+              }
+            });
+            console.log("Payment notification email sent");
+          } catch (emailError) {
+            console.error("Failed to send payment notification:", emailError);
+          }
+
+          return new Response(JSON.stringify({ 
+            status: 'success',
+            paymentId,
+            amount: payment.amount,
+            credits: payment.credits_purchased,
+            message: 'Payment processed successfully'
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        } catch (error) {
+          console.error("Payment processing error:", error);
+          return new Response(JSON.stringify({ 
+            status: 'failed',
+            paymentId,
+            message: 'Payment processing failed'
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 500,
+          });
+        }
+      }
+    } else if (status === 'failed' || status === 'cancelled') {
+      // Update payment status to failed/cancelled
+      const { error: updateError } = await supabaseAdmin
         .from("payments")
-        .select("credits_purchased, user_id")
-        .eq("stripe_session_id", payment_id)
-        .single();
+        .update({ 
+          status: status === 'cancelled' ? 'cancelled' : 'failed',
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", payment.id);
+
+      if (updateError) {
+        console.error("Failed to update payment status:", updateError);
+      }
 
       return new Response(JSON.stringify({ 
-        status: "completed",
-        credits_added: payment?.credits_purchased || 0,
-        message: "Payment processed successfully"
+        status: status === 'cancelled' ? 'cancelled' : 'failed',
+        paymentId,
+        amount: payment.amount,
+        credits: payment.credits_purchased,
+        message: `Payment ${status}`
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
+    // Return current payment status
     return new Response(JSON.stringify({ 
-      status: paymentStatus,
-      credits_added: 0,
-      message: "Payment verification pending"
+      status: payment.status,
+      paymentId,
+      amount: payment.amount,
+      credits: payment.credits_purchased,
+      message: `Payment status: ${payment.status}`
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
+
   } catch (error) {
     console.error("Payment verification error:", error);
     return new Response(JSON.stringify({ error: error.message }), {

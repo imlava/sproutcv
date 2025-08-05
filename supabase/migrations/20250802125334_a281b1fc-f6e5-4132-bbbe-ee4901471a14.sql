@@ -45,53 +45,130 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.process_successful_payment(payment_id uuid, provider_transaction_id text DEFAULT NULL::text)
- RETURNS boolean
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path = ''
-AS $function$
+-- Update the process_successful_payment function for Dodo Payments
+CREATE OR REPLACE FUNCTION public.process_successful_payment(
+    payment_id UUID,
+    provider_transaction_id TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
     payment_record RECORD;
+    user_id UUID;
+    credits_to_add INTEGER;
+    current_credits INTEGER;
+    new_balance INTEGER;
 BEGIN
     -- Get payment details with lock
-    SELECT * INTO payment_record 
-    FROM public.payments 
-    WHERE id = payment_id AND status = 'pending'
+    SELECT * INTO payment_record
+    FROM public.payments
+    WHERE id = payment_id
+    AND status = 'pending'
     FOR UPDATE;
     
-    IF payment_record IS NULL THEN
+    IF NOT FOUND THEN
         RAISE EXCEPTION 'Payment not found or already processed';
     END IF;
     
+    -- Extract values
+    user_id := payment_record.user_id;
+    credits_to_add := payment_record.credits_purchased;
+    
+    -- Get current user credits
+    SELECT credits INTO current_credits
+    FROM public.profiles
+    WHERE id = user_id;
+    
+    IF current_credits IS NULL THEN
+        RAISE EXCEPTION 'User profile not found';
+    END IF;
+    
+    -- Calculate new balance
+    new_balance := current_credits + credits_to_add;
+    
     -- Update payment status
-    UPDATE public.payments 
-    SET status = 'completed', 
-        payment_provider_id = COALESCE(provider_transaction_id, payment_provider_id),
-        updated_at = now()
+    UPDATE public.payments
+    SET 
+        status = 'completed',
+        updated_at = now(),
+        payment_data = payment_data || jsonb_build_object(
+            'processed_at', now(),
+            'provider_transaction_id', provider_transaction_id,
+            'final_balance', new_balance
+        )
     WHERE id = payment_id;
     
-    -- Add credits to user account
-    PERFORM public.update_user_credits(
-        payment_record.user_id,
-        payment_record.credits_purchased,
-        'purchase',
-        'Credits purchased via ' || payment_record.payment_method,
-        payment_id
-    );
+    -- Update user credits
+    UPDATE public.profiles
+    SET 
+        credits = new_balance,
+        updated_at = now()
+    WHERE id = user_id;
     
-    -- Log transaction
-    INSERT INTO public.payment_transactions (
-        payment_id, transaction_type, amount, 
-        provider_transaction_id, status
+    -- Log credit transaction
+    INSERT INTO public.credits_ledger (
+        user_id,
+        transaction_type,
+        credits_amount,
+        balance_after,
+        related_payment_id,
+        description,
+        metadata
     ) VALUES (
-        payment_id, 'charge', payment_record.amount,
-        provider_transaction_id, 'completed'
+        user_id,
+        'purchase',
+        credits_to_add,
+        new_balance,
+        payment_id,
+        'Credits purchased via Dodo Payments',
+        jsonb_build_object(
+            'payment_method', 'dodo_payments',
+            'provider_transaction_id', provider_transaction_id,
+            'amount_paid', payment_record.amount
+        )
     );
     
-    RETURN true;
+    -- Log security event
+    INSERT INTO public.security_events (
+        user_id,
+        event_type,
+        metadata,
+        ip_address
+    ) VALUES (
+        user_id,
+        'payment_completed',
+        jsonb_build_object(
+            'payment_id', payment_id,
+            'credits_added', credits_to_add,
+            'final_balance', new_balance,
+            'payment_method', 'dodo_payments'
+        ),
+        payment_record.payment_data->>'ip_address'
+    );
+    
+    RETURN TRUE;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Log error
+        INSERT INTO public.security_events (
+            user_id,
+            event_type,
+            metadata
+        ) VALUES (
+            user_id,
+            'payment_processing_error',
+            jsonb_build_object(
+                'payment_id', payment_id,
+                'error', SQLERRM,
+                'provider_transaction_id', provider_transaction_id
+            )
+        );
+        
+        RAISE;
 END;
-$function$;
+$$;
 
 CREATE OR REPLACE FUNCTION public.consume_analysis_credit(target_user_id uuid, analysis_id uuid)
  RETURNS boolean

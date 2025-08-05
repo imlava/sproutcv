@@ -16,6 +16,7 @@ import AdminPage from "./pages/AdminPage";
 import ReferralPage from "./pages/ReferralPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
+import PaymentsPage from "./pages/PaymentsPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/toaster";
 
@@ -40,6 +41,7 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/referrals" element={<ReferralPage />} />
           <Route path="/analysis/:id" element={<AnalysisDetailPage />} />
+          <Route path="/payments" element={<PaymentsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>

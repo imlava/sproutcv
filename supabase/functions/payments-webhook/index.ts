@@ -62,7 +62,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Dodo webhook received");
+    console.log("Payments webhook received");
 
     const webhookSecret = Deno.env.get("DODO_WEBHOOK_SECRET");
     if (!webhookSecret) {
@@ -149,7 +149,6 @@ serve(async (req) => {
           console.log("Payment notification email sent");
         } catch (emailError) {
           console.error("Failed to send payment notification:", emailError);
-          // Don't throw error here as payment was processed successfully
         }
 
         // Log webhook processing
@@ -213,10 +212,10 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Webhook processing error:", error);
+    console.error("Payments webhook processing error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
   }
-});
+}); 
