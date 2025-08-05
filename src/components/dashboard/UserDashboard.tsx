@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, Target, Zap, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import PaymentModal from './PaymentModal';
+import DodoPaymentModal from './DodoPaymentModal';
 
 interface Analysis {
   id: string;
@@ -434,7 +434,7 @@ const UserDashboard = () => {
         </div>
       </main>
 
-      <PaymentModal 
+      <DodoPaymentModal 
         isOpen={showPaymentModal} 
         onClose={() => setShowPaymentModal(false)}
         onSuccess={refreshProfile}
