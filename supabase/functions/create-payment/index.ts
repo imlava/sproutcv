@@ -77,10 +77,7 @@ serve(async (req) => {
       const mockPaymentId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const mockPaymentUrl = `${domain}/payments?payment_id=${mockPaymentId}&status=success&amount=${amount}&credits=${credits}`;
       
-      // Record payment in database
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
-
+      // Record payment in database (using existing table structure)
       const { data: paymentRecord, error: paymentError } = await supabaseAdmin
         .from("payments")
         .insert({
@@ -88,16 +85,7 @@ serve(async (req) => {
           stripe_session_id: mockPaymentId,
           amount: amount,
           credits_purchased: credits,
-          status: "pending",
-          payment_method: "mock_payments",
-          payment_provider_id: mockPaymentId,
-          payment_data: {
-            user_email: profile.email || user.email,
-            created_via: "web_app",
-            ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),
-            is_mock: true
-          },
-          expires_at: expiresAt.toISOString()
+          status: "pending"
         })
         .select()
         .single();
@@ -107,28 +95,12 @@ serve(async (req) => {
         throw new Error("Failed to record payment");
       }
 
-      // Log security event
-      await supabaseAdmin
-        .from("security_events")
-        .insert({
-          user_id: user.id,
-          event_type: "payment_initiated",
-          metadata: {
-            payment_method: "mock_payments",
-            amount: amount,
-            credits: credits,
-            payment_id: mockPaymentId
-          },
-          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
-        });
-
       console.log("Mock payment created successfully:", mockPaymentId);
 
       return new Response(JSON.stringify({ 
         url: mockPaymentUrl,
         paymentId: mockPaymentId,
         paymentMethod: "mock_payments",
-        expiresAt: expiresAt.toISOString(),
         status: "pending"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -187,27 +159,15 @@ serve(async (req) => {
         throw new Error("Invalid response from Dodo Payments");
       }
 
-      // Record payment in database
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
-
+      // Record payment in database (using existing table structure)
       const { data: paymentRecord, error: paymentError } = await supabaseAdmin
         .from("payments")
         .insert({
           user_id: user.id,
-          stripe_session_id: paymentId, // Reusing this field for payment ID
+          stripe_session_id: paymentId,
           amount: amount,
           credits_purchased: credits,
-          status: "pending",
-          payment_method: "dodo_payments",
-          payment_provider_id: paymentId,
-          payment_data: {
-            user_email: profile.email || user.email,
-            created_via: "web_app",
-            ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),
-            dodo_payment_data: dodoPayment
-          },
-          expires_at: expiresAt.toISOString()
+          status: "pending"
         })
         .select()
         .single();
@@ -217,28 +177,12 @@ serve(async (req) => {
         throw new Error("Failed to record payment");
       }
 
-      // Log security event
-      await supabaseAdmin
-        .from("security_events")
-        .insert({
-          user_id: user.id,
-          event_type: "payment_initiated",
-          metadata: {
-            payment_method: "dodo_payments",
-            amount: amount,
-            credits: credits,
-            payment_id: paymentId
-          },
-          ip_address: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip")
-        });
-
       console.log("Payment created successfully:", paymentId);
 
       return new Response(JSON.stringify({ 
         url: paymentUrl,
         paymentId: paymentId,
         paymentMethod: "dodo_payments",
-        expiresAt: expiresAt.toISOString(),
         status: "pending"
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
