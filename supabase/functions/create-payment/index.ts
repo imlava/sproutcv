@@ -65,12 +65,15 @@ serve(async (req) => {
       throw new Error("Failed to fetch user profile");
     }
 
-    // Initialize Dodo Payments API
+    const domain = getDomain(req.headers.get("origin"));
+
+    // Check if Dodo Payments API key is configured
     const dodoApiKey = Deno.env.get("DODO_PAYMENTS_API_KEY");
+    
     if (!dodoApiKey) {
-      console.warn("Dodo Payments API key not configured, using fallback implementation");
+      console.warn("Dodo Payments API key not configured, using mock payment for testing");
       
-      // Fallback: Create a mock payment for testing
+      // Create mock payment for testing
       const mockPaymentId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const mockPaymentUrl = `${domain}/payments?payment_id=${mockPaymentId}&status=success&amount=${amount}&credits=${credits}`;
       
@@ -132,8 +135,6 @@ serve(async (req) => {
         status: 200,
       });
     }
-
-    const domain = getDomain(req.headers.get("origin"));
 
     // Create payment with Dodo Payments API
     const paymentData = {

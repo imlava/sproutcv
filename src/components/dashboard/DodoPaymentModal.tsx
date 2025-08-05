@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { Check, Loader2, Zap, CreditCard, Shield, Clock } from 'lucide-react';
+import { Check, Loader2, Zap, Shield, Clock, CreditCard } from 'lucide-react';
 import CouponSystem from '../CouponSystem';
 
 interface DodoPaymentModalProps {
@@ -122,9 +122,9 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
           <DialogTitle className="text-center text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             Choose Your Credit Pack
           </DialogTitle>
-          <p className="text-center text-muted-foreground mt-2">
+          <DialogDescription className="text-center text-muted-foreground mt-2">
             Unlock the full potential of AI-powered resume optimization
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         {/* Trust Indicators */}

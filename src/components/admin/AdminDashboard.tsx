@@ -1500,6 +1500,9 @@ const AdminDashboard = () => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Message Details</DialogTitle>
+              <DialogDescription>
+                View and respond to customer support messages.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
