@@ -492,40 +492,6 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
         </ScrollArea>
       </Card>
 
-      {/* Detailed Suggestions */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4 flex items-center">
-          <Lightbulb className="h-5 w-5 mr-2" />
-          Detailed Suggestions
-        </h3>
-        
-        <ScrollArea className="h-[300px]">
-          <div className="space-y-4">
-            {analysis.suggestions && typeof analysis.suggestions === 'object' ? (
-              Object.entries(analysis.suggestions).map(([category, suggestions], index) => (
-                <div key={index}>
-                  <h4 className="font-medium capitalize mb-2">{category.replace('_', ' ')}</h4>
-                  {Array.isArray(suggestions) ? (
-                    <ul className="space-y-1 ml-4">
-                      {suggestions.map((suggestion, idx) => (
-                        <li key={idx} className="text-sm text-muted-foreground flex items-start">
-                          <Star className="h-3 w-3 text-yellow-500 mt-1 mr-2 flex-shrink-0" />
-                          {String(suggestion)}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-muted-foreground ml-4">{String(suggestions)}</p>
-                  )}
-                  {index < Object.entries(analysis.suggestions).length - 1 && <Separator className="mt-4" />}
-                </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground">No detailed suggestions available</p>
-            )}
-          </div>
-        </ScrollArea>
-      </Card>
 
       {/* Additional Feedback */}
       {analysis.detailed_feedback && Object.keys(analysis.detailed_feedback).length > 0 && (
