@@ -326,11 +326,15 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
                 Found Keywords ({analysis.keywords_found?.length || 0})
               </h4>
               <div className="flex flex-wrap gap-2">
-                {analysis.keywords_found?.map((keyword, index) => (
-                  <Badge key={index} variant="default" className="bg-green-100 text-green-800">
-                    {keyword}
-                  </Badge>
-                )) || <p className="text-muted-foreground text-sm">No keywords found</p>}
+                {analysis.keywords_found?.length ? (
+                  analysis.keywords_found.map((keyword, index) => (
+                    <Badge key={index} variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      {keyword}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-sm">No keywords data available</p>
+                )}
               </div>
             </div>
             
@@ -342,13 +346,31 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
                 Missing Keywords ({analysis.missing_keywords?.length || 0})
               </h4>
               <div className="flex flex-wrap gap-2">
-                {analysis.missing_keywords?.map((keyword, index) => (
-                  <Badge key={index} variant="outline" className="border-red-200 text-red-600">
-                    {keyword}
-                  </Badge>
-                )) || <p className="text-muted-foreground text-sm">No missing keywords identified</p>}
+                {analysis.missing_keywords?.length ? (
+                  analysis.missing_keywords.map((keyword, index) => (
+                    <Badge key={index} variant="outline" className="border-red-200 text-red-600 dark:border-red-800 dark:text-red-400">
+                      {keyword}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-sm">No missing keywords data available</p>
+                )}
               </div>
             </div>
+
+            {/* Keyword Insights from original analysis */}
+            {analysis.analysis_results?.suggestions && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <h5 className="font-medium text-blue-800 dark:text-blue-200 text-sm mb-1">Keyword Suggestions:</h5>
+                {analysis.analysis_results.suggestions
+                  .filter(s => s.type === 'keywords')
+                  .map((suggestion, index) => (
+                    <p key={index} className="text-sm text-blue-700 dark:text-blue-300">
+                      {suggestion.description}
+                    </p>
+                  ))}
+              </div>
+            )}
           </div>
         </Card>
 
@@ -359,18 +381,116 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
             Improvement Areas
           </h3>
           
-          <ScrollArea className="h-[200px]">
+          <ScrollArea className="h-[250px]">
             <div className="space-y-3">
-              {analysis.improvement_areas?.map((area, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <TrendingUp className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">{area}</p>
-                </div>
-              )) || <p className="text-muted-foreground text-sm">No specific improvement areas identified</p>}
+              {analysis.improvement_areas?.length ? (
+                analysis.improvement_areas.map((area, index) => (
+                  <div key={index} className="flex items-start space-x-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm">{area}</p>
+                  </div>
+                ))
+              ) : (
+                <>
+                  {/* Fallback to suggestions from analysis results */}
+                  {analysis.analysis_results?.suggestions?.length ? (
+                    analysis.analysis_results.suggestions.map((suggestion, index) => (
+                      <div key={index} className="p-3 border border-orange-200 dark:border-orange-800 rounded-lg">
+                        <div className="flex items-center mb-2">
+                          <Badge variant="outline" className="text-xs mr-2 capitalize">
+                            {suggestion.type}
+                          </Badge>
+                          <span className="font-medium text-sm">{suggestion.title}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{suggestion.description}</p>
+                        {suggestion.action && (
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                            Action: {suggestion.action}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-sm">No improvement areas identified</p>
+                  )}
+                </>
+              )}
             </div>
           </ScrollArea>
         </Card>
       </div>
+
+      {/* Detailed Suggestions */}
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <Lightbulb className="h-5 w-5 mr-2" />
+          Detailed Suggestions & Recommendations
+        </h3>
+        
+        <ScrollArea className="h-[350px]">
+          <div className="space-y-4">
+            {analysis.suggestions && typeof analysis.suggestions === 'object' ? (
+              Array.isArray(analysis.suggestions) ? (
+                // Handle array format (from analysis_results)
+                analysis.suggestions.map((suggestion, index) => (
+                  <div key={index} className="border border-border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium capitalize flex items-center">
+                        <Star className="h-4 w-4 text-yellow-500 mr-2" />
+                        {suggestion.title || suggestion.type?.replace('_', ' ')}
+                      </h4>
+                      {suggestion.priority && (
+                        <Badge 
+                          variant={suggestion.priority === 'high' ? 'destructive' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {suggestion.priority}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{suggestion.description}</p>
+                    {suggestion.action && (
+                      <div className="bg-muted/50 p-2 rounded text-sm">
+                        <strong>Action:</strong> {suggestion.action}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                // Handle object format
+                Object.entries(analysis.suggestions).map(([category, suggestions], index) => (
+                  <div key={index} className="border border-border rounded-lg p-4">
+                    <h4 className="font-medium capitalize mb-3 flex items-center">
+                      <Star className="h-4 w-4 text-yellow-500 mr-2" />
+                      {category.replace('_', ' ')}
+                    </h4>
+                    {Array.isArray(suggestions) ? (
+                      <ul className="space-y-2">
+                        {suggestions.map((suggestion, idx) => (
+                          <li key={idx} className="text-sm text-muted-foreground flex items-start">
+                            <span className="inline-block w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                            {String(suggestion)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{String(suggestions)}</p>
+                    )}
+                  </div>
+                ))
+              )
+            ) : (
+              <div className="text-center py-8">
+                <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No detailed suggestions available</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Suggestions will appear here after analysis is complete
+                </p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </Card>
 
       {/* Detailed Suggestions */}
       <Card className="p-6">
