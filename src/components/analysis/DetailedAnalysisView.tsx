@@ -185,7 +185,11 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
       </div>
 
       {/* Score Overview */}
-      <Card className="p-6">
+      <Card className="p-6 bg-gradient-to-br from-background to-muted/20">
+        <h2 className="text-xl font-semibold mb-6 flex items-center">
+          <TrendingUp className="h-5 w-5 mr-2" />
+          Analysis Overview
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="text-center">
             <div className={`text-4xl font-bold ${getScoreColor(analysis.overall_score)} mb-2`}>
@@ -202,6 +206,11 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
               {analysis.keyword_match}%
             </div>
             <p className="text-sm text-muted-foreground">Keyword Match</p>
+            {analysis.analysis_results?.totalKeywords && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {analysis.analysis_results.matchingKeywords || 0} of {analysis.analysis_results.totalKeywords} keywords
+              </p>
+            )}
           </div>
           
           <div className="text-center">
@@ -226,6 +235,81 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
           </div>
         </div>
       </Card>
+
+      {/* Original Analysis Results */}
+      {analysis.analysis_results && (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center">
+            <FileText className="h-5 w-5 mr-2" />
+            Original Analysis Results
+          </h3>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Experience Mismatch Warning */}
+            {analysis.analysis_results.experienceMismatch && (
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <h4 className="font-medium text-red-800 dark:text-red-200 mb-2 flex items-center">
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Experience Mismatch ({analysis.analysis_results.experienceMismatch.severity})
+                </h4>
+                <div className="space-y-2">
+                  {analysis.analysis_results.experienceMismatch.warnings?.map((warning, index) => (
+                    <p key={index} className="text-sm text-red-700 dark:text-red-300">{warning}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recommended Roles */}
+            {analysis.analysis_results.recommendedRoles && analysis.analysis_results.recommendedRoles.length > 0 && (
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2 flex items-center">
+                  <Target className="h-4 w-4 mr-2" />
+                  Recommended Roles
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.analysis_results.recommendedRoles.map((role, index) => (
+                    <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
+                      {role}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Detailed Analysis Metrics */}
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-primary">
+                {analysis.analysis_results.totalKeywords || 0}
+              </div>
+              <p className="text-sm text-muted-foreground">Total Keywords</p>
+            </div>
+            
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                {analysis.analysis_results.matchingKeywords || 0}
+              </div>
+              <p className="text-sm text-muted-foreground">Matching Keywords</p>
+            </div>
+            
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600">
+                {analysis.analysis_results.keywordMatch || analysis.keyword_match}%
+              </div>
+              <p className="text-sm text-muted-foreground">Keyword Match Rate</p>
+            </div>
+            
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">
+                {analysis.analysis_results.overallScore || analysis.overall_score}%
+              </div>
+              <p className="text-sm text-muted-foreground">Computed Score</p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Keywords Analysis */}
