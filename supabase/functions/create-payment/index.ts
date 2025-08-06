@@ -71,42 +71,11 @@ serve(async (req) => {
     const dodoApiKey = Deno.env.get("DODO_PAYMENTS_API_KEY");
     
     if (!dodoApiKey) {
-      console.warn("Dodo Payments API key not configured, using mock payment for testing");
-      
-      // Create mock payment for testing
-      const mockPaymentId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const mockPaymentUrl = `${domain}/payments?payment_id=${mockPaymentId}&status=success&amount=${amount}&credits=${credits}`;
-      
-      // Record payment in database (using existing table structure)
-      const { data: paymentRecord, error: paymentError } = await supabaseAdmin
-        .from("payments")
-        .insert({
-          user_id: user.id,
-          stripe_session_id: mockPaymentId,
-          amount: amount,
-          credits_purchased: credits,
-          status: "pending"
-        })
-        .select()
-        .single();
-
-      if (paymentError) {
-        console.error("Database error:", paymentError);
-        throw new Error("Failed to record payment");
-      }
-
-      console.log("Mock payment created successfully:", mockPaymentId);
-
-      return new Response(JSON.stringify({ 
-        url: mockPaymentUrl,
-        paymentId: mockPaymentId,
-        paymentMethod: "mock_payments",
-        status: "pending"
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      console.error("Dodo Payments API key not configured");
+      throw new Error("Payment service not configured. Please contact support.");
     }
+
+    console.log("Dodo Payments API key found, proceeding with payment creation");
 
     // Create payment with Dodo Payments API
     const paymentData = {
@@ -132,46 +101,34 @@ serve(async (req) => {
     console.log("Creating Dodo payment with data:", paymentData);
 
     try {
-      // Try Dodo Payments API first, fallback to mock on any error
-      let dodoPayment;
-      try {
-        const dodoResponse = await fetch("https://api.dodopayments.com/v1/payments", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${dodoApiKey}`,
-            "Content-Type": "application/json",
-            "User-Agent": "SproutCV/1.0"
-          },
-          body: JSON.stringify(paymentData)
-        });
+      // Make API call to Dodo Payments
+      const dodoResponse = await fetch("https://api.dodopayments.com/v1/payments", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${dodoApiKey}`,
+          "Content-Type": "application/json",
+          "User-Agent": "SproutCV/1.0"
+        },
+        body: JSON.stringify(paymentData)
+      });
 
-        if (!dodoResponse.ok) {
-          throw new Error(`API responded with status ${dodoResponse.status}`);
-        }
-
-        dodoPayment = await dodoResponse.json();
-      } catch (apiError) {
-        console.warn("Dodo Payments API unavailable, using mock payment:", apiError.message);
-        
-        // Create mock payment for testing when API is unavailable
-        const mockPaymentId = `dodo_mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const mockPaymentUrl = `${domain}/payments?payment_id=${mockPaymentId}&status=success&amount=${amount}&credits=${credits}`;
-        
-        dodoPayment = {
-          id: mockPaymentId,
-          payment_url: mockPaymentUrl
-        };
+      if (!dodoResponse.ok) {
+        const errorData = await dodoResponse.text();
+        console.error("Dodo API error:", dodoResponse.status, errorData);
+        throw new Error(`Payment creation failed: ${dodoResponse.status} - ${errorData}`);
       }
+
+      const dodoPayment = await dodoResponse.json();
       console.log("Dodo payment created:", dodoPayment);
 
       const paymentId = dodoPayment.id;
       const paymentUrl = dodoPayment.payment_url;
 
       if (!paymentId || !paymentUrl) {
-        throw new Error("Invalid response from Dodo Payments");
+        throw new Error("Invalid response from Dodo Payments - missing payment ID or URL");
       }
 
-      // Record payment in database (using existing table structure)
+      // Record payment in database
       const { data: paymentRecord, error: paymentError } = await supabaseAdmin
         .from("payments")
         .insert({
