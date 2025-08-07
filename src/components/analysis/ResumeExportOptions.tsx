@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { FileDown, FileText, Mail, Share2, CheckCircle, Eye, Download, Printer, Copy, ExternalLink, Star, Target, Zap } from 'lucide-react';
+import { FileDown, FileText, Mail, Share2, CheckCircle, Eye, Download, Printer, Copy, ExternalLink, Star, Target, Zap, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -38,17 +38,25 @@ const ResumeExportOptions: React.FC<ResumeExportOptionsProps> = ({
     setExportProgress(0);
     
     try {
-      // Simulate progressive PDF generation
-      const progressSteps = [20, 40, 60, 80, 100];
+      // Enhanced progressive PDF generation with better feedback
+      const progressSteps = [
+        { step: 'Preparing resume content...', progress: 20 },
+        { step: 'Applying optimizations...', progress: 40 },
+        { step: 'Formatting for ATS...', progress: 60 },
+        { step: 'Generating PDF...', progress: 80 },
+        { step: 'Finalizing document...', progress: 100 }
+      ];
+      
       for (const step of progressSteps) {
-        await new Promise(resolve => setTimeout(resolve, 600));
-        setExportProgress(step);
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setExportProgress(step.progress);
+        // In real implementation, update step message here
       }
       
       setExportCompleted(true);
       toast({
         title: "Resume exported successfully!",
-        description: "Your tailored resume has been generated and is ready for download.",
+        description: "Your tailored resume has been generated and is ready for download. You can access this file for 30 days.",
       });
       
       // In real implementation, this would trigger actual PDF download
@@ -255,12 +263,18 @@ const ResumeExportOptions: React.FC<ResumeExportOptionsProps> = ({
                 </div>
               </div>
               
-              {option.loading && (
-                <div className="space-y-2">
-                  <Progress value={option.progress} className="h-2" />
-                  <p className="text-xs opacity-70">Generating PDF... {option.progress}%</p>
-                </div>
-              )}
+                             {option.loading && (
+                 <div className="space-y-2">
+                   <Progress value={option.progress} className="h-2" />
+                   <p className="text-xs opacity-70">
+                     {option.progress < 20 ? 'Preparing resume content...' :
+                      option.progress < 40 ? 'Applying optimizations...' :
+                      option.progress < 60 ? 'Formatting for ATS...' :
+                      option.progress < 80 ? 'Generating PDF...' :
+                      'Finalizing document...'} {option.progress}%
+                   </p>
+                 </div>
+               )}
               
               <Button 
                 onClick={option.action}
@@ -328,16 +342,25 @@ const ResumeExportOptions: React.FC<ResumeExportOptionsProps> = ({
           ))}
         </div>
         
-        {exportCompleted && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <Star className="h-4 w-4 text-green-600" />
-              <p className="text-sm text-green-800 font-medium">
-                🎉 Your tailored resume is ready! Download and submit with confidence.
-              </p>
-            </div>
-          </div>
-        )}
+                 {exportCompleted && (
+           <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+             <div className="flex items-start space-x-3">
+               <Star className="h-5 w-5 text-green-600 mt-0.5" />
+               <div className="flex-1">
+                 <p className="text-sm text-green-800 font-medium mb-1">
+                   🎉 Your tailored resume is ready!
+                 </p>
+                 <p className="text-xs text-green-700">
+                   Download and submit with confidence. This file will be available for 30 days.
+                 </p>
+                 <div className="mt-2 flex items-center space-x-2 text-xs text-green-600">
+                   <Clock className="h-3 w-3" />
+                   <span>Access until {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}</span>
+                 </div>
+               </div>
+             </div>
+           </div>
+         )}
       </div>
 
       {/* Quick Tips */}

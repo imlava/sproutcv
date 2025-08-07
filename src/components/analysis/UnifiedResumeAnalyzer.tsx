@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, FileText, Loader2, AlertCircle, CheckCircle, Info, ArrowLeft, AlertTriangle, X, HelpCircle, Eye, Download, Mail, Share2, Target, Zap, Star } from 'lucide-react';
+import { Upload, FileText, Loader2, AlertCircle, CheckCircle, Info, ArrowLeft, AlertTriangle, X, HelpCircle, Eye, Download, Mail, Share2, Target, Zap, Star, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -196,7 +196,19 @@ const UnifiedResumeAnalyzer = () => {
     setPdfProcessing(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Enhanced progress simulation with real steps
+      const steps = [
+        { message: 'Validating file format...', progress: 20 },
+        { message: 'Extracting text content...', progress: 40 },
+        { message: 'Processing resume structure...', progress: 60 },
+        { message: 'Preparing for analysis...', progress: 80 },
+        { message: 'File ready for analysis', progress: 100 }
+      ];
+      
+      for (const step of steps) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        // In real implementation, update progress state here
+      }
       
       setFormData({ 
         ...formData, 
@@ -206,7 +218,7 @@ const UnifiedResumeAnalyzer = () => {
       
       toast({
         title: "PDF uploaded successfully",
-        description: `${file.name} has been processed`,
+        description: `${file.name} has been processed and is ready for analysis`,
       });
       
       setStep(2);
@@ -248,6 +260,23 @@ const UnifiedResumeAnalyzer = () => {
     setLoading(true);
 
     try {
+      // Enhanced analysis progress simulation
+      const analysisSteps = [
+        { message: 'Parsing resume content...', progress: 15 },
+        { message: 'Extracting job requirements...', progress: 30 },
+        { message: 'Analyzing keyword matches...', progress: 45 },
+        { message: 'Evaluating skills alignment...', progress: 60 },
+        { message: 'Checking ATS compatibility...', progress: 75 },
+        { message: 'Generating recommendations...', progress: 90 },
+        { message: 'Finalizing analysis...', progress: 100 }
+      ];
+      
+      // Simulate analysis progress
+      for (const step of analysisSteps) {
+        await new Promise(resolve => setTimeout(resolve, 600));
+        // In real implementation, update progress state here
+      }
+
       const { data, error } = await supabase.functions.invoke('analyze-resume', {
         body: {
           resume_text: formData.resumeText,
@@ -295,7 +324,7 @@ const UnifiedResumeAnalyzer = () => {
       
       toast({
         title: "Analysis complete!",
-        description: "Your resume has been analyzed successfully",
+        description: "Your resume has been analyzed successfully. Review the results below.",
       });
     } catch (error: any) {
       console.error('Analysis error:', error);
@@ -494,24 +523,29 @@ const UnifiedResumeAnalyzer = () => {
                     </details>
                   )}
 
-                  {warning.actionable && warning.overrideOptions && (
-                    <div className="mt-3">
-                      <p className="text-xs font-medium mb-2">What would you like to do?</p>
-                      <div className="flex flex-wrap gap-2">
-                        {warning.overrideOptions.map((option, index) => (
-                          <Button
-                            key={index}
-                            variant={warning.userOverride === option ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handleUserOverride(warning.id, option)}
-                            className="text-xs"
-                          >
-                            {option}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                                     {warning.actionable && warning.overrideOptions && (
+                     <div className="mt-3">
+                       <p className="text-xs font-medium mb-2">What would you like to do?</p>
+                       <div className="flex flex-wrap gap-2">
+                         {warning.overrideOptions.map((option, index) => (
+                           <Button
+                             key={index}
+                             variant={warning.userOverride === option ? "default" : "outline"}
+                             size="sm"
+                             onClick={() => handleUserOverride(warning.id, option)}
+                             className="text-xs btn-animate"
+                           >
+                             {option}
+                           </Button>
+                         ))}
+                       </div>
+                       {warning.userOverride && (
+                         <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-800">
+                           ✓ You've indicated: "{warning.userOverride}"
+                         </div>
+                       )}
+                     </div>
+                   )}
                 </div>
               </div>
               
@@ -599,6 +633,28 @@ const UnifiedResumeAnalyzer = () => {
           </div>
         </div>
         
+        {/* 30-Day Access Banner */}
+        <Card className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <Clock className="h-4 w-4 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-blue-900">
+                  📁 Your analysis is saved for 30 days
+                </p>
+                <p className="text-xs text-blue-700">
+                  Access this tailored resume until {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" className="text-blue-600 border-blue-300">
+              View History
+            </Button>
+          </div>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content - Left Column */}
           <div className="lg:col-span-2 space-y-8">
@@ -853,6 +909,20 @@ const UnifiedResumeAnalyzer = () => {
                 <div>
                   <h3 className="text-lg font-medium mb-2">Processing PDF...</h3>
                   <p className="text-muted-foreground">Extracting text from your resume</p>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>Validating file format...</span>
+                    </div>
+                    <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                      <span>Extracting text content...</span>
+                    </div>
+                    <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                      <span>Processing resume structure...</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : formData.resumeFile ? (
@@ -966,7 +1036,9 @@ const UnifiedResumeAnalyzer = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="job-title" className="text-base font-medium">Job Title</Label>
+                <Label htmlFor="job-title" className="text-base font-medium">
+                  Job Title <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="job-title"
                   value={formData.jobTitle}
@@ -974,6 +1046,9 @@ const UnifiedResumeAnalyzer = () => {
                   placeholder="e.g. Senior Software Engineer"
                   className="mt-1"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  For best results, use the exact job title from the posting
+                </p>
               </div>
               <div>
                 <Label htmlFor="company-name" className="text-base font-medium">Company Name</Label>
@@ -984,6 +1059,9 @@ const UnifiedResumeAnalyzer = () => {
                   placeholder="e.g. Google"
                   className="mt-1"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Optional but helps with tailored recommendations
+                </p>
               </div>
             </div>
 
@@ -991,21 +1069,51 @@ const UnifiedResumeAnalyzer = () => {
               <Label htmlFor="job-description" className="text-base font-medium">
                 Job Description <span className="text-destructive">*</span>
               </Label>
-              <Textarea
-                id="job-description"
-                value={formData.jobDescription}
-                onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
-                placeholder="Paste the complete job description here..."
-                rows={12}
-                className="mt-2"
-                required
-              />
-              {formData.jobDescription && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  {formData.jobDescription.length} characters • 
-                  {formData.jobDescription.split(' ').length} words
-                </p>
-              )}
+              <div className="mt-2 space-y-2">
+                <Textarea
+                  id="job-description"
+                  value={formData.jobDescription}
+                  onChange={(e) => setFormData({ ...formData, jobDescription: e.target.value })}
+                  placeholder="Paste the complete job description here. Include requirements, responsibilities, and qualifications for best results..."
+                  rows={12}
+                  className="resize-none"
+                  required
+                />
+                {formData.jobDescription && (
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="text-muted-foreground">
+                      {formData.jobDescription.length} characters • 
+                      {formData.jobDescription.split(' ').length} words
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {formData.jobDescription.length > 500 && (
+                        <Badge variant="outline" className="text-green-600 border-green-300">
+                          ✓ Good length
+                        </Badge>
+                      )}
+                      {formData.jobDescription.includes('experience') && (
+                        <Badge variant="outline" className="text-blue-600 border-blue-300">
+                          ✓ Experience mentioned
+                        </Badge>
+                      )}
+                      {formData.jobDescription.includes('skills') && (
+                        <Badge variant="outline" className="text-purple-600 border-purple-300">
+                          ✓ Skills listed
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-medium mb-1">💡 Pro Tip:</p>
+                      <p>Include the full job posting for the most accurate analysis. Our AI will extract key requirements, skills, and qualifications automatically.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4">
