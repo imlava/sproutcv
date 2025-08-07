@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import EnhancedResumeAnalyzer from '@/components/analysis/EnhancedResumeAnalyzer';
+import UnifiedResumeAnalyzer from '@/components/analysis/UnifiedResumeAnalyzer';
 
 const AnalyzePage = () => {
   const { user, loading } = useAuth();
@@ -28,7 +28,7 @@ const AnalyzePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <EnhancedResumeAnalyzer />
+      <UnifiedResumeAnalyzer />
     </div>
   );
 };

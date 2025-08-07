@@ -274,53 +274,100 @@ function detectExperienceMismatch(resume: string, jobDesc: string, jobTitle?: st
   const warnings = [];
   let severity = 'none';
   
-  // Check for major role mismatches
-  const seniorityLevels = {
-    'entry': ['entry', 'junior', 'associate', 'trainee', 'intern'],
-    'mid': ['mid-level', 'senior', 'lead'],
-    'senior': ['senior', 'principal', 'staff', 'lead', 'manager', 'director']
-  };
+  // Only proceed with mismatch detection if we have meaningful job requirements
+  if (!jobTitle && !jobDesc.trim()) {
+    return { warnings, severity };
+  }
   
-  const jobSeniority = detectSeniority(jobDesc + ' ' + (jobTitle || ''));
-  const resumeSeniority = detectSeniority(resume);
+  const jobTitleLower = (jobTitle || '').toLowerCase();
+  const jobDescLower = jobDesc.toLowerCase();
+  const resumeLower = resume.toLowerCase();
   
-  if (jobSeniority === 'senior' && resumeSeniority === 'entry') {
-    warnings.push("This appears to be a senior-level position, but your resume shows entry-level experience.");
+  // Robust technical role detection
+  const strongTechIndicators = [
+    'software engineer', 'software developer', 'full stack developer', 'backend developer', 
+    'frontend developer', 'senior engineer', 'staff engineer', 'principal engineer',
+    'devops engineer', 'platform engineer', 'data engineer', 'machine learning engineer'
+  ];
+  
+  const techSkillsRequired = [
+    'programming', 'coding', 'javascript', 'python', 'java', 'react', 'node.js',
+    'sql', 'database', 'api', 'git', 'docker', 'kubernetes', 'aws', 'azure'
+  ];
+  
+  // Check if job explicitly requires technical skills
+  const jobRequiresTech = strongTechIndicators.some(indicator => 
+    jobTitleLower.includes(indicator) || jobDescLower.includes(indicator)
+  ) || techSkillsRequired.filter(skill => jobDescLower.includes(skill)).length >= 3;
+  
+  // Check if resume shows technical experience
+  const resumeShowsTech = techSkillsRequired.filter(skill => 
+    resumeLower.includes(skill)
+  ).length >= 2 || ['developer', 'engineer', 'programming', 'software'].some(term => 
+    resumeLower.includes(term)
+  );
+  
+  // Only flag major mismatch for clearly technical roles
+  if (jobRequiresTech && !resumeShowsTech) {
+    warnings.push("This position requires technical programming skills, but your resume doesn't demonstrate software development experience.");
     severity = 'high';
   }
   
-  // Check for technical vs non-technical mismatch
-  const techKeywords = ['developer', 'engineer', 'programmer', 'coding', 'software', 'technical'];
-  const jobIsTech = techKeywords.some(keyword => (jobTitle || '').toLowerCase().includes(keyword) || jobDesc.includes(keyword));
-  const resumeIsTech = techKeywords.some(keyword => resume.includes(keyword));
+  // Enhanced seniority detection with clear thresholds
+  const jobSeniority = detectSeniority(jobDescLower + ' ' + jobTitleLower);
+  const resumeSeniority = detectSeniority(resumeLower);
   
-  if (jobIsTech && !resumeIsTech) {
-    warnings.push("This appears to be a technical role, but your resume doesn't show technical experience.");
-    severity = severity === 'none' ? 'high' : severity;
-  }
-  
-  // Check for experience gaps
-  const resumeYears = extractYearsOfExperience(resume);
-  const jobYears = extractYearsOfExperience(jobDesc);
-  
-  if (jobYears && resumeYears && resumeYears < jobYears * 0.5) {
-    warnings.push(`This role requires ${jobYears}+ years of experience, but you appear to have ${resumeYears} years.`);
-    severity = severity === 'none' ? 'medium' : severity;
+  // Only flag major seniority mismatches
+  if (jobSeniority === 'senior' && resumeSeniority === 'entry') {
+    const resumeYears = extractYearsOfExperience(resumeLower);
+    const jobYears = extractYearsOfExperience(jobDescLower);
+    
+    // Be more lenient - only flag if there's a significant gap
+    if ((jobYears && resumeYears && resumeYears < jobYears * 0.4) || 
+        (!resumeYears && (jobDescLower.includes('5+ years') || jobDescLower.includes('senior')))) {
+      warnings.push(`This appears to be a senior-level position requiring significant experience. Consider if your background aligns with senior-level responsibilities.`);
+      severity = severity === 'none' ? 'medium' : severity;
+    }
   }
   
   return { warnings, severity };
 }
 
 function detectSeniority(text: string) {
-  const seniorTerms = ['senior', 'principal', 'staff', 'lead', 'manager', 'director'];
-  const midTerms = ['mid-level', 'intermediate'];
-  const entryTerms = ['entry', 'junior', 'associate', 'trainee', 'intern'];
+  // Look for explicit seniority indicators with context
+  const seniorIndicators = [
+    'senior', 'sr.', 'principal', 'staff', 'lead', 'head of', 'director', 
+    'vp ', 'vice president', 'chief', 'architect', 'team lead'
+  ];
   
-  if (seniorTerms.some(term => text.includes(term))) return 'senior';
-  if (midTerms.some(term => text.includes(term))) return 'mid';
-  if (entryTerms.some(term => text.includes(term))) return 'entry';
+  const entryIndicators = [
+    'entry level', 'junior', 'jr.', 'associate', 'trainee', 'intern', 
+    'graduate', 'new grad', 'entry-level', 'assistant'
+  ];
   
-  return 'mid'; // Default
+  const midIndicators = [
+    'mid-level', 'intermediate', 'mid level', 'regular', 'standard'
+  ];
+  
+  // Count matches to determine confidence
+  const seniorMatches = seniorIndicators.filter(term => text.includes(term)).length;
+  const entryMatches = entryIndicators.filter(term => text.includes(term)).length;
+  const midMatches = midIndicators.filter(term => text.includes(term)).length;
+  
+  if (seniorMatches >= 1) return 'senior';
+  if (entryMatches >= 1) return 'entry';
+  if (midMatches >= 1) return 'mid';
+  
+  // Look for experience indicators
+  const yearsMatch = text.match(/(\d+)\+?\s*years?/gi);
+  if (yearsMatch) {
+    const years = parseInt(yearsMatch[0].match(/\d+/)?.[0] || '0');
+    if (years >= 5) return 'senior';
+    if (years <= 2) return 'entry';
+    return 'mid';
+  }
+  
+  return 'mid'; // Default to mid-level if unclear
 }
 
 function extractYearsOfExperience(text: string): number | null {

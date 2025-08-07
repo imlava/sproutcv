@@ -1,20 +1,24 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, FileText, Loader2, AlertCircle, CheckCircle, Info, ArrowLeft } from 'lucide-react';
+import { Upload, FileText, Loader2, AlertCircle, CheckCircle, Info, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import ScoreDashboard from '@/components/ScoreDashboard';
-import ExperienceMismatchWarning from './ExperienceMismatchWarning';
 import ResumeExportOptions from './ResumeExportOptions';
 
-const EnhancedResumeAnalyzer = () => {
+interface ExperienceMismatch {
+  warnings: string[];
+  severity: 'none' | 'medium' | 'high';
+}
+
+const UnifiedResumeAnalyzer = () => {
   const { userProfile, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [step, setStep] = useState(1);
@@ -38,13 +42,11 @@ const EnhancedResumeAnalyzer = () => {
     
     if (!file) return;
     
-    // Validate file type
     if (file.type !== 'application/pdf') {
       setUploadError('Please upload a PDF file only');
       return;
     }
     
-    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       setUploadError('File size must be less than 10MB');
       return;
@@ -53,7 +55,6 @@ const EnhancedResumeAnalyzer = () => {
     setPdfProcessing(true);
     
     try {
-      // Simulate PDF processing
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       setFormData({ 
@@ -76,7 +77,6 @@ const EnhancedResumeAnalyzer = () => {
   };
 
   const handleAnalyze = async () => {
-    // Validation
     if (!formData.resumeText.trim()) {
       toast({
         variant: "destructive",
@@ -127,14 +127,14 @@ const EnhancedResumeAnalyzer = () => {
 
       setAnalysisResults(data);
       
-      // Check if there's an experience mismatch
-      if (data.experienceMismatch && data.experienceMismatch.severity !== 'none') {
+      // Check if there's a significant experience mismatch
+      if (data.experienceMismatch && data.experienceMismatch.severity === 'high') {
         setShowMismatchWarning(true);
       } else {
         setStep(3);
       }
       
-      await refreshProfile(); // Refresh to update credits
+      await refreshProfile();
       
       toast({
         title: "Analysis complete!",
@@ -157,14 +157,6 @@ const EnhancedResumeAnalyzer = () => {
     setStep(3);
   };
 
-  const handleViewBetterRoles = () => {
-    // In a real implementation, this would navigate to a job suggestions page
-    toast({
-      title: "Feature coming soon!",
-      description: "Better role matching feature will be available soon.",
-    });
-  };
-
   const handleStartNew = () => {
     setStep(1);
     setAnalysisResults(null);
@@ -178,6 +170,52 @@ const EnhancedResumeAnalyzer = () => {
     });
   };
 
+  const ExperienceMismatchWarning = ({ mismatch }: { mismatch: ExperienceMismatch }) => {
+    if (mismatch.severity === 'none') return null;
+
+    return (
+      <Card className="p-6 bg-red-50 border-red-200 border-2">
+        <div className="flex items-start space-x-4">
+          <AlertTriangle className="h-8 w-8 text-red-600 flex-shrink-0 mt-1" />
+          
+          <div className="flex-1">
+            <div className="flex items-center space-x-3 mb-4">
+              <h3 className="text-xl font-semibold text-gray-900">
+                Major Experience Mismatch
+              </h3>
+              <Badge className="bg-red-100 text-red-800">
+                HIGH PRIORITY
+              </Badge>
+            </div>
+            
+            <div className="space-y-3 mb-6">
+              {mismatch.warnings.map((warning, index) => (
+                <div key={index} className="flex items-start space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-red-600 mt-2 flex-shrink-0" />
+                  <p className="text-gray-700 leading-relaxed">{warning}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={handleProceedWithMismatch}
+                className="flex items-center space-x-2"
+              >
+                <span>Proceed Anyway</span>
+                <ArrowLeft className="h-4 w-4 rotate-180" />
+              </Button>
+            </div>
+            
+            <p className="text-xs text-gray-500 mt-3">
+              We strongly recommend considering roles that better match your experience.
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  };
+
   // Show experience mismatch warning
   if (showMismatchWarning && analysisResults) {
     return (
@@ -189,18 +227,12 @@ const EnhancedResumeAnalyzer = () => {
           </p>
         </div>
         
-        <ExperienceMismatchWarning
-          warnings={analysisResults.experienceMismatch.warnings}
-          severity={analysisResults.experienceMismatch.severity}
-          recommendedRoles={analysisResults.recommendedRoles || []}
-          onProceed={handleProceedWithMismatch}
-          onViewBetterRoles={handleViewBetterRoles}
-        />
+        <ExperienceMismatchWarning mismatch={analysisResults.experienceMismatch} />
       </div>
     );
   }
 
-  // Show final results with export options
+  // Show final results
   if (step === 3 && analysisResults) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -213,10 +245,14 @@ const EnhancedResumeAnalyzer = () => {
             <Button onClick={handleStartNew} variant="outline">
               Analyze Another Resume
             </Button>
-            <span className="text-sm text-gray-500">•</span>
-            <p className="text-sm text-gray-600">
-              {formData.jobTitle} at {formData.companyName}
-            </p>
+            {formData.jobTitle && formData.companyName && (
+              <>
+                <span className="text-sm text-gray-500">•</span>
+                <p className="text-sm text-gray-600">
+                  {formData.jobTitle} at {formData.companyName}
+                </p>
+              </>
+            )}
           </div>
         </div>
         
@@ -437,7 +473,6 @@ const EnhancedResumeAnalyzer = () => {
               )}
             </div>
 
-            {/* Resume Summary */}
             <div className="bg-muted/50 rounded-lg p-4">
               <h3 className="font-medium mb-2">Resume Summary</h3>
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
@@ -481,7 +516,6 @@ const EnhancedResumeAnalyzer = () => {
                 ) : (
                   <>
                     Analyze Resume (1 Credit)
-                    <FileText className="h-4 w-4 ml-2" />
                   </>
                 )}
               </Button>
@@ -493,4 +527,4 @@ const EnhancedResumeAnalyzer = () => {
   );
 };
 
-export default EnhancedResumeAnalyzer;
+export default UnifiedResumeAnalyzer;
