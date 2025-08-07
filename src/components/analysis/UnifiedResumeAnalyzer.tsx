@@ -67,7 +67,7 @@ interface KeywordOptimization {
   impact: 'high' | 'medium' | 'low';
 }
 
-// Advanced AI-powered keyword optimization system with real NLP
+// Advanced AI-powered keyword optimization system with real NLP and line-by-line analysis
 class AdvancedKeywordOptimizer {
   private static readonly INDUSTRY_KEYWORDS = {
     'project management': ['agile', 'scrum', 'kanban', 'jira', 'confluence', 'trello', 'asana', 'sprint', 'backlog', 'stakeholder', 'deliverable', 'milestone', 'timeline', 'budget', 'risk management', 'quality assurance', 'change management', 'resource allocation', 'team leadership', 'cross-functional'],
@@ -76,6 +76,269 @@ class AdvancedKeywordOptimizer {
     'sales': ['crm', 'salesforce', 'lead generation', 'prospecting', 'negotiation', 'closing', 'pipeline management', 'quota', 'territory management', 'account management', 'relationship building', 'presentation skills', 'cold calling', 'sales strategy', 'revenue growth'],
     'product operations': ['product management', 'operations', 'scalability', 'process improvement', 'data analysis', 'kpi tracking', 'cross-functional', 'stakeholder management', 'project coordination', 'business intelligence', 'automation', 'efficiency', 'optimization', 'strategy', 'execution']
   };
+
+  // Advanced line-by-line resume analysis
+  static analyzeResumeLineByLine(resumeText: string, jobDescription: string, jobTitle: string) {
+    const lines = resumeText.split('\n').filter(line => line.trim().length > 0);
+    const analysis = {
+      sections: [] as any[],
+      improvements: [] as any[],
+      keywords: [] as string[],
+      quantifiedAchievements: [] as any[],
+      missingElements: [] as string[]
+    };
+
+    let currentSection = '';
+    let lineNumber = 0;
+
+    lines.forEach((line, index) => {
+      lineNumber = index + 1;
+      const trimmedLine = line.trim();
+      
+      // Detect section headers
+      if (this.isSectionHeader(trimmedLine)) {
+        currentSection = trimmedLine;
+        analysis.sections.push({
+          name: trimmedLine,
+          startLine: lineNumber,
+          content: [],
+          improvements: []
+        });
+        return;
+      }
+
+      // Analyze each line for improvements
+      const lineAnalysis = this.analyzeLine(trimmedLine, jobDescription, jobTitle, currentSection);
+      
+      if (lineAnalysis.keywords.length > 0) {
+        analysis.keywords.push(...lineAnalysis.keywords);
+      }
+
+      if (lineAnalysis.quantifiedAchievement) {
+        analysis.quantifiedAchievements.push({
+          line: lineNumber,
+          content: trimmedLine,
+          achievement: lineAnalysis.quantifiedAchievement
+        });
+      }
+
+      if (lineAnalysis.improvements.length > 0) {
+        analysis.improvements.push({
+          line: lineNumber,
+          original: trimmedLine,
+          suggestions: lineAnalysis.improvements,
+          section: currentSection
+        });
+      }
+
+      // Add to current section
+      const currentSectionObj = analysis.sections.find(s => s.name === currentSection);
+      if (currentSectionObj) {
+        currentSectionObj.content.push({
+          line: lineNumber,
+          text: trimmedLine,
+          analysis: lineAnalysis
+        });
+      }
+    });
+
+    // Identify missing elements
+    analysis.missingElements = this.identifyMissingElements(analysis, jobDescription, jobTitle);
+
+    return analysis;
+  }
+
+  private static isSectionHeader(line: string): boolean {
+    const headers = [
+      'professional summary', 'summary', 'profile', 'objective',
+      'experience', 'work experience', 'employment history',
+      'education', 'academic background',
+      'skills', 'technical skills', 'competencies',
+      'projects', 'achievements', 'accomplishments',
+      'certifications', 'licenses'
+    ];
+    
+    const lowerLine = line.toLowerCase();
+    return headers.some(header => lowerLine.includes(header));
+  }
+
+  private static analyzeLine(line: string, jobDescription: string, jobTitle: string, section: string) {
+    const analysis = {
+      keywords: [] as string[],
+      quantifiedAchievement: null as any,
+      improvements: [] as string[],
+      score: 0
+    };
+
+    // Extract keywords from this line
+    const keywords = this.extractKeywordsFromLine(line);
+    analysis.keywords = keywords;
+
+    // Check for quantified achievements
+    const quantified = this.extractQuantifiedAchievement(line);
+    if (quantified) {
+      analysis.quantifiedAchievement = quantified;
+    }
+
+    // Generate improvements based on job requirements
+    const improvements = this.generateLineImprovements(line, jobDescription, jobTitle, section);
+    analysis.improvements = improvements;
+
+    // Calculate line score
+    analysis.score = this.calculateLineScore(line, jobDescription, keywords);
+
+    return analysis;
+  }
+
+  private static extractKeywordsFromLine(line: string): string[] {
+    const keywords = [];
+    const lowerLine = line.toLowerCase();
+
+    // Extract technical terms
+    const technicalTerms = lowerLine.match(/\b(react|node|python|java|aws|docker|agile|scrum|jira|seo|sem|crm|product|operations|management|leadership|communication|research|api|data|analysis|kpi|automation|optimization|strategy|execution)\b/g);
+    if (technicalTerms) keywords.push(...technicalTerms);
+
+    // Extract action verbs
+    const actionVerbs = lowerLine.match(/\b(managed|led|developed|implemented|created|improved|increased|reduced|coordinated|facilitated|optimized|scaled|analyzed|tracked|automated|executed|strategized)\b/g);
+    if (actionVerbs) keywords.push(...actionVerbs);
+
+    // Extract metrics
+    const metrics = lowerLine.match(/\b(\d+%|\d+% increase|\$\d+[kKmM]|\d+ people|\d+ team|\d+ users|\d+ projects)\b/g);
+    if (metrics) keywords.push(...metrics);
+
+    return [...new Set(keywords)];
+  }
+
+  private static extractQuantifiedAchievement(line: string): any {
+    const patterns = [
+      /increased\s+(\w+)\s+by\s+(\d+%)/i,
+      /improved\s+(\w+)\s+by\s+(\d+%)/i,
+      /reduced\s+(\w+)\s+by\s+(\d+%)/i,
+      /managed\s+team\s+of\s+(\d+)/i,
+      /led\s+(\d+)\s+(\w+)/i,
+      /delivered\s+(\d+)\s+(\w+)/i,
+      /saved\s+\$(\d+[kKmM])/i,
+      /generated\s+\$(\d+[kKmM])/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = line.match(pattern);
+      if (match) {
+        return {
+          type: 'achievement',
+          metric: match[1] || match[2],
+          value: match[2] || match[1],
+          original: line
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private static generateLineImprovements(line: string, jobDescription: string, jobTitle: string, section: string): string[] {
+    const improvements = [];
+    const lowerLine = line.toLowerCase();
+    const jobKeywords = this.extractJobKeywords(jobDescription);
+
+    // Check for missing keywords
+    const missingKeywords = jobKeywords.filter(keyword => 
+      !lowerLine.includes(keyword.toLowerCase())
+    );
+
+    if (missingKeywords.length > 0 && section.toLowerCase().includes('experience')) {
+      improvements.push(`Add keywords: ${missingKeywords.slice(0, 3).join(', ')}`);
+    }
+
+    // Check for quantification
+    if (!this.hasQuantification(line) && section.toLowerCase().includes('experience')) {
+      improvements.push('Add specific metrics and numbers');
+    }
+
+    // Check for action verbs
+    if (!this.hasActionVerb(line) && section.toLowerCase().includes('experience')) {
+      improvements.push('Start with strong action verbs');
+    }
+
+    // Check for impact
+    if (!this.hasImpact(line) && section.toLowerCase().includes('experience')) {
+      improvements.push('Highlight business impact and results');
+    }
+
+    return improvements;
+  }
+
+  private static hasQuantification(line: string): boolean {
+    return /\d+%|\d+% increase|\$\d+[kKmM]|\d+ people|\d+ team|\d+ users|\d+ projects/i.test(line);
+  }
+
+  private static hasActionVerb(line: string): boolean {
+    const actionVerbs = ['managed', 'led', 'developed', 'implemented', 'created', 'improved', 'increased', 'reduced', 'coordinated', 'facilitated', 'optimized', 'scaled', 'analyzed', 'tracked', 'automated', 'executed', 'strategized'];
+    return actionVerbs.some(verb => line.toLowerCase().includes(verb));
+  }
+
+  private static hasImpact(line: string): boolean {
+    const impactWords = ['resulted in', 'led to', 'achieved', 'delivered', 'produced', 'generated', 'saved', 'improved', 'increased', 'reduced'];
+    return impactWords.some(word => line.toLowerCase().includes(word));
+  }
+
+  private static calculateLineScore(line: string, jobDescription: string, keywords: string[]): number {
+    let score = 0;
+    const jobKeywords = this.extractJobKeywords(jobDescription);
+    
+    // Keyword match score
+    const keywordMatches = keywords.filter(k => 
+      jobKeywords.some(jk => this.similarityScore(k, jk) > 0.6)
+    ).length;
+    score += (keywordMatches / Math.max(jobKeywords.length, 1)) * 40;
+
+    // Quantification score
+    if (this.hasQuantification(line)) score += 30;
+
+    // Action verb score
+    if (this.hasActionVerb(line)) score += 20;
+
+    // Impact score
+    if (this.hasImpact(line)) score += 10;
+
+    return Math.min(score, 100);
+  }
+
+  private static identifyMissingElements(analysis: any, jobDescription: string, jobTitle: string): string[] {
+    const missing = [];
+    const sections = analysis.sections.map(s => s.name.toLowerCase());
+    const jobKeywords = this.extractJobKeywords(jobDescription);
+
+    // Check for missing sections
+    if (!sections.some(s => s.includes('summary'))) {
+      missing.push('Professional Summary section');
+    }
+
+    if (!sections.some(s => s.includes('experience'))) {
+      missing.push('Work Experience section');
+    }
+
+    if (!sections.some(s => s.includes('skill'))) {
+      missing.push('Skills section');
+    }
+
+    // Check for missing keywords
+    const foundKeywords = analysis.keywords;
+    const missingKeywords = jobKeywords.filter(keyword => 
+      !foundKeywords.some(fk => this.similarityScore(keyword, fk) > 0.6)
+    );
+
+    if (missingKeywords.length > 0) {
+      missing.push(`Missing keywords: ${missingKeywords.slice(0, 5).join(', ')}`);
+    }
+
+    // Check for quantification
+    if (analysis.quantifiedAchievements.length === 0) {
+      missing.push('Quantified achievements');
+    }
+
+    return missing;
+  }
 
   static optimizeKeywords(jobTitle: string, jobDescription: string, resumeText: string): KeywordOptimization {
     const industry = this.detectIndustry(jobTitle, jobDescription);
@@ -548,6 +811,142 @@ const UnifiedResumeAnalyzer = () => {
       </Card>
     );
   };
+
+  // Advanced Line-by-Line Analysis Display Component
+  const LineByLineAnalysisDisplay = () => {
+    if (!analysisResults?.lineByLineAnalysis) return null;
+
+    const analysis = analysisResults.lineByLineAnalysis;
+
+    return (
+      <Card className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 mb-6">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+            <Brain className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-purple-900">AI Line-by-Line Analysis</h3>
+            <p className="text-sm text-purple-700">Detailed analysis of every line in your resume</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Sections Analysis */}
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Resume Sections</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {analysis.sections.map((section, index) => (
+                <div key={index} className="bg-white p-3 rounded-lg border border-purple-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-gray-900">{section.name}</span>
+                    <Badge className="bg-purple-100 text-purple-800">
+                      {section.content.length} lines
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Lines {section.startLine}-{section.startLine + section.content.length - 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quantified Achievements */}
+          {analysis.quantifiedAchievements.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Quantified Achievements Found</h4>
+              <div className="space-y-2">
+                {analysis.quantifiedAchievements.map((achievement, index) => (
+                  <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">Line {achievement.line}</span>
+                    </div>
+                    <p className="text-sm text-gray-700">{achievement.content}</p>
+                    <div className="mt-1 text-xs text-green-600">
+                      {achievement.achievement.metric}: {achievement.achievement.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Improvement Suggestions */}
+          {analysis.improvements.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Improvement Suggestions</h4>
+              <div className="space-y-3">
+                {analysis.improvements.map((improvement, index) => (
+                  <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Target className="h-4 w-4 text-yellow-600" />
+                      <span className="text-sm font-medium text-yellow-800">Line {improvement.line}</span>
+                      <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                        {improvement.section}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-2">{improvement.original}</p>
+                    <div className="space-y-1">
+                      {improvement.suggestions.map((suggestion, sIndex) => (
+                        <div key={sIndex} className="flex items-start space-x-2">
+                          <Sparkles className="h-3 w-3 text-yellow-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-xs text-yellow-700">{suggestion}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Missing Elements */}
+          {analysis.missingElements.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Missing Elements</h4>
+              <div className="space-y-2">
+                {analysis.missingElements.map((element, index) => (
+                  <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <span className="text-sm text-red-800">{element}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Keywords Analysis */}
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3">Keywords Analysis</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Found Keywords</h5>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.keywords.slice(0, 10).map((keyword, index) => (
+                    <Badge key={index} className="bg-green-100 text-green-800 border-green-300">
+                      {keyword}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Total Analysis</h5>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <div>• {analysis.sections.length} sections analyzed</div>
+                  <div>• {analysis.keywords.length} keywords found</div>
+                  <div>• {analysis.quantifiedAchievements.length} quantified achievements</div>
+                  <div>• {analysis.improvements.length} improvement suggestions</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  };
   
   const [formData, setFormData] = useState({
     resumeFile: null as File | null,
@@ -673,6 +1072,13 @@ const UnifiedResumeAnalyzer = () => {
       );
       setKeywordOptimization(optimization);
 
+      // Advanced line-by-line resume analysis
+      const lineByLineAnalysis = AdvancedKeywordOptimizer.analyzeResumeLineByLine(
+        formData.resumeText,
+        formData.jobDescription,
+        formData.jobTitle || ''
+      );
+
       // Calculate real user score based on actual optimization
       const baseScore = Math.max(optimization.confidence, 15);
       const bonusScore = optimization.impact === 'high' ? 20 : optimization.impact === 'medium' ? 15 : 10;
@@ -738,7 +1144,9 @@ const UnifiedResumeAnalyzer = () => {
           industry: optimization.context.split(' ').pop()?.replace('.', '') || 'general',
           confidence: optimization.confidence,
           impact: optimization.impact
-        }
+        },
+        // Add line-by-line analysis
+        lineByLineAnalysis: lineByLineAnalysis
       };
       
       setAnalysisResults(enhancedData);
@@ -1144,6 +1552,8 @@ const UnifiedResumeAnalyzer = () => {
               onExport={handleExportPDF}
               onEmail={handleEmailResume}
               onShare={handleShareAnalysis}
+              analysisResults={analysisResults}
+              originalResumeText={formData.resumeText}
             />
           </div>
 
@@ -1630,8 +2040,11 @@ const UnifiedResumeAnalyzer = () => {
       {/* Gamification Achievement Component */}
       <AchievementDisplay />
 
-      {/* Enhanced Keyword Optimization Display */}
-      <KeywordOptimizationDisplay />
+              {/* Enhanced Keyword Optimization Display */}
+        <KeywordOptimizationDisplay />
+
+        {/* Advanced Line-by-Line Analysis Display */}
+        <LineByLineAnalysisDisplay />
     </div>
     </>
   );
