@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, FileText, Loader2, AlertCircle, CheckCircle, Info, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, Loader2, AlertCircle, CheckCircle, Info, ArrowLeft, AlertTriangle, X, HelpCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +13,77 @@ import { useAuth } from '@/contexts/AuthContext';
 import ScoreDashboard from '@/components/ScoreDashboard';
 import ResumeExportOptions from './ResumeExportOptions';
 
+interface MismatchRule {
+  id: string;
+  name: string;
+  condition: (resume: string, jobDesc: string) => boolean;
+  generateWarning: (resume: string, jobDesc: string) => string;
+  severity: 'low' | 'medium' | 'high';
+  category: 'technical' | 'experience' | 'education' | 'industry';
+}
+
 interface ExperienceMismatch {
-  warnings: string[];
+  warnings: MismatchWarning[];
   severity: 'none' | 'medium' | 'high';
 }
+
+interface MismatchWarning {
+  id: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high';
+  category: string;
+  ruleId: string;
+  explanation?: string;
+  dismissed?: boolean;
+}
+
+// Declarative mismatch detection rules
+const MISMATCH_RULES: MismatchRule[] = [
+  {
+    id: 'senior_experience',
+    name: 'Senior Role Experience Gap',
+    category: 'experience',
+    severity: 'high',
+    condition: (resume, jobDesc) => {
+      const jobRequires = /\b(?:senior|lead|principal|architect|staff)\b/i.test(jobDesc);
+      const hasYears = /\b(?:[5-9]|[1-9]\d+)\s*(?:\+|\-|\d*)\s*years?\b/i.test(jobDesc);
+      const resumeExperience = /\b(?:[3-9]|[1-9]\d+)\s*(?:\+|\-|\d*)\s*years?\b/i.test(resume);
+      return jobRequires && hasYears && !resumeExperience;
+    },
+    generateWarning: (resume, jobDesc) => {
+      const yearMatch = jobDesc.match(/\b([5-9]|[1-9]\d+)\s*(?:\+|\-|\d*)\s*years?\b/i);
+      const requiredYears = yearMatch ? yearMatch[1] : '5+';
+      return `This senior position typically requires ${requiredYears} years of experience, but your resume doesn't clearly demonstrate this level of experience.`;
+    }
+  },
+  {
+    id: 'programming_languages',
+    name: 'Programming Language Mismatch',
+    category: 'technical',
+    severity: 'medium',
+    condition: (resume, jobDesc) => {
+      const jobLanguages = jobDesc.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL)\b/gi) || [];
+      const resumeLanguages = resume.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL)\b/gi) || [];
+      return jobLanguages.length > 0 && resumeLanguages.length === 0;
+    },
+    generateWarning: (resume, jobDesc) => {
+      const jobLanguages = jobDesc.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL)\b/gi) || [];
+      return `The job requires programming skills in ${jobLanguages.slice(0, 3).join(', ')}, but these aren't prominently featured in your resume.`;
+    }
+  },
+  {
+    id: 'education_requirement',
+    name: 'Education Level Mismatch',
+    category: 'education',
+    severity: 'medium',
+    condition: (resume, jobDesc) => {
+      const requiresDegree = /\b(?:bachelor|master|phd|doctorate|degree)\b/i.test(jobDesc);
+      const hasDegree = /\b(?:bachelor|master|phd|doctorate|degree|university|college)\b/i.test(resume);
+      return requiresDegree && !hasDegree;
+    },
+    generateWarning: () => 'This position requires a degree, but no educational background is clearly mentioned in your resume.'
+  }
+];
 
 const UnifiedResumeAnalyzer = () => {
   const { userProfile, refreshProfile } = useAuth();
@@ -27,6 +94,7 @@ const UnifiedResumeAnalyzer = () => {
   const [showMismatchWarning, setShowMismatchWarning] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [pdfProcessing, setPdfProcessing] = useState(false);
+  const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
   
   const [formData, setFormData] = useState({
     resumeFile: null as File | null,
@@ -125,10 +193,22 @@ const UnifiedResumeAnalyzer = () => {
         throw new Error('No analysis data received');
       }
 
-      setAnalysisResults(data);
+      // Process mismatch warnings using declarative rules
+      const warnings = evaluateMismatchRules(formData.resumeText, formData.jobDescription);
+      const enhancedData = {
+        ...data,
+        experienceMismatch: {
+          warnings: warnings.filter(w => !dismissedWarnings.has(w.id)),
+          severity: warnings.some(w => w.severity === 'high') ? 'high' : 
+                   warnings.some(w => w.severity === 'medium') ? 'medium' : 'none'
+        }
+      };
       
-      // Check if there's a significant experience mismatch
-      if (data.experienceMismatch && data.experienceMismatch.severity === 'high') {
+      setAnalysisResults(enhancedData);
+      
+      // Check if there are undismissed high-severity warnings
+      const hasHighSeverityWarnings = warnings.some(w => w.severity === 'high' && !dismissedWarnings.has(w.id));
+      if (hasHighSeverityWarnings) {
         setShowMismatchWarning(true);
       } else {
         setStep(3);
@@ -152,6 +232,53 @@ const UnifiedResumeAnalyzer = () => {
     }
   };
 
+  const evaluateMismatchRules = (resume: string, jobDesc: string): MismatchWarning[] => {
+    return MISMATCH_RULES
+      .filter(rule => rule.condition(resume, jobDesc))
+      .map(rule => ({
+        id: rule.id,
+        message: rule.generateWarning(resume, jobDesc),
+        severity: rule.severity,
+        category: rule.category,
+        ruleId: rule.id,
+        explanation: getWarningExplanation(rule.id)
+      }));
+  };
+
+  const getWarningExplanation = (ruleId: string): string => {
+    const explanations: Record<string, string> = {
+      senior_experience: 'Senior roles typically require proven track record and extensive experience. Consider highlighting specific achievements, years of experience, and leadership responsibilities.',
+      programming_languages: 'Technical roles often require specific programming languages. Make sure to list all relevant languages you know, including proficiency levels.',
+      education_requirement: 'Many positions require formal education. If you have relevant experience or certifications that substitute for formal education, highlight them prominently.'
+    };
+    return explanations[ruleId] || 'This warning indicates a potential mismatch between your profile and the job requirements.';
+  };
+
+  const handleDismissWarning = (warningId: string) => {
+    setDismissedWarnings(prev => new Set([...prev, warningId]));
+    
+    // Update analysis results to reflect dismissed warning
+    if (analysisResults?.experienceMismatch) {
+      const updatedWarnings = analysisResults.experienceMismatch.warnings.filter((w: MismatchWarning) => w.id !== warningId);
+      const newSeverity = updatedWarnings.some((w: MismatchWarning) => w.severity === 'high') ? 'high' : 
+                         updatedWarnings.some((w: MismatchWarning) => w.severity === 'medium') ? 'medium' : 'none';
+      
+      setAnalysisResults({
+        ...analysisResults,
+        experienceMismatch: {
+          warnings: updatedWarnings,
+          severity: newSeverity
+        }
+      });
+      
+      // If no high-severity warnings remain, proceed to results
+      if (newSeverity !== 'high') {
+        setShowMismatchWarning(false);
+        setStep(3);
+      }
+    }
+  };
+
   const handleProceedWithMismatch = () => {
     setShowMismatchWarning(false);
     setStep(3);
@@ -161,6 +288,7 @@ const UnifiedResumeAnalyzer = () => {
     setStep(1);
     setAnalysisResults(null);
     setShowMismatchWarning(false);
+    setDismissedWarnings(new Set());
     setFormData({
       resumeFile: null,
       resumeText: '',
@@ -171,48 +299,95 @@ const UnifiedResumeAnalyzer = () => {
   };
 
   const ExperienceMismatchWarning = ({ mismatch }: { mismatch: ExperienceMismatch }) => {
-    if (mismatch.severity === 'none') return null;
+    if (mismatch.severity === 'none' || !mismatch.warnings.length) return null;
+
+    const getSeverityColor = (severity: string) => {
+      switch (severity) {
+        case 'high': return 'bg-destructive/10 border-destructive text-destructive-foreground';
+        case 'medium': return 'bg-warning/10 border-warning text-warning-foreground';
+        default: return 'bg-muted border-muted-foreground text-muted-foreground';
+      }
+    };
+
+    const getSeverityIcon = (severity: string) => {
+      switch (severity) {
+        case 'high': return <AlertTriangle className="h-5 w-5" />;
+        case 'medium': return <AlertCircle className="h-5 w-5" />;
+        default: return <Info className="h-5 w-5" />;
+      }
+    };
 
     return (
-      <Card className="p-6 bg-red-50 border-red-200 border-2">
-        <div className="flex items-start space-x-4">
-          <AlertTriangle className="h-8 w-8 text-red-600 flex-shrink-0 mt-1" />
-          
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">
-                Major Experience Mismatch
-              </h3>
-              <Badge className="bg-red-100 text-red-800">
-                HIGH PRIORITY
-              </Badge>
-            </div>
-            
-            <div className="space-y-3 mb-6">
-              {mismatch.warnings.map((warning, index) => (
-                <div key={index} className="flex items-start space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-red-600 mt-2 flex-shrink-0" />
-                  <p className="text-gray-700 leading-relaxed">{warning}</p>
-                </div>
-              ))}
-            </div>
+      <div className="space-y-4">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold mb-2">Analysis Warnings</h2>
+          <p className="text-muted-foreground">
+            We've identified some potential concerns with this job match
+          </p>
+        </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button 
-                onClick={handleProceedWithMismatch}
-                className="flex items-center space-x-2"
+        {mismatch.warnings.map((warning) => (
+          <Card key={warning.id} className={`p-4 ${getSeverityColor(warning.severity)}`}>
+            <div className="flex items-start justify-between space-x-4">
+              <div className="flex items-start space-x-3 flex-1">
+                {getSeverityIcon(warning.severity)}
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <h4 className="font-semibold">{warning.category.charAt(0).toUpperCase() + warning.category.slice(1)} Concern</h4>
+                    <Badge variant="outline" className="text-xs">
+                      {warning.severity.toUpperCase()}
+                    </Badge>
+                  </div>
+                  <p className="text-sm mb-3">{warning.message}</p>
+                  
+                  {warning.explanation && (
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-sm font-medium flex items-center space-x-1 hover:underline">
+                        <HelpCircle className="h-3 w-3" />
+                        <span>Why is this flagged?</span>
+                      </summary>
+                      <p className="text-xs mt-2 text-muted-foreground pl-4 border-l-2 border-muted">
+                        {warning.explanation}
+                      </p>
+                    </details>
+                  )}
+                </div>
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDismissWarning(warning.id)}
+                className="shrink-0"
               >
-                <span>Proceed Anyway</span>
-                <ArrowLeft className="h-4 w-4 rotate-180" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
-            
-            <p className="text-xs text-gray-500 mt-3">
-              We strongly recommend considering roles that better match your experience.
-            </p>
-          </div>
+          </Card>
+        ))}
+
+        <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <Button 
+            onClick={handleProceedWithMismatch}
+            className="flex items-center space-x-2"
+          >
+            <span>Continue with Analysis</span>
+            <ArrowLeft className="h-4 w-4 rotate-180" />
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={handleStartNew}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Try Different Resume/Job</span>
+          </Button>
         </div>
-      </Card>
+        
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          You can dismiss individual warnings or proceed with the analysis. These are suggestions to help improve your job match.
+        </p>
+      </div>
     );
   };
 
