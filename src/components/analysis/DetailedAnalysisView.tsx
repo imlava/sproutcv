@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
 import { 
   FileText, 
   TrendingUp, 
@@ -15,7 +16,20 @@ import {
   Star,
   Download,
   Share2,
-  ArrowLeft
+  ArrowLeft,
+  Brain,
+  Sparkles,
+  Crown,
+  Award,
+  Medal,
+  Trophy,
+  Users,
+  Zap,
+  Clock,
+  Eye,
+  Mail,
+  Printer,
+  Copy
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -42,6 +56,13 @@ interface AnalysisData {
   improvement_areas: string[];
   created_at: string;
   expires_at: string;
+  // Real analysis data from UnifiedResumeAnalyzer
+  lineByLineAnalysis?: any;
+  optimization?: any;
+  aiSuggestions?: string[];
+  userScore?: number;
+  achievements?: string[];
+  analysisMetadata?: any;
 }
 
 const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId, onBack }) => {
@@ -151,6 +172,15 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
 
   const daysUntilExpiry = Math.ceil((new Date(analysis.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
 
+  // Real analysis results from UnifiedResumeAnalyzer
+  const realAnalysisResults = analysis.analysis_results || {};
+  const lineByLineAnalysis = realAnalysisResults.lineByLineAnalysis;
+  const optimization = realAnalysisResults.optimization;
+  const aiSuggestions = realAnalysisResults.aiSuggestions || [];
+  const userScore = realAnalysisResults.userScore || analysis.overall_score;
+  const achievements = realAnalysisResults.achievements || [];
+  const analysisMetadata = realAnalysisResults.analysisMetadata;
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -184,6 +214,77 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
         </div>
       </div>
 
+      {/* Achievement Display */}
+      {achievements.length > 0 && (
+        <Card className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+              <Trophy className="h-6 w-6 text-white" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-semibold text-yellow-900">🎉 Achievements Unlocked!</h4>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {achievements.map((achievement, index) => (
+                  <Badge key={index} className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                    <Medal className="h-3 w-3 mr-1" />
+                    {achievement}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* AI Keyword Optimization Display */}
+      {optimization && (
+        <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+              <Target className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-blue-900">AI Keyword Optimization</h3>
+              <p className="text-sm text-blue-700">{optimization.context}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Current Keywords</h4>
+              <div className="flex flex-wrap gap-2">
+                {optimization.original.slice(0, 8).map((keyword, index) => (
+                  <Badge key={index} variant="outline" className="text-gray-600">
+                    {keyword}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">AI-Suggested Keywords</h4>
+              <div className="flex flex-wrap gap-2">
+                {optimization.suggested.slice(0, 8).map((keyword, index) => (
+                  <Badge key={index} className="bg-green-100 text-green-800 border-green-300">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    {keyword}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-green-800">
+                Potential Score Improvement: +{Math.round((100 - optimization.confidence) * 0.4)}%
+              </span>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Score Overview */}
       <Card className="p-6 bg-gradient-to-br from-background to-muted/20">
         <h2 className="text-xl font-semibold mb-6 flex items-center">
@@ -192,120 +293,175 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="text-center">
-            <div className={`text-4xl font-bold ${getScoreColor(analysis.overall_score)} mb-2`}>
-              {analysis.overall_score}%
+            <div className={`text-4xl font-bold ${getScoreColor(userScore)} mb-2`}>
+              {userScore}%
             </div>
             <p className="text-sm text-muted-foreground">Overall Score</p>
             <Badge variant="outline" className="mt-2">
-              {getScoreBadge(analysis.overall_score)}
+              {getScoreBadge(userScore)}
             </Badge>
           </div>
           
           <div className="text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(analysis.keyword_match)} mb-2`}>
-              {analysis.keyword_match}%
+            <div className={`text-2xl font-bold ${getScoreColor(realAnalysisResults.keywordMatch || analysis.keyword_match)} mb-2`}>
+              {realAnalysisResults.keywordMatch || analysis.keyword_match}%
             </div>
             <p className="text-sm text-muted-foreground">Keyword Match</p>
-            {analysis.analysis_results?.totalKeywords && (
+            {analysisMetadata && (
               <p className="text-xs text-muted-foreground mt-1">
-                {analysis.analysis_results.matchingKeywords || 0} of {analysis.analysis_results.totalKeywords} keywords
+                {realAnalysisResults.matchingKeywords?.length || 0} of {analysisMetadata.totalKeywords} keywords
               </p>
             )}
           </div>
           
           <div className="text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(analysis.skills_alignment)} mb-2`}>
-              {analysis.skills_alignment}%
+            <div className={`text-2xl font-bold ${getScoreColor(realAnalysisResults.skillsAlignment || analysis.skills_alignment)} mb-2`}>
+              {realAnalysisResults.skillsAlignment || analysis.skills_alignment}%
             </div>
             <p className="text-sm text-muted-foreground">Skills Alignment</p>
           </div>
           
           <div className="text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(analysis.ats_compatibility)} mb-2`}>
-              {analysis.ats_compatibility}%
+            <div className={`text-2xl font-bold ${getScoreColor(realAnalysisResults.atsCompatibility || analysis.ats_compatibility)} mb-2`}>
+              {realAnalysisResults.atsCompatibility || analysis.ats_compatibility}%
             </div>
             <p className="text-sm text-muted-foreground">ATS Compatibility</p>
           </div>
           
           <div className="text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(analysis.experience_relevance)} mb-2`}>
-              {analysis.experience_relevance}%
+            <div className={`text-2xl font-bold ${getScoreColor(realAnalysisResults.experienceRelevance || analysis.experience_relevance)} mb-2`}>
+              {realAnalysisResults.experienceRelevance || analysis.experience_relevance}%
             </div>
             <p className="text-sm text-muted-foreground">Experience Relevance</p>
           </div>
         </div>
       </Card>
 
-      {/* Original Analysis Results */}
-      {analysis.analysis_results && (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <FileText className="h-5 w-5 mr-2" />
-            Original Analysis Results
-          </h3>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Experience Mismatch Warning */}
-            {analysis.analysis_results.experienceMismatch && (
-              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <h4 className="font-medium text-red-800 dark:text-red-200 mb-2 flex items-center">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Experience Mismatch ({analysis.analysis_results.experienceMismatch.severity})
-                </h4>
-                <div className="space-y-2">
-                  {analysis.analysis_results.experienceMismatch.warnings?.map((warning, index) => (
-                    <p key={index} className="text-sm text-red-700 dark:text-red-300">{warning}</p>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Recommended Roles */}
-            {analysis.analysis_results.recommendedRoles && analysis.analysis_results.recommendedRoles.length > 0 && (
-              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2 flex items-center">
-                  <Target className="h-4 w-4 mr-2" />
-                  Recommended Roles
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {analysis.analysis_results.recommendedRoles.map((role, index) => (
-                    <Badge key={index} variant="secondary" className="bg-blue-100 text-blue-800">
-                      {role}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+      {/* Line-by-Line Analysis */}
+      {lineByLineAnalysis && (
+        <Card className="p-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <Brain className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-purple-900">AI Line-by-Line Analysis</h3>
+              <p className="text-sm text-purple-700">Detailed analysis of every line in your resume</p>
+            </div>
           </div>
 
-          {/* Detailed Analysis Metrics */}
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-primary">
-                {analysis.analysis_results.totalKeywords || 0}
+          <div className="space-y-4">
+            {/* Sections Analysis */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Resume Sections</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {lineByLineAnalysis.sections.map((section, index) => (
+                  <div key={index} className="bg-white p-3 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-gray-900">{section.name}</span>
+                      <Badge className="bg-purple-100 text-purple-800">
+                        {section.content.length} lines
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Lines {section.startLine}-{section.startLine + section.content.length - 1}
+                    </div>
+                  </div>
+                ))}
               </div>
-              <p className="text-sm text-muted-foreground">Total Keywords</p>
             </div>
-            
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {analysis.analysis_results.matchingKeywords || 0}
+
+            {/* Quantified Achievements */}
+            {lineByLineAnalysis.quantifiedAchievements.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Quantified Achievements Found</h4>
+                <div className="space-y-2">
+                  {lineByLineAnalysis.quantifiedAchievements.map((achievement, index) => (
+                    <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">Line {achievement.line}</span>
+                      </div>
+                      <p className="text-sm text-gray-700">{achievement.content}</p>
+                      <div className="mt-1 text-xs text-green-600">
+                        {achievement.achievement.metric}: {achievement.achievement.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">Matching Keywords</p>
-            </div>
-            
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">
-                {analysis.analysis_results.keywordMatch || analysis.keyword_match}%
+            )}
+
+            {/* Improvement Suggestions */}
+            {lineByLineAnalysis.improvements.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Improvement Suggestions</h4>
+                <div className="space-y-3">
+                  {lineByLineAnalysis.improvements.map((improvement, index) => (
+                    <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Target className="h-4 w-4 text-yellow-600" />
+                        <span className="text-sm font-medium text-yellow-800">Line {improvement.line}</span>
+                        <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                          {improvement.section}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-2">{improvement.original}</p>
+                      <div className="space-y-1">
+                        {improvement.suggestions.map((suggestion, sIndex) => (
+                          <div key={sIndex} className="flex items-start space-x-2">
+                            <Sparkles className="h-3 w-3 text-yellow-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-xs text-yellow-700">{suggestion}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">Keyword Match Rate</p>
-            </div>
-            
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {analysis.analysis_results.overallScore || analysis.overall_score}%
+            )}
+
+            {/* Missing Elements */}
+            {lineByLineAnalysis.missingElements.length > 0 && (
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-3">Missing Elements</h4>
+                <div className="space-y-2">
+                  {lineByLineAnalysis.missingElements.map((element, index) => (
+                    <div key={index} className="bg-red-50 p-3 rounded-lg border border-red-200">
+                      <div className="flex items-center space-x-2">
+                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                        <span className="text-sm text-red-800">{element}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground">Computed Score</p>
+            )}
+
+            {/* Keywords Analysis */}
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-3">Keywords Analysis</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Found Keywords</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {lineByLineAnalysis.keywords.slice(0, 10).map((keyword, index) => (
+                      <Badge key={index} className="bg-green-100 text-green-800 border-green-300">
+                        {keyword}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h5 className="text-sm font-medium text-gray-700 mb-2">Total Analysis</h5>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <div>• {lineByLineAnalysis.sections.length} sections analyzed</div>
+                    <div>• {lineByLineAnalysis.keywords.length} keywords found</div>
+                    <div>• {lineByLineAnalysis.quantifiedAchievements.length} quantified achievements</div>
+                    <div>• {lineByLineAnalysis.improvements.length} improvement suggestions</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
@@ -323,11 +479,11 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
             <div>
               <h4 className="font-medium text-green-600 mb-2 flex items-center">
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Found Keywords ({analysis.keywords_found?.length || 0})
+                Found Keywords ({realAnalysisResults.matchingKeywords?.length || 0})
               </h4>
               <div className="flex flex-wrap gap-2">
-                {analysis.keywords_found?.length ? (
-                  analysis.keywords_found.map((keyword, index) => (
+                {realAnalysisResults.matchingKeywords?.length ? (
+                  realAnalysisResults.matchingKeywords.slice(0, 10).map((keyword, index) => (
                     <Badge key={index} variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                       {keyword}
                     </Badge>
@@ -343,32 +499,33 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
             <div>
               <h4 className="font-medium text-red-600 mb-2 flex items-center">
                 <XCircle className="h-4 w-4 mr-2" />
-                Missing Keywords ({analysis.missing_keywords?.length || 0})
+                Missing Keywords ({optimization ? optimization.suggested.length - optimization.original.length : 0})
               </h4>
               <div className="flex flex-wrap gap-2">
-                {analysis.missing_keywords?.length ? (
-                  analysis.missing_keywords.map((keyword, index) => (
-                    <Badge key={index} variant="outline" className="border-red-200 text-red-600 dark:border-red-800 dark:text-red-400">
-                      {keyword}
-                    </Badge>
-                  ))
+                {optimization ? (
+                  optimization.suggested
+                    .filter(keyword => !optimization.original.includes(keyword))
+                    .slice(0, 8)
+                    .map((keyword, index) => (
+                      <Badge key={index} variant="outline" className="border-red-200 text-red-600 dark:border-red-800 dark:text-red-400">
+                        {keyword}
+                      </Badge>
+                    ))
                 ) : (
                   <p className="text-muted-foreground text-sm">No missing keywords data available</p>
                 )}
               </div>
             </div>
 
-            {/* Keyword Insights from original analysis */}
-            {analysis.analysis_results?.suggestions && (
+            {/* AI Suggestions */}
+            {aiSuggestions.length > 0 && (
               <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                <h5 className="font-medium text-blue-800 dark:text-blue-200 text-sm mb-1">Keyword Suggestions:</h5>
-                {analysis.analysis_results.suggestions
-                  .filter(s => s.type === 'keywords')
-                  .map((suggestion, index) => (
-                    <p key={index} className="text-sm text-blue-700 dark:text-blue-300">
-                      {suggestion.description}
-                    </p>
-                  ))}
+                <h5 className="font-medium text-blue-800 dark:text-blue-200 text-sm mb-1">AI Suggestions:</h5>
+                {aiSuggestions.map((suggestion, index) => (
+                  <p key={index} className="text-sm text-blue-700 dark:text-blue-300">
+                    • {suggestion}
+                  </p>
+                ))}
               </div>
             )}
           </div>
@@ -383,108 +540,59 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
           
           <ScrollArea className="h-[250px]">
             <div className="space-y-3">
-              {analysis.improvement_areas?.length ? (
-                analysis.improvement_areas.map((area, index) => (
+              {lineByLineAnalysis?.improvements?.length ? (
+                lineByLineAnalysis.improvements.map((improvement, index) => (
                   <div key={index} className="flex items-start space-x-2 p-3 bg-orange-50 dark:bg-orange-950/20 rounded-lg">
                     <TrendingUp className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm">{area}</p>
+                    <div>
+                      <p className="text-sm font-medium">Line {improvement.line}</p>
+                      <p className="text-sm text-muted-foreground">{improvement.original}</p>
+                      <div className="mt-1">
+                        {improvement.suggestions.map((suggestion, sIndex) => (
+                          <p key={sIndex} className="text-xs text-orange-600">• {suggestion}</p>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ))
               ) : (
-                <>
-                  {/* Fallback to suggestions from analysis results */}
-                  {analysis.analysis_results?.suggestions?.length ? (
-                    analysis.analysis_results.suggestions.map((suggestion, index) => (
-                      <div key={index} className="p-3 border border-orange-200 dark:border-orange-800 rounded-lg">
-                        <div className="flex items-center mb-2">
-                          <Badge variant="outline" className="text-xs mr-2 capitalize">
-                            {suggestion.type}
-                          </Badge>
-                          <span className="font-medium text-sm">{suggestion.title}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{suggestion.description}</p>
-                        {suggestion.action && (
-                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                            Action: {suggestion.action}
-                          </p>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-sm">No improvement areas identified</p>
-                  )}
-                </>
+                <p className="text-muted-foreground text-sm">No improvement areas identified</p>
               )}
             </div>
           </ScrollArea>
         </Card>
       </div>
 
-      {/* Detailed Suggestions */}
+      {/* AI Suggestions & Recommendations */}
       <Card className="p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center">
           <Lightbulb className="h-5 w-5 mr-2" />
-          Detailed Suggestions & Recommendations
+          AI Suggestions & Recommendations
         </h3>
         
         <ScrollArea className="h-[350px]">
           <div className="space-y-4">
-            {analysis.suggestions && typeof analysis.suggestions === 'object' ? (
-              Array.isArray(analysis.suggestions) ? (
-                // Handle array format (from analysis_results)
-                analysis.suggestions.map((suggestion, index) => (
-                  <div key={index} className="border border-border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium capitalize flex items-center">
-                        <Star className="h-4 w-4 text-yellow-500 mr-2" />
-                        {suggestion.title || suggestion.type?.replace('_', ' ')}
-                      </h4>
-                      {suggestion.priority && (
-                        <Badge 
-                          variant={suggestion.priority === 'high' ? 'destructive' : 'secondary'}
-                          className="text-xs"
-                        >
-                          {suggestion.priority}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">{suggestion.description}</p>
-                    {suggestion.action && (
-                      <div className="bg-muted/50 p-2 rounded text-sm">
-                        <strong>Action:</strong> {suggestion.action}
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                // Handle object format
-                Object.entries(analysis.suggestions).map(([category, suggestions], index) => (
-                  <div key={index} className="border border-border rounded-lg p-4">
-                    <h4 className="font-medium capitalize mb-3 flex items-center">
+            {aiSuggestions.length > 0 ? (
+              aiSuggestions.map((suggestion, index) => (
+                <div key={index} className="border border-border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium flex items-center">
                       <Star className="h-4 w-4 text-yellow-500 mr-2" />
-                      {category.replace('_', ' ')}
+                      AI Suggestion {index + 1}
                     </h4>
-                    {Array.isArray(suggestions) ? (
-                      <ul className="space-y-2">
-                        {suggestions.map((suggestion, idx) => (
-                          <li key={idx} className="text-sm text-muted-foreground flex items-start">
-                            <span className="inline-block w-2 h-2 bg-primary rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                            {String(suggestion)}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">{String(suggestions)}</p>
-                    )}
+                    <Badge variant="secondary" className="text-xs">
+                      HIGH
+                    </Badge>
                   </div>
-                ))
-              )
+                  <p className="text-sm text-muted-foreground">{suggestion}</p>
+                </div>
+              ))
             ) : (
               <div className="text-center py-8">
                 <Lightbulb className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No detailed suggestions available</p>
+                <p className="text-muted-foreground">No AI suggestions available</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Suggestions will appear here after analysis is complete
+                  AI suggestions will appear here after analysis is complete
                 </p>
               </div>
             )}
@@ -492,26 +600,43 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
         </ScrollArea>
       </Card>
 
-
-      {/* Additional Feedback */}
-      {analysis.detailed_feedback && Object.keys(analysis.detailed_feedback).length > 0 && (
+      {/* Analysis Metadata */}
+      {analysisMetadata && (
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <FileText className="h-5 w-5 mr-2" />
-            Additional Feedback
+            <Brain className="h-5 w-5 mr-2" />
+            Analysis Metadata
           </h3>
           
-          <ScrollArea className="h-[200px]">
-            <div className="space-y-4">
-              {Object.entries(analysis.detailed_feedback).map(([key, value], index) => (
-                <div key={index}>
-                  <h4 className="font-medium capitalize mb-2">{key.replace('_', ' ')}</h4>
-                  <p className="text-sm text-muted-foreground">{String(value)}</p>
-                  {index < Object.entries(analysis.detailed_feedback).length - 1 && <Separator className="mt-4" />}
-                </div>
-              ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-primary">
+                {analysisMetadata.totalKeywords || 0}
+              </div>
+              <p className="text-sm text-muted-foreground">Total Keywords</p>
             </div>
-          </ScrollArea>
+            
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                {analysisMetadata.suggestedKeywords || 0}
+              </div>
+              <p className="text-sm text-muted-foreground">Suggested Keywords</p>
+            </div>
+            
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">
+                {analysisMetadata.confidence || 0}%
+              </div>
+              <p className="text-sm text-muted-foreground">Confidence</p>
+            </div>
+            
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600 capitalize">
+                {analysisMetadata.impact || 'low'}
+              </div>
+              <p className="text-sm text-muted-foreground">Impact Level</p>
+            </div>
+          </div>
         </Card>
       )}
     </div>
