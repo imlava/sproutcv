@@ -45,7 +45,7 @@ serve(async (req) => {
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from("payments")
       .select("*")
-      .eq("payment_provider_id", paymentId)
+      .or(`payment_provider_id.eq.${paymentId},stripe_session_id.eq.${paymentId}`)
       .eq("user_id", user.id)
       .single();
 

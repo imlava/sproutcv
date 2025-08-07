@@ -28,28 +28,20 @@ interface DodoWebhookPayload {
   };
 }
 
-// Verify webhook signature
-const verifyWebhookSignature = (payload: string, signature: string, secret: string): boolean => {
+// Verify webhook signature (async)
+const verifyWebhookSignature = async (payload: string, signature: string, secret: string): Promise<boolean> => {
   try {
-    // Create HMAC SHA256 hash
     const encoder = new TextEncoder();
-    const keyData = encoder.encode(secret);
-    const messageData = encoder.encode(payload);
-    
-    const cryptoKey = crypto.subtle.importKey(
+    const key = await crypto.subtle.importKey(
       "raw",
-      keyData,
+      encoder.encode(secret),
       { name: "HMAC", hash: "SHA-256" },
       false,
       ["sign"]
     );
-    
-    const signatureBuffer = crypto.subtle.sign("HMAC", cryptoKey, messageData);
-    const expectedSignature = Array.from(new Uint8Array(signatureBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    
-    return expectedSignature === signature;
+    const sigBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+    const expected = Array.from(new Uint8Array(sigBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    return expected === signature;
   } catch (error) {
     console.error("Webhook signature verification error:", error);
     return false;
@@ -85,7 +77,7 @@ serve(async (req) => {
       throw new Error("Missing webhook signature");
     }
 
-    const isValidSignature = verifyWebhookSignature(rawBody, signature, webhookSecret);
+    const isValidSignature = await verifyWebhookSignature(rawBody, signature, webhookSecret);
     if (!isValidSignature) {
       console.error("Invalid webhook signature");
       throw new Error("Invalid webhook signature");
@@ -124,10 +116,23 @@ serve(async (req) => {
         console.log("Found payment record:", payment);
 
         // Process the successful payment
-        const { data: success, error: processError } = await supabaseAdmin.rpc("process_successful_payment", {
+        // Retry with backoff on transient errors
+        const executeWithRetry = async (fn: () => Promise<any>, retries = 3) => {
+          let attempt = 0;
+          while (attempt < retries) {
+            try { return await fn(); } catch (err) {
+              attempt++;
+              if (attempt >= retries) throw err;
+              const delay = Math.pow(2, attempt) * 200; // 200ms, 400ms, 800ms
+              await new Promise(r => setTimeout(r, delay));
+            }
+          }
+        };
+
+        const { data: success, error: processError } = await executeWithRetry(() => supabaseAdmin.rpc("process_successful_payment", {
           payment_id: payment.id,
           provider_transaction_id: paymentId
-        });
+        }));
 
         if (processError) {
           console.error("Failed to process payment:", processError);

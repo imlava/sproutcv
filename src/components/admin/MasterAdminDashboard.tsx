@@ -25,7 +25,11 @@ import {
   FileText,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Search,
+  Download,
+  ClipboardCopy,
+  Info
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -94,6 +98,13 @@ const MasterAdminDashboard = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dodoTestMode, setDodoTestMode] = useState(false);
+  const [webhookErrors, setWebhookErrors] = useState<any[]>([]);
+  const [userSearch, setUserSearch] = useState('');
+  const [paymentSearch, setPaymentSearch] = useState('');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('all');
+  const [paymentFrom, setPaymentFrom] = useState<string>('');
+  const [paymentTo, setPaymentTo] = useState<string>('');
   
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [replyContent, setReplyContent] = useState('');
@@ -134,10 +145,19 @@ const MasterAdminDashboard = () => {
       // Fetch payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
-        .select('*')
+        .select('*, profiles(email)')
         .order('created_at', { ascending: false });
       if (paymentsError) throw paymentsError;
       setPayments(paymentsData || []);
+
+      // Fetch recent webhook/security events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('security_events')
+        .select('*')
+        .ilike('event_type', '%webhook%')
+        .order('created_at', { ascending: false })
+        .limit(25);
+      if (!eventsError) setWebhookErrors(eventsData || []);
 
       // Fetch referrals
       const { data: referralsData, error: referralsError } = await supabase
@@ -180,6 +200,16 @@ const MasterAdminDashboard = () => {
       supabase.removeChannel(channel);
     };
   };
+
+  const filteredUsers = users.filter(u => !userSearch || u.email.toLowerCase().includes(userSearch.toLowerCase()) || (u.full_name || '').toLowerCase().includes(userSearch.toLowerCase()));
+  const filteredPayments = payments.filter((p: any) => {
+    const matchesSearch = !paymentSearch || (p.payment_provider_id || p.stripe_session_id || p.id).toLowerCase().includes(paymentSearch.toLowerCase()) || (p.profiles?.email || '').toLowerCase().includes(paymentSearch.toLowerCase());
+    const matchesStatus = paymentStatusFilter === 'all' || p.status === paymentStatusFilter;
+    const created = new Date(p.created_at).getTime();
+    const fromOk = !paymentFrom || created >= new Date(paymentFrom).getTime();
+    const toOk = !paymentTo || created <= new Date(paymentTo).getTime();
+    return matchesSearch && matchesStatus && fromOk && toOk;
+  });
 
   const handleReplyToMessage = async () => {
     if (!selectedMessage || !replyContent.trim()) return;
@@ -381,11 +411,12 @@ const MasterAdminDashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="users">Users Management</TabsTrigger>
             <TabsTrigger value="messages">Messages & Support</TabsTrigger>
             <TabsTrigger value="payments">Payments & Refunds</TabsTrigger>
             <TabsTrigger value="referrals">Referral System</TabsTrigger>
+            <TabsTrigger value="payments-health">Payments Health</TabsTrigger>
           </TabsList>
 
           {/* Users Tab */}
@@ -394,10 +425,16 @@ const MasterAdminDashboard = () => {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold">User Management</h3>
-                  <Button onClick={fetchDashboardData}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Search users..." className="pl-8 w-56" />
+                    </div>
+                    <Button onClick={fetchDashboardData}>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </Button>
+                  </div>
                 </div>
                 
                 <Table>
@@ -411,7 +448,7 @@ const MasterAdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => (
+                    {filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell>
                           <div>
@@ -429,7 +466,7 @@ const MasterAdminDashboard = () => {
                             onClick={() => setSelectedUser(user)}
                           >
                             <Gift className="h-4 w-4 mr-1" />
-                            Add Credits
+                            Manage
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -497,10 +534,27 @@ const MasterAdminDashboard = () => {
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-semibold">Payments & Refunds</h3>
-                  <Button onClick={fetchDashboardData}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative">
+                      <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                      <Input value={paymentSearch} onChange={e => setPaymentSearch(e.target.value)} placeholder="Search payment ID or email..." className="pl-8 w-72" />
+                    </div>
+                    <select className="border rounded h-9 px-2 text-sm" value={paymentStatusFilter} onChange={e => setPaymentStatusFilter(e.target.value)}>
+                      <option value="all">All</option>
+                      <option value="pending">Pending</option>
+                      <option value="processing">Processing</option>
+                      <option value="completed">Completed</option>
+                      <option value="failed">Failed</option>
+                      <option value="cancelled">Cancelled</option>
+                      <option value="expired">Expired</option>
+                    </select>
+                    <Input type="date" value={paymentFrom} onChange={e => setPaymentFrom(e.target.value)} className="w-40" />
+                    <span className="text-muted-foreground text-sm">to</span>
+                    <Input type="date" value={paymentTo} onChange={e => setPaymentTo(e.target.value)} className="w-40" />
+                    <Button onClick={fetchDashboardData}>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+                    </Button>
+                  </div>
                 </div>
                 
                 <Table>
@@ -516,23 +570,26 @@ const MasterAdminDashboard = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.map((payment) => (
+                    {filteredPayments.map((payment: any) => (
                       <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-xs">{payment.id.slice(0, 8)}...</TableCell>
+                        <TableCell className="font-mono text-xs">{payment.payment_provider_id || payment.stripe_session_id || payment.id}</TableCell>
+                        <TableCell className="text-sm">{payment.profiles?.email || payment.user_id.slice(0,8) + '...'}</TableCell>
                         <TableCell>${(payment.amount / 100).toFixed(2)}</TableCell>
                         <TableCell>{payment.credits_purchased}</TableCell>
                         <TableCell>{getPaymentStatusBadge(payment.status)}</TableCell>
                         <TableCell className="capitalize">{payment.payment_method}</TableCell>
-                        <TableCell>{new Date(payment.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
+                        <TableCell>{new Date(payment.created_at).toLocaleString()}</TableCell>
+                        <TableCell className="space-x-2">
+                          <Button size="sm" variant="outline" onClick={async () => {
+                            try {
+                              await supabase.functions.invoke('payment-notification', { body: { userId: payment.user_id, paymentId: payment.id, credits: payment.credits_purchased } });
+                              toast({ title: 'Receipt resent', description: 'Payment receipt email has been resent.' });
+                            } catch (e) {
+                              toast({ variant: 'destructive', title: 'Failed', description: 'Could not resend receipt.' });
+                            }
+                          }}>Resend</Button>
                           {payment.status === 'completed' && payment.refund_status === 'none' && (
-                            <Button 
-                              size="sm" 
-                              variant="destructive"
-                              onClick={() => handleRefundPayment(payment.id, payment.amount)}
-                            >
-                              Issue Refund
-                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleRefundPayment(payment.id, payment.amount)}>Refund</Button>
                           )}
                           {payment.refund_status === 'refunded' && (
                             <Badge variant="secondary">Refunded</Badge>
@@ -544,6 +601,101 @@ const MasterAdminDashboard = () => {
                 </Table>
               </div>
             </Card>
+          </TabsContent>
+
+          {/* Payments Health Tab */}
+          <TabsContent value="payments-health">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="p-6 lg:col-span-2">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Recent Payments</h3>
+                  <Button size="sm" variant="outline" onClick={fetchDashboardData}>
+                    <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+                  </Button>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>User</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Credits</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payments.slice(0, 20).map((p: any) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-mono text-xs">{p.payment_provider_id || p.stripe_session_id || p.id}</TableCell>
+                        <TableCell className="text-sm">{p.profiles?.email || p.user_id.slice(0,8) + '...'}</TableCell>
+                        <TableCell>${(p.amount / 100).toFixed(2)}</TableCell>
+                        <TableCell>{p.credits_purchased}</TableCell>
+                        <TableCell>{getPaymentStatusBadge(p.status)}</TableCell>
+                        <TableCell>{new Date(p.created_at).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="outline" onClick={async () => {
+                            try {
+                              await supabase.functions.invoke('payment-notification', {
+                                body: { userId: p.user_id, paymentId: p.id, credits: p.credits_purchased }
+                              });
+                              toast({ title: 'Receipt resent', description: 'Payment receipt email has been resent.' });
+                            } catch (e) {
+                              toast({ variant: 'destructive', title: 'Failed', description: 'Could not resend receipt.' });
+                            }
+                          }}>Resend Receipt</Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
+
+              <div className="space-y-6">
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Dodo Test Mode</h3>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Sandbox Mode</p>
+                      <p className="text-sm text-muted-foreground">Use Dodo sandbox API for test transactions</p>
+                    </div>
+                    <Button variant={dodoTestMode ? 'default' : 'outline'} onClick={() => setDodoTestMode(!dodoTestMode)}>
+                      {dodoTestMode ? 'Enabled' : 'Disabled'}
+                    </Button>
+                  </div>
+                  <div className="mt-4 text-xs text-muted-foreground">
+                    When enabled, backend create-payment will call sandbox API. Ensure sandbox keys are configured.
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Recent Webhook Events</h3>
+                    <Badge variant="secondary">Last {webhookErrors.length} events</Badge>
+                  </div>
+                  <div className="space-y-3 max-h-96 overflow-auto">
+                    {webhookErrors.map((e) => (
+                      <div key={e.id} className="p-3 rounded border bg-muted/40">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-xs">{e.event_type}</span>
+                          <span className="text-xs text-muted-foreground">{new Date(e.created_at).toLocaleString()}</span>
+                        </div>
+                        {e.metadata && (
+                          <pre className="mt-2 text-xs whitespace-pre-wrap">{JSON.stringify(e.metadata, null, 2)}</pre>
+                        )}
+                      </div>
+                    ))}
+                    {webhookErrors.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No recent webhook events.</p>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Referrals Tab */}

@@ -21,7 +21,7 @@ serve(async (req) => {
   }
 
   try {
-    const { credits, amount } = await req.json();
+    const { credits, amount, test_mode } = await req.json();
 
     if (!credits || !amount) {
       throw new Error("Missing credits or amount");
@@ -66,6 +66,8 @@ serve(async (req) => {
     }
 
     const domain = getDomain(req.headers.get("origin"));
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const functionsBaseUrl = `${supabaseUrl}/functions/v1`;
 
     // Check if Dodo Payments API key is configured
     const dodoApiKey = Deno.env.get("DODO_PAYMENTS_API_KEY");
@@ -93,16 +95,18 @@ serve(async (req) => {
       },
       success_url: `${domain}/payments?payment_id={payment_id}&status=success&amount=${amount}&credits=${credits}`,
       cancel_url: `${domain}/payments?payment_id={payment_id}&status=cancelled`,
-      webhook_url: `${domain}/functions/v1/payments-webhook`,
+      // Webhooks should call Supabase Functions URL, not the app domain
+      webhook_url: `${functionsBaseUrl}/payments-webhook`,
       description: `${credits} Resume Analysis Credits`,
       expires_in: 3600 // 1 hour
     };
 
-    console.log("Creating Dodo payment with data:", paymentData);
+    console.log("Creating Dodo payment with data:", { ...paymentData, webhook_url: "[redacted]" });
 
     try {
-      // Make API call to Dodo Payments
-      const dodoResponse = await fetch("https://api.dodopayments.com/v1/payments", {
+      // Make API call to Dodo Payments (support sandbox when test_mode is true)
+      const dodoBase = test_mode ? "https://sandbox.api.dodopayments.com" : "https://api.dodopayments.com";
+      const dodoResponse = await fetch(`${dodoBase}/v1/payments`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${dodoApiKey}`,
@@ -122,21 +126,27 @@ serve(async (req) => {
       console.log("Dodo payment created:", dodoPayment);
 
       const paymentId = dodoPayment.id;
-      const paymentUrl = dodoPayment.payment_url;
+      const paymentUrl = dodoPayment.payment_url || dodoPayment.checkout_url || dodoPayment.url;
 
       if (!paymentId || !paymentUrl) {
         throw new Error("Invalid response from Dodo Payments - missing payment ID or URL");
       }
 
-      // Record payment in database
+      // Record payment in database (align field names used across the system)
       const { data: paymentRecord, error: paymentError } = await supabaseAdmin
         .from("payments")
         .insert({
           user_id: user.id,
+          // Keep legacy field populated for backward compatibility
           stripe_session_id: paymentId,
+          // Primary provider reference used by verify/check/webhook flows
+          payment_provider_id: paymentId,
           amount: amount,
           credits_purchased: credits,
-          status: "pending"
+          status: "pending",
+          payment_method: "dodo_payments",
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          payment_data: dodoPayment
         })
         .select()
         .single();

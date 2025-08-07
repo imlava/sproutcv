@@ -46,7 +46,7 @@ serve(async (req) => {
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from("payments")
       .select("*")
-      .eq("payment_provider_id", paymentId)
+      .or(`payment_provider_id.eq.${paymentId},stripe_session_id.eq.${paymentId}`)
       .eq("user_id", user.id)
       .single();
 
@@ -64,7 +64,7 @@ serve(async (req) => {
     console.log("Found payment record:", payment);
 
     // Handle different status types
-    if (status === 'success' || status === 'completed') {
+    if (status === 'success' || status === 'completed' || status === 'succeeded') {
       // Check if payment is already processed
       if (payment.status === 'completed') {
         return new Response(JSON.stringify({ 

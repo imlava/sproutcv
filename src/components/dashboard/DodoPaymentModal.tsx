@@ -83,7 +83,10 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
 
       if (data?.url) {
         // Open Dodo Payments checkout in a new tab
-        window.open(data.url, '_blank');
+        const win = window.open(data.url, '_blank');
+        if (!win) {
+          throw new Error('Popup blocked. Please allow popups to complete payment.');
+        }
         
         toast({
           title: "Payment Initiated",
@@ -96,7 +99,8 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
           paymentId: data.paymentId,
           credits,
           amount: finalAmount,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          provider: 'dodo_payments'
         }));
         
         onClose();
