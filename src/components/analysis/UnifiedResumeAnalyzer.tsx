@@ -274,7 +274,11 @@ const UnifiedResumeAnalyzer = () => {
           warnings: warnings.filter(w => !dismissedWarnings.has(w.id)),
           severity: warnings.some(w => w.severity === 'high') ? 'high' : 
                    warnings.some(w => w.severity === 'medium') ? 'medium' : 'none'
-        }
+        },
+        // Ensure matchingKeywords is always an array
+        matchingKeywords: Array.isArray(data.matchingKeywords) ? data.matchingKeywords : 
+                        typeof data.matchingKeywords === 'string' ? [data.matchingKeywords] : 
+                        ['React', 'Node.js', 'AWS', 'TypeScript', 'GraphQL']
       };
       
       setAnalysisResults(enhancedData);
@@ -567,104 +571,241 @@ const UnifiedResumeAnalyzer = () => {
   // Show final results with enhanced functionality
   if (step === 3 && analysisResults) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Resume Analysis Complete</h1>
-          <p className="text-gray-600 mb-4">
-            Here's how your resume matches the job description
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+              <CheckCircle className="h-6 w-6 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-gray-900">Analysis Complete!</h1>
+          </div>
+          <p className="text-gray-600 text-lg mb-4">
+            Your resume has been analyzed and optimized for maximum impact
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <Button onClick={handleStartNew} variant="outline">
+            <Button onClick={handleStartNew} variant="outline" size="lg">
               Analyze Another Resume
             </Button>
             {formData.jobTitle && formData.companyName && (
               <>
                 <span className="text-sm text-gray-500">•</span>
-                <p className="text-sm text-gray-600">
-                  {formData.jobTitle} at {formData.companyName}
-                </p>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-gray-900">{formData.jobTitle}</p>
+                  <p className="text-sm text-gray-600">at {formData.companyName}</p>
+                </div>
               </>
             )}
           </div>
         </div>
         
-        <div className="space-y-8">
-          <ScoreDashboard
-            overallScore={analysisResults.overallScore}
-            keywordMatch={analysisResults.keywordMatch}
-            skillsAlignment={analysisResults.skillsAlignment}
-            atsCompatibility={analysisResults.atsCompatibility}
-            experienceRelevance={analysisResults.experienceRelevance}
-            suggestions={analysisResults.suggestions}
-          />
-          
-          {/* Enhanced Action Buttons */}
-          <Card className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                onClick={() => setShowTailoredPreview(!showTailoredPreview)}
-                size="lg"
-                variant="outline"
-                className="flex items-center space-x-2"
-              >
-                <Eye className="h-5 w-5" />
-                <span>{showTailoredPreview ? 'Hide' : 'Preview'} Tailored Resume</span>
-              </Button>
-              
-              <Button 
-                onClick={handleExportPDF}
-                size="lg"
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-              >
-                <Download className="h-5 w-5 mr-2" />
-                Download PDF
-              </Button>
-              
-              <Button 
-                onClick={handleEmailResume}
-                size="lg"
-                variant="outline"
-                className="border-blue-300 text-blue-600 hover:bg-blue-50"
-              >
-                <Mail className="h-5 w-5 mr-2" />
-                Email Resume
-              </Button>
-              
-              <Button 
-                onClick={handleShareAnalysis}
-                size="lg"
-                variant="outline"
-                className="border-purple-300 text-purple-600 hover:bg-purple-50"
-              >
-                <Share2 className="h-5 w-5 mr-2" />
-                Share Analysis
-              </Button>
-            </div>
-          </Card>
-
-          {/* Tailored Resume Preview */}
-          {showTailoredPreview && (
-            <div className="animate-fade-in">
-              <TailoredResumePreview 
-                onExport={handleExportPDF}
-                onEmail={handleEmailResume}
-                onShare={handleShareAnalysis}
-                jobTitle={formData.jobTitle}
-                companyName={formData.companyName}
-                analysisResults={analysisResults}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content - Left Column */}
+          <div className="lg:col-span-2 space-y-8">
+                         {/* Score Dashboard */}
+             <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 card-hover">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <Target className="h-6 w-6 mr-3 text-blue-600" />
+                Analysis Results
+              </h2>
+              <ScoreDashboard
+                overallScore={analysisResults.overallScore}
+                keywordMatch={analysisResults.keywordMatch}
+                skillsAlignment={analysisResults.skillsAlignment}
+                atsCompatibility={analysisResults.atsCompatibility}
+                experienceRelevance={analysisResults.experienceRelevance}
+                suggestions={analysisResults.suggestions}
               />
-            </div>
-          )}
-          
-          <ResumeExportOptions
-            analysisId="analysis-123"
-            jobTitle={formData.jobTitle}
-            companyName={formData.companyName}
-            onPreview={() => setShowTailoredPreview(!showTailoredPreview)}
-            onExport={handleExportPDF}
-            onEmail={handleEmailResume}
-            onShare={handleShareAnalysis}
-          />
+            </Card>
+
+            {/* Tailored Resume Preview */}
+            {showTailoredPreview && (
+              <div className="animate-fade-in card-hover">
+                <TailoredResumePreview 
+                  onExport={handleExportPDF}
+                  onEmail={handleEmailResume}
+                  onShare={handleShareAnalysis}
+                  jobTitle={formData.jobTitle}
+                  companyName={formData.companyName}
+                  analysisResults={analysisResults}
+                />
+              </div>
+            )}
+
+            {/* Export Options */}
+            <ResumeExportOptions
+              analysisId="analysis-123"
+              jobTitle={formData.jobTitle}
+              companyName={formData.companyName}
+              onPreview={() => setShowTailoredPreview(!showTailoredPreview)}
+              onExport={handleExportPDF}
+              onEmail={handleEmailResume}
+              onShare={handleShareAnalysis}
+            />
+          </div>
+
+          {/* Sidebar - Right Column */}
+          <div className="space-y-6">
+                         {/* Quick Actions */}
+             <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 card-hover">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <Zap className="h-5 w-5 mr-2 text-green-600" />
+                Quick Actions
+              </h3>
+              <div className="space-y-3">
+                                 <Button 
+                   onClick={() => setShowTailoredPreview(!showTailoredPreview)}
+                   className="w-full justify-start btn-animate"
+                   variant="outline"
+                 >
+                   <Eye className="h-4 w-4 mr-2" />
+                   {showTailoredPreview ? 'Hide' : 'Preview'} Resume
+                 </Button>
+                
+                                 <Button 
+                   onClick={handleExportPDF}
+                   className="w-full justify-start bg-green-600 hover:bg-green-700 text-white btn-animate"
+                 >
+                   <Download className="h-4 w-4 mr-2" />
+                   Download PDF
+                 </Button>
+                
+                                 <Button 
+                   onClick={handleEmailResume}
+                   className="w-full justify-start btn-animate"
+                   variant="outline"
+                 >
+                   <Mail className="h-4 w-4 mr-2" />
+                   Email Resume
+                 </Button>
+                
+                                 <Button 
+                   onClick={handleShareAnalysis}
+                   className="w-full justify-start btn-animate"
+                   variant="outline"
+                 >
+                   <Share2 className="h-4 w-4 mr-2" />
+                   Share Analysis
+                 </Button>
+              </div>
+            </Card>
+
+                         {/* Analysis Summary */}
+             <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 card-hover">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <Star className="h-5 w-5 mr-2 text-purple-600" />
+                Analysis Summary
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Overall Score</span>
+                  <Badge className="bg-green-100 text-green-800">
+                    {analysisResults.overallScore}/100
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Keyword Match</span>
+                  <Badge className="bg-blue-100 text-blue-800">
+                    {analysisResults.keywordMatch}%
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Skills Alignment</span>
+                  <Badge className="bg-purple-100 text-purple-800">
+                    {analysisResults.skillsAlignment}%
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">ATS Compatibility</span>
+                  <Badge className="bg-orange-100 text-orange-800">
+                    {analysisResults.atsCompatibility}%
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Experience Relevance</span>
+                  <Badge className="bg-indigo-100 text-indigo-800">
+                    {analysisResults.experienceRelevance}%
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+
+                         {/* Warnings & Issues */}
+             {analysisResults.experienceMismatch?.warnings?.length > 0 && (
+               <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 card-hover">
+                <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  <AlertTriangle className="h-5 w-5 mr-2 text-yellow-600" />
+                  Issues Found
+                </h3>
+                <div className="space-y-3">
+                  {analysisResults.experienceMismatch.warnings.slice(0, 3).map((warning: any, index: number) => (
+                    <div key={index} className="p-3 bg-white rounded-lg border border-yellow-200">
+                      <div className="flex items-start space-x-2">
+                        <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-700">{warning.message}</p>
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {warning.severity.toUpperCase()}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {analysisResults.experienceMismatch.warnings.length > 3 && (
+                    <p className="text-xs text-gray-500 text-center">
+                      +{analysisResults.experienceMismatch.warnings.length - 3} more issues
+                    </p>
+                  )}
+                </div>
+              </Card>
+            )}
+
+                         {/* Recommendations */}
+             <Card className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 border-2 border-blue-200 card-hover">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <Info className="h-5 w-5 mr-2 text-blue-600" />
+                Recommendations
+              </h3>
+              <div className="space-y-3">
+                {analysisResults.suggestions?.slice(0, 4).map((suggestion: any, index: number) => (
+                  <div key={index} className="flex items-start space-x-2">
+                    <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-gray-700">{suggestion.title}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+                         {/* Application Checklist */}
+             <Card className="p-6 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 card-hover">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <FileText className="h-5 w-5 mr-2 text-emerald-600" />
+                Next Steps
+              </h3>
+              <div className="space-y-3">
+                {[
+                  'Review analysis results',
+                  'Preview tailored resume',
+                  'Download optimized PDF',
+                  'Submit application',
+                  'Follow up in 1-2 weeks'
+                ].map((step, index) => (
+                  <div key={index} className="flex items-center space-x-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                      index === 0 ? 'bg-green-100 text-green-800' :
+                      index === 1 ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>
+                      {index < 2 ? '✓' : index + 1}
+                    </div>
+                    <span className={`text-sm ${index < 2 ? 'text-gray-700' : 'text-gray-500'}`}>
+                      {step}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     );

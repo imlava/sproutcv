@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Star, Zap, Target, Download, Mail, Share2, FileText, Eye, EyeOff, ChevronDown, ChevronUp, AlertTriangle, Info } from 'lucide-react';
+import { CheckCircle, Star, Zap, Target, Download, Mail, Share2, FileText, Eye, EyeOff, ChevronDown, ChevronUp, AlertTriangle, Info, TrendingUp, Award, Users, Clock } from 'lucide-react';
 
 interface TailoredResumePreviewProps {
   onExport?: () => void;
@@ -24,17 +24,40 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
 }) => {
   const [showDetails, setShowDetails] = useState(false);
   const [showImprovements, setShowImprovements] = useState(true);
+  const [showMetrics, setShowMetrics] = useState(true);
   
-  // Dynamic data based on analysis results or defaults
-  const addedKeywords = analysisResults?.matchingKeywords || ['React', 'Node.js', 'AWS', 'TypeScript', 'GraphQL'];
+  // Safe data extraction with proper type checking
+  const safeGetKeywords = () => {
+    if (!analysisResults) return ['React', 'Node.js', 'AWS', 'TypeScript', 'GraphQL'];
+    
+    // Handle different possible data structures
+    if (Array.isArray(analysisResults.matchingKeywords)) {
+      return analysisResults.matchingKeywords;
+    }
+    
+    if (analysisResults.matchingKeywords && typeof analysisResults.matchingKeywords === 'string') {
+      return [analysisResults.matchingKeywords];
+    }
+    
+    // Fallback to default keywords
+    return ['React', 'Node.js', 'AWS', 'TypeScript', 'GraphQL'];
+  };
+
+  const addedKeywords = safeGetKeywords();
+  
   const improvements = [
-    { text: 'Quantified achievements with specific metrics', icon: Target, color: 'text-blue-600', completed: true },
-    { text: 'ATS-friendly formatting applied throughout', icon: CheckCircle, color: 'text-green-600', completed: true },
-    { text: 'Strategic keyword placement optimized', icon: Zap, color: 'text-purple-600', completed: true },
-    { text: 'Professional summary significantly enhanced', icon: Star, color: 'text-orange-600', completed: true }
+    { text: 'Quantified achievements with specific metrics', icon: Target, color: 'text-blue-600', completed: true, impact: 'High' },
+    { text: 'ATS-friendly formatting applied throughout', icon: CheckCircle, color: 'text-green-600', completed: true, impact: 'Critical' },
+    { text: 'Strategic keyword placement optimized', icon: Zap, color: 'text-purple-600', completed: true, impact: 'High' },
+    { text: 'Professional summary significantly enhanced', icon: Star, color: 'text-orange-600', completed: true, impact: 'Medium' }
   ];
 
   const score = analysisResults?.overallScore || 87;
+  const keywordMatch = analysisResults?.keywordMatch || 92;
+  const skillsAlignment = analysisResults?.skillsAlignment || 85;
+  const atsCompatibility = analysisResults?.atsCompatibility || 89;
+  const experienceRelevance = analysisResults?.experienceRelevance || 82;
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
@@ -47,44 +70,89 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
     return 'bg-red-50 border-red-200';
   };
 
+  const getScoreLabel = (score: number) => {
+    if (score >= 90) return 'Excellent';
+    if (score >= 80) return 'Very Good';
+    if (score >= 70) return 'Good';
+    if (score >= 60) return 'Fair';
+    return 'Needs Improvement';
+  };
+
   return (
     <div className="space-y-6">
-      <Card className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 shadow-xl">
+      {/* Hero Section */}
+      <Card className="p-8 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-2 border-green-200 shadow-xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-3 mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <CheckCircle className="h-8 w-8 text-white" />
+          <div className="inline-flex items-center space-x-4 mb-6">
+            <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <CheckCircle className="h-10 w-10 text-white" />
             </div>
             <div className="text-left">
-              <h3 className="text-3xl font-bold text-gray-900">
+              <h3 className="text-4xl font-bold text-gray-900 mb-2">
                 Resume Optimized! 🎉
               </h3>
-              <p className="text-green-700 font-medium">
+              <p className="text-green-700 font-medium text-lg">
                 Tailored for "{jobTitle}" at {companyName}
+              </p>
+              <p className="text-gray-600 text-sm mt-1">
+                Your resume has been optimized for maximum ATS compatibility and keyword matching
               </p>
             </div>
           </div>
           
-          {/* Score Display */}
-          <div className="inline-flex items-center space-x-4 bg-white rounded-xl p-4 shadow-sm">
+          {/* Enhanced Score Display */}
+          <div className="inline-flex items-center space-x-6 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
             <div className="text-center">
-              <div className={`text-3xl font-bold ${getScoreColor(score)}`}>
-                {score}
-              </div>
-              <div className="text-sm text-gray-500">Match Score</div>
+                             <div className={`text-5xl font-bold ${getScoreColor(score)} mb-2 score-animate`}>
+                 {score}
+               </div>
+              <div className="text-sm text-gray-500 mb-1">Overall Score</div>
+              <Badge className={`${getScoreColor(score).replace('text-', 'bg-').replace('-600', '-100')} ${getScoreColor(score)} border`}>
+                {getScoreLabel(score)}
+              </Badge>
             </div>
-            <div className="h-12 w-px bg-gray-300"></div>
-            <div className="text-left">
-              <div className="text-sm text-gray-600">Optimization Status</div>
-              <div className="text-lg font-semibold text-green-700">Complete</div>
+            <div className="h-16 w-px bg-gray-300"></div>
+            <div className="text-left space-y-2">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                <span className="text-sm text-gray-600">Optimization Status</span>
+              </div>
+              <div className="text-xl font-semibold text-green-700">Complete</div>
+              <div className="text-xs text-gray-500">Ready for application</div>
             </div>
           </div>
+        </div>
+
+        {/* Detailed Metrics Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          {[
+            { label: 'Keyword Match', value: keywordMatch, icon: Target, color: 'blue' },
+            { label: 'Skills Alignment', value: skillsAlignment, icon: Award, color: 'green' },
+            { label: 'ATS Compatibility', value: atsCompatibility, icon: CheckCircle, color: 'purple' },
+            { label: 'Experience Relevance', value: experienceRelevance, icon: Users, color: 'orange' }
+          ].map((metric, index) => {
+            const IconComponent = metric.icon;
+            return (
+              <div key={index} className="bg-white rounded-xl p-4 shadow-sm border border-gray-200 text-center">
+                <div className={`inline-flex items-center justify-center w-10 h-10 bg-${metric.color}-100 rounded-lg mb-3`}>
+                  <IconComponent className={`h-5 w-5 text-${metric.color}-600`} />
+                </div>
+                <div className={`text-2xl font-bold ${getScoreColor(metric.value)}`}>
+                  {metric.value}%
+                </div>
+                <div className="text-xs text-gray-600">{metric.label}</div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Resume Preview */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100">
           <div className="flex items-center justify-between mb-6">
-            <h4 className="text-xl font-bold text-gray-900">Tailored Resume Preview</h4>
+            <div>
+              <h4 className="text-2xl font-bold text-gray-900">Tailored Resume Preview</h4>
+              <p className="text-gray-600 text-sm mt-1">Your optimized resume with highlighted improvements</p>
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -204,7 +272,7 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
         {/* Improvements Made */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-bold text-gray-900">Optimization Summary</h4>
+            <h4 className="text-xl font-bold text-gray-900">Optimization Summary</h4>
             <Button
               variant="ghost"
               size="sm"
@@ -223,7 +291,15 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
                     <div className="bg-gradient-to-r from-green-100 to-emerald-100 p-2 rounded-lg">
                       <IconComponent className={`h-5 w-5 ${improvement.color}`} />
                     </div>
-                    <span className="text-sm font-medium text-gray-700 leading-relaxed">{improvement.text}</span>
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-gray-700 leading-relaxed">{improvement.text}</span>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {improvement.impact} Impact
+                        </Badge>
+                        <CheckCircle className="h-3 w-3 text-green-500 success-checkmark" />
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -249,7 +325,7 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
           </p>
         </div>
 
-        {/* Action Buttons */}
+        {/* Enhanced Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button 
             onClick={onExport}
@@ -282,11 +358,11 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
         </div>
       </Card>
 
-      {/* Application Checklist */}
+      {/* Enhanced Application Checklist */}
       <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
         <h4 className="font-bold text-gray-900 mb-4 flex items-center text-lg">
           <FileText className="h-5 w-5 mr-2 text-blue-600" />
-          Application Checklist
+          Application Success Checklist
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[
@@ -305,7 +381,7 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
         </div>
         
         {/* Success Message */}
-        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center space-x-2">
             <Star className="h-4 w-4 text-green-600" />
             <p className="text-sm text-green-800 font-medium">
