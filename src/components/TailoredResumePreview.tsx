@@ -1,28 +1,51 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Star, Zap, Target, Download, Mail, Share2, FileText } from 'lucide-react';
+import { CheckCircle, Star, Zap, Target, Download, Mail, Share2, FileText, Eye, EyeOff, ChevronDown, ChevronUp, AlertTriangle, Info } from 'lucide-react';
 
 interface TailoredResumePreviewProps {
   onExport?: () => void;
   onShare?: () => void;
   onEmail?: () => void;
+  jobTitle?: string;
+  companyName?: string;
+  analysisResults?: any;
 }
 
 const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({ 
   onExport, 
   onShare, 
-  onEmail 
+  onEmail,
+  jobTitle = "Senior Software Engineer",
+  companyName = "Tech Corp",
+  analysisResults
 }) => {
-  const addedKeywords = ['React', 'Node.js', 'AWS', 'TypeScript', 'GraphQL'];
+  const [showDetails, setShowDetails] = useState(false);
+  const [showImprovements, setShowImprovements] = useState(true);
+  
+  // Dynamic data based on analysis results or defaults
+  const addedKeywords = analysisResults?.matchingKeywords || ['React', 'Node.js', 'AWS', 'TypeScript', 'GraphQL'];
   const improvements = [
-    { text: 'Quantified achievements with specific metrics', icon: Target, color: 'text-blue-600' },
-    { text: 'ATS-friendly formatting applied throughout', icon: CheckCircle, color: 'text-green-600' },
-    { text: 'Strategic keyword placement optimized', icon: Zap, color: 'text-purple-600' },
-    { text: 'Professional summary significantly enhanced', icon: Star, color: 'text-orange-600' }
+    { text: 'Quantified achievements with specific metrics', icon: Target, color: 'text-blue-600', completed: true },
+    { text: 'ATS-friendly formatting applied throughout', icon: CheckCircle, color: 'text-green-600', completed: true },
+    { text: 'Strategic keyword placement optimized', icon: Zap, color: 'text-purple-600', completed: true },
+    { text: 'Professional summary significantly enhanced', icon: Star, color: 'text-orange-600', completed: true }
   ];
+
+  const score = analysisResults?.overallScore || 87;
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getScoreBgColor = (score: number) => {
+    if (score >= 80) return 'bg-green-50 border-green-200';
+    if (score >= 60) return 'bg-yellow-50 border-yellow-200';
+    return 'bg-red-50 border-red-200';
+  };
 
   return (
     <div className="space-y-6">
@@ -37,19 +60,47 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
                 Resume Optimized! 🎉
               </h3>
               <p className="text-green-700 font-medium">
-                Tailored for "Senior Software Engineer" at Tech Corp
+                Tailored for "{jobTitle}" at {companyName}
               </p>
+            </div>
+          </div>
+          
+          {/* Score Display */}
+          <div className="inline-flex items-center space-x-4 bg-white rounded-xl p-4 shadow-sm">
+            <div className="text-center">
+              <div className={`text-3xl font-bold ${getScoreColor(score)}`}>
+                {score}
+              </div>
+              <div className="text-sm text-gray-500">Match Score</div>
+            </div>
+            <div className="h-12 w-px bg-gray-300"></div>
+            <div className="text-left">
+              <div className="text-sm text-gray-600">Optimization Status</div>
+              <div className="text-lg font-semibold text-green-700">Complete</div>
             </div>
           </div>
         </div>
 
         {/* Resume Preview */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <h4 className="text-xl font-bold text-gray-900">Tailored Resume Preview</h4>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDetails(!showDetails)}
+              className="flex items-center space-x-2"
+            >
+              {showDetails ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <span>{showDetails ? 'Hide' : 'Show'} Details</span>
+            </Button>
+          </div>
+
           <div className="space-y-6">
             {/* Header */}
             <div className="border-b border-gray-200 pb-6">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">John Doe</h2>
-              <p className="text-xl text-green-600 font-semibold mb-2">Senior Software Engineer</p>
+              <p className="text-xl text-green-600 font-semibold mb-2">{jobTitle}</p>
               <p className="text-gray-600">john.doe@email.com • (555) 123-4567 • San Francisco, CA • LinkedIn: /in/johndoe</p>
             </div>
 
@@ -60,7 +111,7 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
                 <Badge className="ml-3 bg-green-100 text-green-800 border-green-300">✨ Enhanced</Badge>
               </h3>
               <p className="text-gray-700 leading-relaxed text-lg">
-                Results-driven Senior Software Engineer with <span className="bg-yellow-100 px-1 rounded font-semibold">5+ years</span> 
+                Results-driven {jobTitle} with <span className="bg-yellow-100 px-1 rounded font-semibold">5+ years</span> 
                 of experience developing scalable web applications using{' '}
                 <span className="bg-yellow-100 px-1 rounded font-semibold">React, Node.js, and AWS</span>. 
                 Successfully led cross-functional teams of{' '}
@@ -90,7 +141,7 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
               </div>
             </div>
 
-            {/* Work Experience */}
+            {/* Work Experience - Show more details if expanded */}
             <div>
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
                 Professional Experience
@@ -115,50 +166,69 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
                       <span className="bg-yellow-100 px-1 rounded font-semibold">50%</span> and improving system reliability to{' '}
                       <span className="bg-yellow-100 px-1 rounded font-semibold">99.9% uptime</span></span>
                     </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span>Mentored <span className="bg-yellow-100 px-1 rounded font-semibold">6 junior developers</span>, established code review processes, and implemented{' '}
-                      <span className="bg-yellow-100 px-1 rounded font-semibold">CI/CD pipelines</span> reducing deployment time by{' '}
-                      <span className="bg-yellow-100 px-1 rounded font-semibold">60%</span></span>
-                    </li>
+                    {showDetails && (
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                        <span>Mentored <span className="bg-yellow-100 px-1 rounded font-semibold">6 junior developers</span>, established code review processes, and implemented{' '}
+                        <span className="bg-yellow-100 px-1 rounded font-semibold">CI/CD pipelines</span> reducing deployment time by{' '}
+                        <span className="bg-yellow-100 px-1 rounded font-semibold">60%</span></span>
+                      </li>
+                    )}
                   </ul>
                 </div>
 
-                <div className="border-l-4 border-blue-500 pl-6">
-                  <h4 className="text-lg font-bold text-gray-900">Software Engineer • DataFlow Solutions</h4>
-                  <p className="text-gray-600 mb-3 font-medium">January 2020 - February 2021 | Remote</p>
-                  <ul className="text-gray-700 space-y-2">
-                    <li className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span>Developed full-stack applications using <span className="bg-yellow-100 px-1 rounded font-semibold">React</span> and{' '}
-                      <span className="bg-yellow-100 px-1 rounded font-semibold">Node.js</span>, serving{' '}
-                      <span className="bg-yellow-100 px-1 rounded font-semibold">10,000+ daily active users</span></span>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
-                      <span>Implemented <span className="bg-yellow-100 px-1 rounded font-semibold">GraphQL APIs</span> and optimized database queries, improving data loading speeds by{' '}
-                      <span className="bg-yellow-100 px-1 rounded font-semibold">45%</span></span>
-                    </li>
-                  </ul>
-                </div>
+                {showDetails && (
+                  <div className="border-l-4 border-blue-500 pl-6">
+                    <h4 className="text-lg font-bold text-gray-900">Software Engineer • DataFlow Solutions</h4>
+                    <p className="text-gray-600 mb-3 font-medium">January 2020 - February 2021 | Remote</p>
+                    <ul className="text-gray-700 space-y-2">
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
+                        <span>Developed full-stack applications using <span className="bg-yellow-100 px-1 rounded font-semibold">React</span> and{' '}
+                        <span className="bg-yellow-100 px-1 rounded font-semibold">Node.js</span>, serving{' '}
+                        <span className="bg-yellow-100 px-1 rounded font-semibold">10,000+ daily active users</span></span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-5 w-5 text-blue-500 mr-3 mt-0.5 flex-shrink-0" />
+                        <span>Implemented <span className="bg-yellow-100 px-1 rounded font-semibold">GraphQL APIs</span> and optimized database queries, improving data loading speeds by{' '}
+                        <span className="bg-yellow-100 px-1 rounded font-semibold">45%</span></span>
+                      </li>
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
 
         {/* Improvements Made */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {improvements.map((improvement, index) => {
-            const IconComponent = improvement.icon;
-            return (
-              <div key={index} className="flex items-center space-x-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
-                <div className="bg-gradient-to-r from-green-100 to-emerald-100 p-2 rounded-lg">
-                  <IconComponent className={`h-5 w-5 ${improvement.color}`} />
-                </div>
-                <span className="text-sm font-medium text-gray-700 leading-relaxed">{improvement.text}</span>
-              </div>
-            );
-          })}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-bold text-gray-900">Optimization Summary</h4>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowImprovements(!showImprovements)}
+            >
+              {showImprovements ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+          
+          {showImprovements && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {improvements.map((improvement, index) => {
+                const IconComponent = improvement.icon;
+                return (
+                  <div key={index} className="flex items-center space-x-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div className="bg-gradient-to-r from-green-100 to-emerald-100 p-2 rounded-lg">
+                      <IconComponent className={`h-5 w-5 ${improvement.color}`} />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 leading-relaxed">{improvement.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Added Keywords */}
@@ -232,6 +302,16 @@ const TailoredResumePreview: React.FC<TailoredResumePreviewProps> = ({
               <span className="text-sm text-gray-700">{item}</span>
             </div>
           ))}
+        </div>
+        
+        {/* Success Message */}
+        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <Star className="h-4 w-4 text-green-600" />
+            <p className="text-sm text-green-800 font-medium">
+              🎉 Your resume is now optimized for "{jobTitle}" at {companyName}! Ready to submit with confidence.
+            </p>
+          </div>
         </div>
       </Card>
     </div>

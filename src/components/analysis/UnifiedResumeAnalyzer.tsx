@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, FileText, Loader2, AlertCircle, CheckCircle, Info, ArrowLeft, AlertTriangle, X, HelpCircle } from 'lucide-react';
+import { Upload, FileText, Loader2, AlertCircle, CheckCircle, Info, ArrowLeft, AlertTriangle, X, HelpCircle, Eye, Download, Mail, Share2, Target, Zap, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -12,14 +12,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import ScoreDashboard from '@/components/ScoreDashboard';
 import ResumeExportOptions from './ResumeExportOptions';
+import TailoredResumePreview from '@/components/TailoredResumePreview';
 
 interface MismatchRule {
   id: string;
   name: string;
-  condition: (resume: string, jobDesc: string) => boolean;
-  generateWarning: (resume: string, jobDesc: string) => string;
+  condition: (resume: string, jobDesc: string, jobTitle?: string) => boolean;
+  generateWarning: (resume: string, jobDesc: string, jobTitle?: string) => string;
   severity: 'low' | 'medium' | 'high';
-  category: 'technical' | 'experience' | 'education' | 'industry';
+  category: 'technical' | 'experience' | 'education' | 'industry' | 'skills';
+  explanation: string;
+  actionable: boolean;
+  overrideOptions?: string[];
 }
 
 interface ExperienceMismatch {
@@ -33,24 +37,30 @@ interface MismatchWarning {
   severity: 'low' | 'medium' | 'high';
   category: string;
   ruleId: string;
-  explanation?: string;
+  explanation: string;
   dismissed?: boolean;
+  actionable: boolean;
+  overrideOptions?: string[];
+  userOverride?: string;
 }
 
-// Declarative mismatch detection rules
+// Enhanced declarative mismatch detection rules
 const MISMATCH_RULES: MismatchRule[] = [
   {
     id: 'senior_experience',
     name: 'Senior Role Experience Gap',
     category: 'experience',
     severity: 'high',
-    condition: (resume, jobDesc) => {
-      const jobRequires = /\b(?:senior|lead|principal|architect|staff)\b/i.test(jobDesc);
+    actionable: true,
+    overrideOptions: ['I have equivalent experience', 'I want to proceed anyway', 'Show me how to address this'],
+    explanation: 'Senior roles typically require proven track record and extensive experience. Consider highlighting specific achievements, years of experience, and leadership responsibilities.',
+    condition: (resume, jobDesc, jobTitle) => {
+      const jobRequires = /\b(?:senior|lead|principal|architect|staff|head of|director|vp|vice president|chief)\b/i.test(jobDesc + (jobTitle || ''));
       const hasYears = /\b(?:[5-9]|[1-9]\d+)\s*(?:\+|\-|\d*)\s*years?\b/i.test(jobDesc);
       const resumeExperience = /\b(?:[3-9]|[1-9]\d+)\s*(?:\+|\-|\d*)\s*years?\b/i.test(resume);
       return jobRequires && hasYears && !resumeExperience;
     },
-    generateWarning: (resume, jobDesc) => {
+    generateWarning: (resume, jobDesc, jobTitle) => {
       const yearMatch = jobDesc.match(/\b([5-9]|[1-9]\d+)\s*(?:\+|\-|\d*)\s*years?\b/i);
       const requiredYears = yearMatch ? yearMatch[1] : '5+';
       return `This senior position typically requires ${requiredYears} years of experience, but your resume doesn't clearly demonstrate this level of experience.`;
@@ -61,13 +71,16 @@ const MISMATCH_RULES: MismatchRule[] = [
     name: 'Programming Language Mismatch',
     category: 'technical',
     severity: 'medium',
-    condition: (resume, jobDesc) => {
-      const jobLanguages = jobDesc.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL)\b/gi) || [];
-      const resumeLanguages = resume.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL)\b/gi) || [];
+    actionable: true,
+    overrideOptions: ['I know these languages', 'I can learn quickly', 'Show me alternatives'],
+    explanation: 'Technical roles often require specific programming languages. Make sure to list all relevant languages you know, including proficiency levels.',
+    condition: (resume, jobDesc, jobTitle) => {
+      const jobLanguages = jobDesc.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL|React|Angular|Vue|Node\.js)\b/gi) || [];
+      const resumeLanguages = resume.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL|React|Angular|Vue|Node\.js)\b/gi) || [];
       return jobLanguages.length > 0 && resumeLanguages.length === 0;
     },
-    generateWarning: (resume, jobDesc) => {
-      const jobLanguages = jobDesc.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL)\b/gi) || [];
+    generateWarning: (resume, jobDesc, jobTitle) => {
+      const jobLanguages = jobDesc.match(/\b(?:Python|Java|JavaScript|C\+\+|C#|Ruby|Go|Rust|PHP|Swift|Kotlin|TypeScript|SQL|React|Angular|Vue|Node\.js)\b/gi) || [];
       return `The job requires programming skills in ${jobLanguages.slice(0, 3).join(', ')}, but these aren't prominently featured in your resume.`;
     }
   },
@@ -76,12 +89,70 @@ const MISMATCH_RULES: MismatchRule[] = [
     name: 'Education Level Mismatch',
     category: 'education',
     severity: 'medium',
-    condition: (resume, jobDesc) => {
-      const requiresDegree = /\b(?:bachelor|master|phd|doctorate|degree)\b/i.test(jobDesc);
+    actionable: true,
+    overrideOptions: ['I have equivalent experience', 'I have certifications', 'I want to proceed anyway'],
+    explanation: 'Many positions require formal education. If you have relevant experience or certifications that substitute for formal education, highlight them prominently.',
+    condition: (resume, jobDesc, jobTitle) => {
+      const requiresDegree = /\b(?:bachelor|master|phd|doctorate|degree|university|college)\b/i.test(jobDesc);
       const hasDegree = /\b(?:bachelor|master|phd|doctorate|degree|university|college)\b/i.test(resume);
       return requiresDegree && !hasDegree;
     },
     generateWarning: () => 'This position requires a degree, but no educational background is clearly mentioned in your resume.'
+  },
+  {
+    id: 'industry_mismatch',
+    name: 'Industry Experience Gap',
+    category: 'industry',
+    severity: 'low',
+    actionable: true,
+    overrideOptions: ['I have transferable skills', 'I can adapt quickly', 'Show me how to bridge this gap'],
+    explanation: 'Industry-specific experience can be valuable. Consider highlighting transferable skills and relevant projects that demonstrate your ability to work in this industry.',
+    condition: (resume, jobDesc, jobTitle) => {
+      const industries = ['healthcare', 'finance', 'technology', 'education', 'retail', 'consulting', 'marketing', 'manufacturing', 'non-profit'];
+      const jobIndustry = industries.find(industry => jobDesc.toLowerCase().includes(industry));
+      const resumeIndustry = industries.find(industry => resume.toLowerCase().includes(industry));
+      return jobIndustry && resumeIndustry && jobIndustry !== resumeIndustry;
+    },
+    generateWarning: (resume, jobDesc, jobTitle) => {
+      const industries = ['healthcare', 'finance', 'technology', 'education', 'retail', 'consulting', 'marketing', 'manufacturing', 'non-profit'];
+      const jobIndustry = industries.find(industry => jobDesc.toLowerCase().includes(industry));
+      return `The job is in the ${jobIndustry} industry, but your experience appears to be in a different sector.`;
+    }
+  },
+  {
+    id: 'leadership_skills',
+    name: 'Leadership Experience Gap',
+    category: 'skills',
+    severity: 'medium',
+    actionable: true,
+    overrideOptions: ['I have leadership experience', 'I can demonstrate leadership', 'Show me how to highlight this'],
+    explanation: 'Leadership roles require demonstrated experience managing teams or projects. Highlight any team leadership, project management, or mentoring experience.',
+    condition: (resume, jobDesc, jobTitle) => {
+      const requiresLeadership = /\b(?:lead|manage|supervise|mentor|coach|direct|oversee|team lead|project lead)\b/i.test(jobDesc);
+      const hasLeadership = /\b(?:led|managed|supervised|mentored|coached|directed|oversaw|team lead|project lead)\b/i.test(resume);
+      return requiresLeadership && !hasLeadership;
+    },
+    generateWarning: () => 'This position requires leadership experience, but your resume doesn\'t clearly demonstrate team management or leadership responsibilities.'
+  },
+  {
+    id: 'certification_requirement',
+    name: 'Certification Mismatch',
+    category: 'skills',
+    severity: 'low',
+    actionable: true,
+    overrideOptions: ['I have equivalent certifications', 'I can obtain these', 'Show me alternatives'],
+    explanation: 'Some positions require specific certifications. Consider obtaining relevant certifications or highlighting equivalent qualifications.',
+    condition: (resume, jobDesc, jobTitle) => {
+      const certifications = /\b(?:certified|certification|license|licensed|pmp|aws|cissp|ccna|comptia)\b/gi;
+      const jobCerts = jobDesc.match(certifications) || [];
+      const resumeCerts = resume.match(certifications) || [];
+      return jobCerts.length > 0 && resumeCerts.length === 0;
+    },
+    generateWarning: (resume, jobDesc, jobTitle) => {
+      const certifications = /\b(?:certified|certification|license|licensed|pmp|aws|cissp|ccna|comptia)\b/gi;
+      const jobCerts = jobDesc.match(certifications) || [];
+      return `The job requires certifications like ${jobCerts.slice(0, 2).join(', ')}, but these aren't mentioned in your resume.`;
+    }
   }
 ];
 
@@ -95,6 +166,8 @@ const UnifiedResumeAnalyzer = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [pdfProcessing, setPdfProcessing] = useState(false);
   const [dismissedWarnings, setDismissedWarnings] = useState<Set<string>>(new Set());
+  const [showTailoredPreview, setShowTailoredPreview] = useState(false);
+  const [userOverrides, setUserOverrides] = useState<Record<string, string>>({});
   
   const [formData, setFormData] = useState({
     resumeFile: null as File | null,
@@ -193,8 +266,8 @@ const UnifiedResumeAnalyzer = () => {
         throw new Error('No analysis data received');
       }
 
-      // Process mismatch warnings using declarative rules
-      const warnings = evaluateMismatchRules(formData.resumeText, formData.jobDescription);
+      // Process mismatch warnings using enhanced declarative rules
+      const warnings = evaluateMismatchRules(formData.resumeText, formData.jobDescription, formData.jobTitle);
       const enhancedData = {
         ...data,
         experienceMismatch: {
@@ -232,26 +305,20 @@ const UnifiedResumeAnalyzer = () => {
     }
   };
 
-  const evaluateMismatchRules = (resume: string, jobDesc: string): MismatchWarning[] => {
+  const evaluateMismatchRules = (resume: string, jobDesc: string, jobTitle?: string): MismatchWarning[] => {
     return MISMATCH_RULES
-      .filter(rule => rule.condition(resume, jobDesc))
+      .filter(rule => rule.condition(resume, jobDesc, jobTitle))
       .map(rule => ({
         id: rule.id,
-        message: rule.generateWarning(resume, jobDesc),
+        message: rule.generateWarning(resume, jobDesc, jobTitle),
         severity: rule.severity,
         category: rule.category,
         ruleId: rule.id,
-        explanation: getWarningExplanation(rule.id)
+        explanation: rule.explanation,
+        actionable: rule.actionable,
+        overrideOptions: rule.overrideOptions,
+        userOverride: userOverrides[rule.id]
       }));
-  };
-
-  const getWarningExplanation = (ruleId: string): string => {
-    const explanations: Record<string, string> = {
-      senior_experience: 'Senior roles typically require proven track record and extensive experience. Consider highlighting specific achievements, years of experience, and leadership responsibilities.',
-      programming_languages: 'Technical roles often require specific programming languages. Make sure to list all relevant languages you know, including proficiency levels.',
-      education_requirement: 'Many positions require formal education. If you have relevant experience or certifications that substitute for formal education, highlight them prominently.'
-    };
-    return explanations[ruleId] || 'This warning indicates a potential mismatch between your profile and the job requirements.';
   };
 
   const handleDismissWarning = (warningId: string) => {
@@ -279,6 +346,25 @@ const UnifiedResumeAnalyzer = () => {
     }
   };
 
+  const handleUserOverride = (warningId: string, override: string) => {
+    setUserOverrides(prev => ({ ...prev, [warningId]: override }));
+    
+    // Update the warning with user override
+    if (analysisResults?.experienceMismatch) {
+      const updatedWarnings = analysisResults.experienceMismatch.warnings.map((w: MismatchWarning) => 
+        w.id === warningId ? { ...w, userOverride: override } : w
+      );
+      
+      setAnalysisResults({
+        ...analysisResults,
+        experienceMismatch: {
+          ...analysisResults.experienceMismatch,
+          warnings: updatedWarnings
+        }
+      });
+    }
+  };
+
   const handleProceedWithMismatch = () => {
     setShowMismatchWarning(false);
     setStep(3);
@@ -289,6 +375,8 @@ const UnifiedResumeAnalyzer = () => {
     setAnalysisResults(null);
     setShowMismatchWarning(false);
     setDismissedWarnings(new Set());
+    setUserOverrides({});
+    setShowTailoredPreview(false);
     setFormData({
       resumeFile: null,
       resumeText: '',
@@ -296,6 +384,56 @@ const UnifiedResumeAnalyzer = () => {
       jobTitle: '',
       companyName: ''
     });
+  };
+
+  const handleExportPDF = async () => {
+    // Enhanced PDF export functionality
+    toast({
+      title: "Generating PDF...",
+      description: "Your tailored resume is being prepared for download",
+    });
+    
+    // Simulate PDF generation
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // In real implementation, this would generate actual PDF
+    const link = document.createElement('a');
+    link.href = 'data:text/plain;charset=utf-8,Tailored Resume Content...';
+    link.download = `${formData.jobTitle || 'Resume'}_${formData.companyName || 'Company'}_Tailored.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: "PDF downloaded!",
+      description: "Your tailored resume has been saved",
+    });
+  };
+
+  const handleEmailResume = () => {
+    const subject = encodeURIComponent(`Tailored Resume for ${formData.jobTitle} at ${formData.companyName}`);
+    const body = encodeURIComponent(`Please find my tailored resume attached for the ${formData.jobTitle} position at ${formData.companyName}.`);
+    window.open(`mailto:?subject=${subject}&body=${body}`);
+  };
+
+  const handleShareAnalysis = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Resume Analysis for ${formData.jobTitle}`,
+          text: `Check out my resume analysis for ${formData.jobTitle} at ${formData.companyName}`,
+          url: window.location.href
+        });
+      } catch (error) {
+        console.log('Error sharing:', error);
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link copied!",
+        description: "Analysis link copied to clipboard",
+      });
+    }
   };
 
   const ExperienceMismatchWarning = ({ mismatch }: { mismatch: ExperienceMismatch }) => {
@@ -351,6 +489,25 @@ const UnifiedResumeAnalyzer = () => {
                       </p>
                     </details>
                   )}
+
+                  {warning.actionable && warning.overrideOptions && (
+                    <div className="mt-3">
+                      <p className="text-xs font-medium mb-2">What would you like to do?</p>
+                      <div className="flex flex-wrap gap-2">
+                        {warning.overrideOptions.map((option, index) => (
+                          <Button
+                            key={index}
+                            variant={warning.userOverride === option ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleUserOverride(warning.id, option)}
+                            className="text-xs"
+                          >
+                            {option}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -385,7 +542,7 @@ const UnifiedResumeAnalyzer = () => {
         </div>
         
         <p className="text-xs text-muted-foreground text-center mt-4">
-          You can dismiss individual warnings or proceed with the analysis. These are suggestions to help improve your job match.
+          You can dismiss individual warnings, provide feedback, or proceed with the analysis. These are suggestions to help improve your job match.
         </p>
       </div>
     );
@@ -407,7 +564,7 @@ const UnifiedResumeAnalyzer = () => {
     );
   }
 
-  // Show final results
+  // Show final results with enhanced functionality
   if (step === 3 && analysisResults) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -441,10 +598,72 @@ const UnifiedResumeAnalyzer = () => {
             suggestions={analysisResults.suggestions}
           />
           
+          {/* Enhanced Action Buttons */}
+          <Card className="p-6">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                onClick={() => setShowTailoredPreview(!showTailoredPreview)}
+                size="lg"
+                variant="outline"
+                className="flex items-center space-x-2"
+              >
+                <Eye className="h-5 w-5" />
+                <span>{showTailoredPreview ? 'Hide' : 'Preview'} Tailored Resume</span>
+              </Button>
+              
+              <Button 
+                onClick={handleExportPDF}
+                size="lg"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Download PDF
+              </Button>
+              
+              <Button 
+                onClick={handleEmailResume}
+                size="lg"
+                variant="outline"
+                className="border-blue-300 text-blue-600 hover:bg-blue-50"
+              >
+                <Mail className="h-5 w-5 mr-2" />
+                Email Resume
+              </Button>
+              
+              <Button 
+                onClick={handleShareAnalysis}
+                size="lg"
+                variant="outline"
+                className="border-purple-300 text-purple-600 hover:bg-purple-50"
+              >
+                <Share2 className="h-5 w-5 mr-2" />
+                Share Analysis
+              </Button>
+            </div>
+          </Card>
+
+          {/* Tailored Resume Preview */}
+          {showTailoredPreview && (
+            <div className="animate-fade-in">
+              <TailoredResumePreview 
+                onExport={handleExportPDF}
+                onEmail={handleEmailResume}
+                onShare={handleShareAnalysis}
+                jobTitle={formData.jobTitle}
+                companyName={formData.companyName}
+                analysisResults={analysisResults}
+              />
+            </div>
+          )}
+          
           <ResumeExportOptions
             analysisId="analysis-123"
             jobTitle={formData.jobTitle}
             companyName={formData.companyName}
+            onPreview={() => setShowTailoredPreview(!showTailoredPreview)}
+            onExport={handleExportPDF}
+            onEmail={handleEmailResume}
+            onShare={handleShareAnalysis}
           />
         </div>
       </div>
