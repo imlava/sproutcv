@@ -500,6 +500,14 @@ const UnifiedResumeAnalyzer = () => {
   const [achievements, setAchievements] = useState<string[]>([]);
   const [isAIAssistantActive, setIsAIAssistantActive] = useState(false);
 
+  // Moved up to ensure availability for contextKey memoization
+  const [formData, setFormData] = useState({
+    resumeFile: null as File | null,
+    resumeText: '',
+    jobDescription: '',
+    jobTitle: '',
+    companyName: ''
+  });
   // Persist dismissed warnings per unique resume/job context
   const contextKey = React.useMemo(() => {
     const base = `${formData.resumeText.slice(0, 500)}|${formData.jobDescription.slice(0, 500)}|${formData.jobTitle}`;
@@ -696,13 +704,7 @@ const UnifiedResumeAnalyzer = () => {
     );
   };
   
-  const [formData, setFormData] = useState({
-    resumeFile: null as File | null,
-    resumeText: '',
-    jobDescription: '',
-    jobTitle: '',
-    companyName: ''
-  });
+  // formData state moved earlier to fix initialization order issues
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
