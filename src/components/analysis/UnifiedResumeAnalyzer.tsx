@@ -499,6 +499,28 @@ const UnifiedResumeAnalyzer = () => {
   const [userScore, setUserScore] = useState(0);
   const [achievements, setAchievements] = useState<string[]>([]);
   const [isAIAssistantActive, setIsAIAssistantActive] = useState(false);
+
+  // Persist dismissed warnings per unique resume/job context
+  const contextKey = React.useMemo(() => {
+    const base = `${formData.resumeText.slice(0, 500)}|${formData.jobDescription.slice(0, 500)}|${formData.jobTitle}`;
+    let hash = 5381;
+    for (let i = 0; i < base.length; i++) { hash = (hash * 33) ^ base.charCodeAt(i); }
+    return `dismissed_warnings:${(hash >>> 0).toString(36)}`;
+  }, [formData.resumeText, formData.jobDescription, formData.jobTitle]);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(contextKey);
+      if (stored) {
+        setDismissedWarnings(new Set(JSON.parse(stored)));
+      } else {
+        setDismissedWarnings(new Set());
+      }
+    } catch {
+      // ignore storage errors
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextKey]);
   
   // Advanced AI Assistant Component
   const AIAssistant = () => {
@@ -923,7 +945,13 @@ const UnifiedResumeAnalyzer = () => {
   };
 
   const handleDismissWarning = (warningId: string) => {
-    setDismissedWarnings(prev => new Set([...prev, warningId]));
+    setDismissedWarnings(prev => {
+      const next = new Set([...prev, warningId]);
+      try {
+        localStorage.setItem(contextKey, JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
     
     // Update analysis results to reflect dismissed warning
     if (analysisResults?.experienceMismatch) {

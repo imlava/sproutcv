@@ -110,8 +110,7 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${dodoApiKey}`,
-          "Content-Type": "application/json",
-          "User-Agent": "SproutCV/1.0"
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(paymentData)
       });

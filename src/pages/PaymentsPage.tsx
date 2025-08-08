@@ -123,6 +123,11 @@ const PaymentsPage = () => {
           title: "Payment Cancelled",
           description: "Your payment was cancelled. You can try again anytime.",
         });
+      } else if (paymentStatus.status === 'processing' || paymentStatus.status === 'pending') {
+        toast({
+          title: "Payment Processing",
+          description: "We are confirming your payment. This may take a few moments.",
+        });
       }
 
     } catch (error) {

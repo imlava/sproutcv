@@ -94,13 +94,13 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
           duration: 5000,
         });
         
-        // Store payment info for tracking
+        // Store payment info for tracking (persist provider for clarity)
         localStorage.setItem('pending_payment', JSON.stringify({
           paymentId: data.paymentId,
           credits,
           amount: finalAmount,
           timestamp: Date.now(),
-          provider: 'dodo_payments'
+          provider: data.paymentMethod || 'dodo_payments'
         }));
         
         onClose();

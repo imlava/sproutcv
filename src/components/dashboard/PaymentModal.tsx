@@ -56,13 +56,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
 
       console.log('Final amount (cents):', finalAmount);
 
-      // Test the function first
-      console.log('Testing payment function...');
-      const testResponse = await supabase.functions.invoke('test-payment', {
-        body: {}
-      });
-      console.log('Test response:', testResponse);
-
       // Create payment with Dodo Payments
       console.log('Creating payment...');
       const { data, error } = await supabase.functions.invoke('create-payment', {
