@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
+import IssueCategoryPanel from '@/components/analysis/IssueCategoryPanel';
+import { Issue, categoryLabels } from '@/components/analysis/IssueTypes';
+import { usePersistentState } from '@/hooks/usePersistentState';
 interface DetailedAnalysisViewProps {
   analysisId: string;
   onBack: () => void;
@@ -44,11 +46,121 @@ interface AnalysisData {
   expires_at: string;
 }
 
+const buildIssuesFromAnalysis = (analysis: AnalysisData): Issue[] => {
+  const issues: Issue[] = [];
+  const mkId = (prefix: string) => `${analysis.id}:${prefix}`;
+
+  // Critical: very low overall score
+  if (typeof analysis.overall_score === 'number' && analysis.overall_score < 60) {
+    issues.push({
+      id: mkId('overall_low'),
+      title: 'Low overall alignment',
+      category: 'relevance',
+      severity: 'critical',
+      description: `Overall score is ${analysis.overall_score}%.`,
+      why: 'Low overall alignment reduces your chances of passing recruiter and ATS screening.',
+      howToImprove: 'Improve keyword match in summary and experience; tailor bullet points to role requirements.'
+    });
+  }
+
+  // Relevance: missing critical keywords
+  if ((analysis.missing_keywords?.length || 0) > 0) {
+    const miss = analysis.missing_keywords.slice(0, 8).join(', ');
+    issues.push({
+      id: mkId('missing_keywords'),
+      title: 'Missing critical keywords',
+      category: 'relevance',
+      severity: analysis.keyword_match < 60 ? 'urgent' : 'optional',
+      description: `Missing: ${miss}${analysis.missing_keywords.length > 8 ? '…' : ''}`,
+      why: 'Recruiters and ATS look for specific keywords that match job requirements.',
+      howToImprove: 'Incorporate the most relevant keywords uniquely in summary and role bullets without keyword stuffing.'
+    });
+  }
+
+  // Skills alignment
+  if (typeof analysis.skills_alignment === 'number' && analysis.skills_alignment < 65) {
+    issues.push({
+      id: mkId('skills_gap'),
+      title: 'Skills gap vs role requirements',
+      category: 'skills',
+      severity: 'urgent',
+      description: `Skills alignment is ${analysis.skills_alignment}%`,
+      why: 'A clear match between your skills and the job improves interview chances.',
+      howToImprove: 'Add concrete skills, tools and outcomes that match the job description. Quantify where possible.'
+    });
+  }
+
+  // ATS compatibility
+  if (typeof analysis.ats_compatibility === 'number' && analysis.ats_compatibility < 70) {
+    issues.push({
+      id: mkId('ats_formatting'),
+      title: 'Potential ATS formatting issues',
+      category: 'ats',
+      severity: 'urgent',
+      description: `ATS compatibility is ${analysis.ats_compatibility}%`,
+      why: 'ATS systems may not parse complex layouts or uncommon section labels.',
+      howToImprove: 'Use standard section headings, simple bullet symbols, and avoid tables/columns for critical content.'
+    });
+  }
+
+  // Experience relevance and mismatch
+  if (analysis.analysis_results?.experienceMismatch) {
+    const em = analysis.analysis_results.experienceMismatch;
+    const sev = (em.severity || 'urgent').toLowerCase() as 'critical' | 'urgent' | 'optional';
+    const text = Array.isArray(em.warnings) ? em.warnings.join(' ') : String(em.warnings);
+    issues.push({
+      id: mkId('experience_mismatch'),
+      title: 'Irrelevant Work Exp. Title',
+      category: 'experience',
+      severity: sev,
+      description: text,
+      why: 'Recruiters scan job titles and responsibilities. Mismatch signals poor fit for the target role.',
+      howToImprove: 'Reframe titles and bullets to highlight responsibilities aligning with the target role without misrepresentation.'
+    });
+  }
+
+  // Impact & achievements from suggestions (if present)
+  const suggArray: any[] = Array.isArray(analysis.suggestions) ? analysis.suggestions : [];
+  for (const s of suggArray) {
+    if (!s) continue;
+    const sev: 'critical' | 'urgent' | 'optional' = s.priority === 'critical' ? 'critical' : s.priority === 'high' ? 'urgent' : 'optional';
+    issues.push({
+      id: mkId(`sugg_${(s.title || s.type || 'generic').toString().toLowerCase().replace(/\s+/g, '_')}`),
+      title: s.title || s.type || 'Improvement Suggestion',
+      category: (s.type || 'impact'),
+      severity: sev,
+      description: s.description,
+      why: 'Addressing this suggestion will increase clarity, credibility and alignment with the role.',
+      howToImprove: s.action
+    });
+  }
+
+  return issues;
+};
+
 const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId, onBack }) => {
   const { toast } = useToast();
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dismissedIds, setDismissedIds] = usePersistentState<string[]>(`analysis_dismissed_${analysisId}`, []);
 
+  const allIssues = React.useMemo(() => (analysis ? buildIssuesFromAnalysis(analysis) : []), [analysis]);
+  const visibleIssues = React.useMemo(() => allIssues.filter(i => !dismissedIds.includes(i.id)), [allIssues, dismissedIds]);
+  const groupedIssues = React.useMemo(() => {
+    const m: Record<string, Issue[]> = {};
+    for (const i of visibleIssues) {
+      (m[i.category] ||= []).push(i);
+    }
+    return m;
+  }, [visibleIssues]);
+  const counts = React.useMemo(() => ({
+    critical: visibleIssues.filter(i => i.severity === 'critical').length,
+    urgent: visibleIssues.filter(i => i.severity === 'urgent').length,
+    optional: visibleIssues.filter(i => i.severity === 'optional').length,
+  }), [visibleIssues]);
+
+  const handleDismiss = (id: string) => setDismissedIds(Array.from(new Set([...dismissedIds, id])));
+  const handleExplain = (issue: Issue) => toast({ title: 'Explanation requested', description: issue.why });
   useEffect(() => {
     fetchAnalysisDetails();
   }, [analysisId]);
@@ -235,6 +347,22 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
           </div>
         </div>
       </Card>
+
+      {/* Summary */}
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="destructive" className="text-xs">{counts.critical} Critical Fix</Badge>
+        <Badge variant="default" className="text-xs">{counts.urgent} Urgent Fix</Badge>
+        <Badge variant="secondary" className="text-xs">{counts.optional} Optional Fix</Badge>
+      </div>
+
+      <h2 className="text-xl font-semibold mt-4">Analysis Highlights</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <IssueCategoryPanel title={categoryLabels.relevance} issues={groupedIssues['relevance'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+        <IssueCategoryPanel title={categoryLabels.impact} issues={groupedIssues['impact'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+        <IssueCategoryPanel title={categoryLabels.experience} issues={groupedIssues['experience'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+        <IssueCategoryPanel title={categoryLabels.skills} issues={groupedIssues['skills'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+        <IssueCategoryPanel title={categoryLabels.ats} issues={groupedIssues['ats'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+      </div>
 
       {/* Original Analysis Results */}
       {analysis.analysis_results && (
