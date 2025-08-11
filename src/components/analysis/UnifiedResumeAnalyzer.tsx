@@ -17,6 +17,7 @@ import TailoredResumePreview from '@/components/TailoredResumePreview';
 import IssueCategoryPanel from '@/components/analysis/IssueCategoryPanel';
 import { Issue, categoryLabels } from '@/components/analysis/IssueTypes';
 import { usePersistentState } from '@/hooks/usePersistentState';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 // Real AI-powered resume analysis system
 class RealResumeAnalyzer {
@@ -511,6 +512,11 @@ const UnifiedResumeAnalyzer = () => {
     jobTitle: '',
     companyName: ''
   });
+  // AI Explain dialog state
+  const [explainOpen, setExplainOpen] = useState(false);
+  const [explainLoading, setExplainLoading] = useState(false);
+  const [explainContent, setExplainContent] = useState<string>('');
+  const [explainIssue, setExplainIssue] = useState<Issue | null>(null);
   // Persist dismissed warnings per unique resume/job context
   const contextKey = React.useMemo(() => {
     const base = `${formData.resumeText.slice(0, 500)}|${formData.jobDescription.slice(0, 500)}|${formData.jobTitle}`;
