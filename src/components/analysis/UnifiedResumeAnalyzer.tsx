@@ -14,6 +14,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import ScoreDashboard from '@/components/ScoreDashboard';
 import ResumeExportOptions from './ResumeExportOptions';
 import TailoredResumePreview from '@/components/TailoredResumePreview';
+import IssueCategoryPanel from '@/components/analysis/IssueCategoryPanel';
+import { Issue, categoryLabels } from '@/components/analysis/IssueTypes';
+import { usePersistentState } from '@/hooks/usePersistentState';
 
 // Real AI-powered resume analysis system
 class RealResumeAnalyzer {
@@ -499,7 +502,7 @@ const UnifiedResumeAnalyzer = () => {
   const [userScore, setUserScore] = useState(0);
   const [achievements, setAchievements] = useState<string[]>([]);
   const [isAIAssistantActive, setIsAIAssistantActive] = useState(false);
-
+  const [issues, setIssues] = useState<Issue[]>([]);
   // Moved up to ensure availability for contextKey memoization
   const [formData, setFormData] = useState({
     resumeFile: null as File | null,
@@ -529,8 +532,22 @@ const UnifiedResumeAnalyzer = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextKey]);
-  
-  // Advanced AI Assistant Component
+
+  // Issues derived from runtime analysis and rule warnings
+  const visibleIssues = React.useMemo(() => issues.filter(i => !dismissedWarnings.has(i.id)), [issues, dismissedWarnings]);
+  const groupedIssues = React.useMemo(() => {
+    const m: Record<string, Issue[]> = {};
+    for (const i of visibleIssues) {
+      (m[i.category] ||= []).push(i);
+    }
+    return m;
+  }, [visibleIssues]);
+  const counts = React.useMemo(() => ({
+    critical: visibleIssues.filter(i => i.severity === 'critical').length,
+    urgent: visibleIssues.filter(i => i.severity === 'urgent').length,
+    optional: visibleIssues.filter(i => i.severity === 'optional').length,
+  }), [visibleIssues]);
+
   const AIAssistant = () => {
     if (!isAIAssistantActive) return null;
 
@@ -871,6 +888,19 @@ const UnifiedResumeAnalyzer = () => {
 
       // Enhanced analysis results with AI optimization
       const warnings = evaluateMismatchRules(formData.resumeText, formData.jobDescription, formData.jobTitle);
+      const issuesLocal = buildIssuesFromRuntime({
+        overallScore,
+        keywordMatch,
+        skillsAlignment,
+        atsCompatibility,
+        warnings,
+        missingKeywords: optimization.missing || [],
+        suggestions: data.suggestions || [],
+        idBase: 'runtime'
+      });
+      const filteredIssues = issuesLocal.filter(i => !dismissedWarnings.has(i.id));
+      setIssues(filteredIssues);
+
       const enhancedData = {
         ...data,
         overallScore: overallScore,
@@ -888,7 +918,8 @@ const UnifiedResumeAnalyzer = () => {
         optimization: optimization,
         aiSuggestions: warnings.flatMap(w => w.aiSuggestions || []),
         userScore: overallScore,
-        achievements: newAchievements
+        achievements: newAchievements,
+        issues: filteredIssues
       };
       
       setAnalysisResults(enhancedData);
@@ -927,6 +958,42 @@ const UnifiedResumeAnalyzer = () => {
     }
   };
 
+  // Build unified issues list for UI
+  const buildIssuesFromRuntime = (params: {
+    overallScore: number;
+    keywordMatch: number;
+    skillsAlignment: number;
+    atsCompatibility: number;
+    warnings: MismatchWarning[];
+    missingKeywords: string[];
+    suggestions?: any[];
+    idBase?: string;
+  }): Issue[] => {
+    const mk = (suffix: string) => `${params.idBase || 'local'}:${suffix}`;
+    const arr: Issue[] = [];
+    if (params.overallScore < 60) {
+      arr.push({ id: mk('overall_low'), title: 'Low overall alignment', category: 'relevance', severity: 'critical', why: 'Low alignment reduces pass rates through recruiter and ATS screening.', description: `Overall score is ${params.overallScore}%`, howToImprove: 'Improve keyword match and tailor bullets to the role.' });
+    }
+    if ((params.missingKeywords?.length || 0) > 0) {
+      const miss = params.missingKeywords.slice(0, 8).join(', ');
+      arr.push({ id: mk('missing_keywords'), title: 'Missing critical keywords', category: 'relevance', severity: params.keywordMatch < 60 ? 'urgent' : 'optional', description: `Missing: ${miss}${params.missingKeywords.length > 8 ? '…' : ''}`, why: 'ATS and recruiters look for these keywords.', howToImprove: 'Add the most relevant keywords in summary and bullet points.' });
+    }
+    if (params.skillsAlignment < 65) {
+      arr.push({ id: mk('skills_gap'), title: 'Skills gap vs role requirements', category: 'skills', severity: 'urgent', description: `Skills alignment is ${params.skillsAlignment}%`, why: 'Clear skills-role match improves interview chances.', howToImprove: 'Add concrete tools and outcomes that match the JD.' });
+    }
+    if (params.atsCompatibility < 70) {
+      arr.push({ id: mk('ats_formatting'), title: 'Potential ATS formatting issues', category: 'ats', severity: 'urgent', description: `ATS compatibility is ${params.atsCompatibility}%`, why: 'ATS may not parse complex layouts/labels.', howToImprove: 'Use standard headings, simple bullets, avoid tables for key info.' });
+    }
+    for (const w of params.warnings || []) {
+      const sev = w.severity === 'high' ? 'critical' : w.severity === 'medium' ? 'urgent' : 'optional';
+      arr.push({ id: mk(`warn_${w.id}`), title: 'Irrelevant Work Exp. Title', category: 'experience', severity: sev, description: w.message, why: w.explanation || 'Title/responsibility mismatch signals poor fit.', howToImprove: 'Reframe bullets to align with target role without misrepresentation.' });
+    }
+    for (const s of params.suggestions || []) {
+      const sev = s.priority === 'critical' ? 'critical' : s.priority === 'high' ? 'urgent' : 'optional';
+      arr.push({ id: mk(`sugg_${(s.title || s.type || 'generic').toString().toLowerCase().replace(/\s+/g, '_')}`), title: s.title || s.type || 'Improvement Suggestion', category: s.type || 'impact', severity: sev, description: s.description, why: 'Addressing this improves clarity and alignment.', howToImprove: s.action });
+    }
+    return arr;
+  };
   const evaluateMismatchRules = (resume: string, jobDesc: string, jobTitle?: string): MismatchWarning[] => {
     return ADVANCED_MISMATCH_RULES
       .filter(rule => rule.condition(resume, jobDesc, jobTitle))
@@ -977,15 +1044,25 @@ const UnifiedResumeAnalyzer = () => {
     }
   };
 
+  const handleDismissIssue = (id: string) => {
+    handleDismissWarning(id);
+    const m = id.match(/warn_(.+)$/);
+    if (m) handleDismissWarning(m[1]);
+  };
+
+  const handleExplainIssue = (issue: Issue) => {
+    toast({ title: 'Why this matters', description: issue.why });
+  };
+
+  // Allow user to provide an override/acknowledgement for a specific warning
   const handleUserOverride = (warningId: string, override: string) => {
     setUserOverrides(prev => ({ ...prev, [warningId]: override }));
-    
-    // Update the warning with user override
+
     if (analysisResults?.experienceMismatch) {
-      const updatedWarnings = analysisResults.experienceMismatch.warnings.map((w: MismatchWarning) => 
+      const updatedWarnings = analysisResults.experienceMismatch.warnings.map((w: MismatchWarning) =>
         w.id === warningId ? { ...w, userOverride: override } : w
       );
-      
+
       setAnalysisResults({
         ...analysisResults,
         experienceMismatch: {
@@ -996,6 +1073,7 @@ const UnifiedResumeAnalyzer = () => {
     }
   };
 
+  // Proceed despite mismatches
   const handleProceedWithMismatch = () => {
     setShowMismatchWarning(false);
     setStep(3);
