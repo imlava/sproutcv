@@ -18,6 +18,8 @@ import IssueCategoryPanel from '@/components/analysis/IssueCategoryPanel';
 import { Issue, categoryLabels } from '@/components/analysis/IssueTypes';
 import { usePersistentState } from '@/hooks/usePersistentState';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // Real AI-powered resume analysis system
 class RealResumeAnalyzer {
@@ -553,6 +555,43 @@ const UnifiedResumeAnalyzer = () => {
     urgent: visibleIssues.filter(i => i.severity === 'urgent').length,
     optional: visibleIssues.filter(i => i.severity === 'optional').length,
   }), [visibleIssues]);
+
+  const handleDismiss = (id: string) => {
+    const next = new Set(dismissedWarnings);
+    next.add(id);
+    setDismissedWarnings(next);
+    try {
+      localStorage.setItem(contextKey, JSON.stringify(Array.from(next)));
+    } catch {}
+  };
+
+  const handleExplain = async (issue: Issue) => {
+    setExplainIssue(issue);
+    setExplainOpen(true);
+    setExplainLoading(true);
+    setExplainContent('');
+    try {
+      const { data, error } = await supabase.functions.invoke('explain-issue', {
+        body: {
+          issue,
+          resume_text: formData.resumeText,
+          job_description: formData.jobDescription,
+          job_title: formData.jobTitle,
+          company_name: formData.companyName,
+        },
+      });
+      if (error) throw error as any;
+      setExplainContent((data as any)?.explanation || 'No explanation generated.');
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to get explanation',
+        description: e?.message || 'Please try again.',
+      });
+    } finally {
+      setExplainLoading(false);
+    }
+  };
 
   const AIAssistant = () => {
     if (!isAIAssistantActive) return null;
@@ -1361,6 +1400,21 @@ const UnifiedResumeAnalyzer = () => {
             suggestions={analysisResults.suggestions}
           />
             </Card>
+
+            {/* Issues Summary */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              <Badge variant="destructive" className="text-xs">{counts.critical} Critical Fix</Badge>
+              <Badge variant="default" className="text-xs">{counts.urgent} Urgent Fix</Badge>
+              <Badge variant="secondary" className="text-xs">{counts.optional} Optional Fix</Badge>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <IssueCategoryPanel title={categoryLabels.relevance} issues={groupedIssues['relevance'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+              <IssueCategoryPanel title={categoryLabels.impact} issues={groupedIssues['impact'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+              <IssueCategoryPanel title={categoryLabels.experience} issues={groupedIssues['experience'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+              <IssueCategoryPanel title={categoryLabels.skills} issues={groupedIssues['skills'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+              <IssueCategoryPanel title={categoryLabels.ats} issues={groupedIssues['ats'] || []} onDismiss={handleDismiss} onExplain={handleExplain} />
+            </div>
 
             {/* Tailored Resume Preview */}
             {showTailoredPreview && (
