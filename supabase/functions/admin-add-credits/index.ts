@@ -1,113 +1,95 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
-    const supabaseClient = createClient(
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create a user-context Supabase client so auth.uid() is set inside RPCs
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: { headers: { Authorization: authHeader } },
+      }
     );
+
+    const { data: authUser, error: authError } = await supabase.auth.getUser();
+    if (authError || !authUser.user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const { target_user_id, credits_to_add, admin_note } = await req.json();
 
-    // Validate input
-    if (!target_user_id || !credits_to_add || credits_to_add <= 0) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid input parameters' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Get current user credits
-    const { data: userData, error: userError } = await supabaseClient
-      .from('profiles')
-      .select('credits')
-      .eq('id', target_user_id)
-      .single();
-
-    if (userError || !userData) {
-      return new Response(
-        JSON.stringify({ error: 'User not found' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const currentCredits = userData.credits || 0;
-    const newCredits = currentCredits + credits_to_add;
-
-    // Update user credits
-    const { error: updateError } = await supabaseClient
-      .from('profiles')
-      .update({ credits: newCredits })
-      .eq('id', target_user_id);
-
-    if (updateError) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to update credits' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Record transaction in credits ledger
-    const { error: ledgerError } = await supabaseClient
-      .from('credits_ledger')
-      .insert({
-        user_id: target_user_id,
-        transaction_type: 'admin_grant',
-        credits_amount: credits_to_add,
-        balance_after: newCredits,
-        description: admin_note || 'Credits added by admin'
+    if (!target_user_id || !Number.isInteger(credits_to_add) || credits_to_add <= 0) {
+      return new Response(JSON.stringify({ error: 'Invalid input parameters' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
 
-    if (ledgerError) {
-      return new Response(
-        JSON.stringify({ error: 'Failed to record transaction' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    // Verify admin role via database function
+    const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+      _user_id: authUser.user.id,
+      _role: 'admin',
+    });
+
+    if (roleError || !isAdmin) {
+      return new Response(JSON.stringify({ error: 'Forbidden: admin role required' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Use SECURITY DEFINER RPC to perform the credit grant atomically and log ledger
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('admin_add_credits', {
+      target_user_id,
+      credits_to_add,
+      admin_note: admin_note ?? null,
+    });
+
+    if (rpcError || rpcResult !== true) {
+      return new Response(JSON.stringify({ error: 'Failed to add credits' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `${credits_to_add} credits added successfully`,
-        new_balance: newCredits
-      }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ success: true, message: `${credits_to_add} credits added successfully` }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ error: 'An unexpected error occurred' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    console.error('admin-add-credits error:', error);
+    return new Response(JSON.stringify({ error: 'An unexpected error occurred' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-}); 
+});

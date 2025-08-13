@@ -12,124 +12,72 @@ serve(async (req) => {
   }
 
   try {
-    // Get authenticated user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    
-    // Create Supabase client with service role key
+    const supabaseUser = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: me, error: meError } = await supabaseUser.auth.getUser();
+    if (meError || !me.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    // Admin-only
+    const { data: isAdmin } = await supabaseUser.rpc('has_role', { _user_id: me.user.id, _role: 'admin' });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
+    // Read-only diagnostics (no inserts/deletes)
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Verify user authentication
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (userError || !userData.user) {
-      throw new Error("User not authenticated");
-    }
+    const results: Record<string, any> = {};
 
-    const user = userData.user;
-    console.log("User authenticated:", user.id);
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .limit(1);
+    results.profile_check = { ok: !profileError };
 
-    // Test database operations step by step
-    const results = {};
+    const { data: payments, error: paymentsError } = await supabaseAdmin
+      .from("payments")
+      .select("id")
+      .limit(1);
+    results.payments_check = { ok: !paymentsError };
 
-    // 1. Test profiles table
-    try {
-      const { data: profile, error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .select("full_name, email, credits")
-        .eq("id", user.id)
-        .single();
-      
-      results.profile = { data: profile, error: profileError };
-      console.log("Profile test:", { data: profile, error: profileError });
-    } catch (error) {
-      results.profile = { data: null, error: error.message };
-      console.log("Profile test error:", error.message);
-    }
+    const { data: security, error: securityError } = await supabaseAdmin
+      .from("security_events")
+      .select("id")
+      .limit(1);
+    results.security_check = { ok: !securityError };
 
-    // 2. Test payments table structure
-    try {
-      const { data: payments, error: paymentsError } = await supabaseAdmin
-        .from("payments")
-        .select("*")
-        .limit(1);
-      
-      results.payments = { data: payments, error: paymentsError };
-      console.log("Payments test:", { data: payments, error: paymentsError });
-    } catch (error) {
-      results.payments = { data: null, error: error.message };
-      console.log("Payments test error:", error.message);
-    }
-
-    // 3. Test inserting a payment record
-    try {
-      const testPayment = {
-        user_id: user.id,
-        stripe_session_id: `debug_${Date.now()}`,
-        amount: 100,
-        credits_purchased: 1,
-        status: "debug"
-      };
-
-      const { data: insertData, error: insertError } = await supabaseAdmin
-        .from("payments")
-        .insert(testPayment)
-        .select();
-
-      results.insert = { data: insertData, error: insertError };
-      console.log("Insert test:", { data: insertData, error: insertError });
-
-      // Clean up
-      if (insertData) {
-        await supabaseAdmin
-          .from("payments")
-          .delete()
-          .eq("stripe_session_id", testPayment.stripe_session_id);
-      }
-    } catch (error) {
-      results.insert = { data: null, error: error.message };
-      console.log("Insert test error:", error.message);
-    }
-
-    // 4. Test security_events table
-    try {
-      const { data: security, error: securityError } = await supabaseAdmin
-        .from("security_events")
-        .select("*")
-        .limit(1);
-      
-      results.security = { data: security, error: securityError };
-      console.log("Security test:", { data: security, error: securityError });
-    } catch (error) {
-      results.security = { data: null, error: error.message };
-      console.log("Security test error:", error.message);
-    }
-
-    return new Response(JSON.stringify({ 
-      success: true,
-      user: { id: user.id, email: user.email },
-      results,
-      message: "Debug completed"
-    }), {
+    return new Response(JSON.stringify({ success: true, results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-
   } catch (error) {
     console.error("Debug error:", error);
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: error.message 
-    }), {
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
   }
-}); 
+});

@@ -12,83 +12,69 @@ serve(async (req) => {
   }
 
   try {
-    // Create Supabase client with service role key
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    const supabaseUser = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: me, error: meError } = await supabaseUser.auth.getUser();
+    if (meError || !me.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
+    // Verify admin role
+    const { data: isAdmin, error: roleError } = await supabaseUser.rpc('has_role', {
+      _user_id: me.user.id,
+      _role: 'admin'
+    });
+    if (roleError || !isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
+    // Admin-only: minimal, read-only checks
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Test database schema
-    console.log("Testing database schema...");
+    const [payments, profiles, security] = await Promise.all([
+      supabaseAdmin.from("payments").select("id").limit(1),
+      supabaseAdmin.from("profiles").select("id").limit(1),
+      supabaseAdmin.from("security_events").select("id").limit(1),
+    ]);
 
-    // Check if payments table exists and get its structure
-    const { data: paymentsData, error: paymentsError } = await supabaseAdmin
-      .from("payments")
-      .select("*")
-      .limit(1);
-
-    console.log("Payments table test:", { data: paymentsData, error: paymentsError });
-
-    // Check if profiles table exists
-    const { data: profilesData, error: profilesError } = await supabaseAdmin
-      .from("profiles")
-      .select("*")
-      .limit(1);
-
-    console.log("Profiles table test:", { data: profilesData, error: profilesError });
-
-    // Check if security_events table exists
-    const { data: securityData, error: securityError } = await supabaseAdmin
-      .from("security_events")
-      .select("*")
-      .limit(1);
-
-    console.log("Security events table test:", { data: securityData, error: securityError });
-
-    // Try to insert a test record to check column structure
-    const testPayment = {
-      user_id: "00000000-0000-0000-0000-000000000000", // Test UUID
-      stripe_session_id: "test_session",
-      amount: 100,
-      credits_purchased: 1,
-      status: "test"
-    };
-
-    const { data: insertData, error: insertError } = await supabaseAdmin
-      .from("payments")
-      .insert(testPayment)
-      .select();
-
-    console.log("Insert test:", { data: insertData, error: insertError });
-
-    // Clean up test record
-    if (insertData) {
-      await supabaseAdmin
-        .from("payments")
-        .delete()
-        .eq("stripe_session_id", "test_session");
-    }
-
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       success: true,
-      payments: { data: paymentsData, error: paymentsError },
-      profiles: { data: profilesData, error: profilesError },
-      security_events: { data: securityData, error: securityError },
-      insert_test: { data: insertData, error: insertError },
-      message: "Database schema test completed"
+      checks: {
+        payments_ok: !payments.error,
+        profiles_ok: !profiles.error,
+        security_ok: !security.error,
+      },
+      message: "Public DB test locked down (admin-only)",
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-
   } catch (error) {
-    console.error("Database test error:", error);
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: error.message 
-    }), {
+    console.error("Database public test error:", error);
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
   }
-}); 
+});

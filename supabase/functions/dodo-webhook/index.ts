@@ -86,7 +86,7 @@ serve(async (req) => {
     console.log("Webhook signature verified successfully");
 
     const payload = JSON.parse(rawBody) as DodoWebhookPayload;
-    console.log("Webhook payload:", payload);
+    console.log("Webhook payload received", { event_type: payload.event_type, id: payload.data?.id });
 
     // Create Supabase client with service role key
     const supabaseAdmin = createClient(
@@ -113,7 +113,8 @@ serve(async (req) => {
           throw new Error("Payment not found or already processed");
         }
 
-        console.log("Found payment record:", payment);
+        // Found payment record
+        console.log("Payment record located", { id: payment.id, user_id: payment.user_id, status: payment.status });
 
         // Process the successful payment
         // Retry with backoff on transient errors

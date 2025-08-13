@@ -12,77 +12,57 @@ serve(async (req) => {
   }
 
   try {
-    // Create Supabase client with service role key
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
-    // Get authenticated user
+    // Authenticated user context (no service role usage here)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (userError || !userData.user) {
-      throw new Error("User not authenticated");
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: me, error: meError } = await supabase.auth.getUser();
+    if (meError || !me.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
     }
 
-    const user = userData.user;
-
-    // Test database connection
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("full_name, email, credits")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Profile fetch error:", profileError);
-      throw new Error("Failed to fetch user profile");
-    }
-
-    // Test payments table
-    const { data: payments, error: paymentsError } = await supabaseAdmin
-      .from("payments")
-      .select("id, user_id, amount, credits_purchased, status")
-      .eq("user_id", user.id)
-      .limit(5);
+    // Fetch only the caller's own data via RLS
+    const [{ data: profile }, { data: payments, error: paymentsError }] = await Promise.all([
+      supabase.from("profiles").select("full_name, email, credits").single(),
+      supabase.from("payments").select("id, amount, credits_purchased, status, created_at").order('created_at', { ascending: false }).limit(5),
+    ]);
 
     if (paymentsError) {
-      console.error("Payments fetch error:", paymentsError);
-      throw new Error("Failed to fetch payments");
+      return new Response(JSON.stringify({ error: "Failed to fetch payments" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
     }
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       success: true,
-      user: {
-        id: user.id,
-        email: user.email
-      },
-      profile: {
-        full_name: profile.full_name,
-        email: profile.email,
-        credits: profile.credits
-      },
-      payments: payments,
-      message: "Payment system is working correctly"
+      user: { id: me.user.id, email: me.user.email },
+      profile,
+      payments,
+      message: "Payment system is working correctly",
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
-
   } catch (error) {
     console.error("Test payment error:", error);
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: error.message 
-    }), {
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
   }
-}); 
+});
