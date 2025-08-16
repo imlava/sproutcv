@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -559,38 +559,38 @@ export type Database = {
     Functions: {
       admin_add_credits: {
         Args: {
-          target_user_id: string
-          credits_to_add: number
           admin_note?: string
+          credits_to_add: number
+          target_user_id: string
         }
         Returns: boolean
       }
       admin_get_user_details: {
         Args: { target_user_id: string }
         Returns: {
-          user_id: string
+          credits: number
           email: string
           full_name: string
-          credits: number
+          last_analysis: string
+          referrals_made: number
+          signup_date: string
           total_analyses: number
           total_spent: number
-          referrals_made: number
-          last_analysis: string
-          signup_date: string
+          user_id: string
         }[]
       }
       admin_get_user_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
-          total_users: number
           active_users: number
+          pending_messages: number
           total_analyses: number
           total_revenue: number
-          pending_messages: number
+          total_users: number
         }[]
       }
       consume_analysis_credit: {
-        Args: { target_user_id: string; analysis_id: string }
+        Args: { analysis_id: string; target_user_id: string }
         Returns: boolean
       }
       generate_referral_code: {
@@ -599,8 +599,8 @@ export type Database = {
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -613,7 +613,7 @@ export type Database = {
         Returns: boolean
       }
       process_referral_credit: {
-        Args: { referred_user_id: string; payment_amount: number }
+        Args: { payment_amount: number; referred_user_id: string }
         Returns: boolean
       }
       process_successful_payment: {
@@ -621,17 +621,17 @@ export type Database = {
         Returns: boolean
       }
       update_contact_message_status: {
-        Args: { message_id: string; new_status: string; admin_notes?: string }
+        Args: { admin_notes?: string; message_id: string; new_status: string }
         Returns: boolean
       }
       update_user_credits: {
         Args: {
-          target_user_id: string
           credit_change: number
-          transaction_type: string
           description?: string
-          related_payment_id?: string
           related_analysis_id?: string
+          related_payment_id?: string
+          target_user_id: string
+          transaction_type: string
         }
         Returns: boolean
       }
