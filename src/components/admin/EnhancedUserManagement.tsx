@@ -468,6 +468,9 @@ const EnhancedUserManagement: React.FC<EnhancedUserManagementProps> = ({ users, 
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              View and manage user information for {selectedUser?.email}
+            </DialogDescription>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-6">
