@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import EnhancedUserManagement from './EnhancedUserManagement';
 import { 
   Users, 
   CreditCard, 
@@ -40,9 +41,19 @@ interface User {
   id: string;
   email: string;
   full_name: string;
+  phone?: string;
   credits: number;
+  status: string;
+  subscription_tier: string;
+  is_active: boolean;
+  notes?: string;
+  avatar_url?: string;
+  timezone?: string;
+  language?: string;
   created_at: string;
   updated_at: string;
+  last_login?: string;
+  failed_login_attempts: number;
   referral_code?: string;
 }
 
@@ -421,60 +432,10 @@ const MasterAdminDashboard = () => {
 
           {/* Users Tab */}
           <TabsContent value="users">
-            <Card>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold">User Management</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <Input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Search users..." className="pl-8 w-56" />
-                    </div>
-                    <Button onClick={fetchDashboardData}>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Refresh
-                    </Button>
-                  </div>
-                </div>
-                
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Credits</TableHead>
-                      <TableHead>Referral Code</TableHead>
-                      <TableHead>Joined</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{user.full_name || 'N/A'}</p>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.credits}</TableCell>
-                        <TableCell className="font-mono text-sm">{user.referral_code || 'N/A'}</TableCell>
-                        <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setSelectedUser(user)}
-                          >
-                            <Gift className="h-4 w-4 mr-1" />
-                            Manage
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
+            <EnhancedUserManagement 
+              users={users} 
+              onUserUpdate={fetchDashboardData}
+            />
           </TabsContent>
 
           {/* Messages Tab */}

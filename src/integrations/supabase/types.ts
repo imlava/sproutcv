@@ -305,6 +305,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           backup_codes: string[] | null
           created_at: string
           credits: number | null
@@ -313,17 +314,25 @@ export type Database = {
           failed_login_attempts: number | null
           full_name: string | null
           id: string
+          is_active: boolean | null
+          language: string | null
           last_login: string | null
           locked_until: string | null
+          notes: string | null
           password_changed_at: string | null
+          phone: string | null
           referral_code: string | null
           referred_by: string | null
           security_preferences: Json | null
+          status: string | null
+          subscription_tier: string | null
+          timezone: string | null
           two_factor_enabled: boolean | null
           two_factor_secret: string | null
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           backup_codes?: string[] | null
           created_at?: string
           credits?: number | null
@@ -332,17 +341,25 @@ export type Database = {
           failed_login_attempts?: number | null
           full_name?: string | null
           id: string
+          is_active?: boolean | null
+          language?: string | null
           last_login?: string | null
           locked_until?: string | null
+          notes?: string | null
           password_changed_at?: string | null
+          phone?: string | null
           referral_code?: string | null
           referred_by?: string | null
           security_preferences?: Json | null
+          status?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
           two_factor_enabled?: boolean | null
           two_factor_secret?: string | null
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           backup_codes?: string[] | null
           created_at?: string
           credits?: number | null
@@ -351,12 +368,19 @@ export type Database = {
           failed_login_attempts?: number | null
           full_name?: string | null
           id?: string
+          is_active?: boolean | null
+          language?: string | null
           last_login?: string | null
           locked_until?: string | null
+          notes?: string | null
           password_changed_at?: string | null
+          phone?: string | null
           referral_code?: string | null
           referred_by?: string | null
           security_preferences?: Json | null
+          status?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
           two_factor_enabled?: boolean | null
           two_factor_secret?: string | null
           updated_at?: string
@@ -595,6 +619,43 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_delete_user_account: {
+        Args: { permanent?: boolean; reason?: string; target_user_id: string }
+        Returns: boolean
+      }
+      admin_get_detailed_user_info: {
+        Args: { target_user_id: string }
+        Returns: {
+          avatar_url: string
+          credits: number
+          email: string
+          failed_login_attempts: number
+          full_name: string
+          is_active: boolean
+          language: string
+          last_analysis: string
+          last_login: string
+          notes: string
+          phone: string
+          referrals_made: number
+          signup_date: string
+          status: string
+          subscription_tier: string
+          timezone: string
+          total_analyses: number
+          total_spent: number
+          user_id: string
+        }[]
+      }
+      admin_get_user_activity: {
+        Args: { limit_count?: number; target_user_id: string }
+        Returns: {
+          activity_date: string
+          activity_type: string
+          description: string
+          metadata: Json
+        }[]
+      }
       admin_get_user_details: {
         Args: { target_user_id: string }
         Returns: {
@@ -618,6 +679,24 @@ export type Database = {
           total_revenue: number
           total_users: number
         }[]
+      }
+      admin_suspend_user: {
+        Args: { reason?: string; suspend: boolean; target_user_id: string }
+        Returns: boolean
+      }
+      admin_update_user_profile: {
+        Args: {
+          new_full_name?: string
+          new_is_active?: boolean
+          new_language?: string
+          new_notes?: string
+          new_phone?: string
+          new_status?: string
+          new_subscription_tier?: string
+          new_timezone?: string
+          target_user_id: string
+        }
+        Returns: boolean
       }
       consume_analysis_credit: {
         Args: { analysis_id: string; target_user_id: string }
