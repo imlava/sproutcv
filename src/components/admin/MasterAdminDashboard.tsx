@@ -125,7 +125,8 @@ const MasterAdminDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-    setupRealtimeSubscriptions();
+    const cleanup = setupRealtimeSubscriptions();
+    return cleanup;
   }, []);
 
   const fetchDashboardData = async () => {
@@ -191,25 +192,36 @@ const MasterAdminDashboard = () => {
   };
 
   const setupRealtimeSubscriptions = () => {
-    const channel = supabase
-      .channel('admin-dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        fetchDashboardData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
-        fetchDashboardData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
-        fetchDashboardData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'referrals' }, () => {
-        fetchDashboardData();
-      })
-      .subscribe();
+    try {
+      const channel = supabase
+        .channel('admin-dashboard')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+          fetchDashboardData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'contact_messages' }, () => {
+          fetchDashboardData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => {
+          fetchDashboardData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'referrals' }, () => {
+          fetchDashboardData();
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Real-time subscriptions established');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.warn('Real-time subscription error - continuing without live updates');
+          }
+        });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } catch (error) {
+      console.warn('Failed to setup real-time subscriptions:', error);
+      return () => {};
+    }
   };
 
   const filteredUsers = users.filter(u => !userSearch || u.email.toLowerCase().includes(userSearch.toLowerCase()) || (u.full_name || '').toLowerCase().includes(userSearch.toLowerCase()));
