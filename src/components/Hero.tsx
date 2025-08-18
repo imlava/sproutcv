@@ -85,87 +85,203 @@ const Hero = () => {
 
         {/* Features Section */}
         <div id="features" className="mb-20">
+          {/* Achievement Badges */}
+          <div className="flex flex-wrap justify-center items-center gap-6 mb-16">
+            <div className="flex items-center bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 px-6 py-3 rounded-full">
+              <Award className="h-5 w-5 text-emerald-600 mr-2" />
+              <div className="text-center">
+                <div className="text-sm font-bold text-emerald-700">Product of the Month</div>
+                <div className="text-xs text-emerald-600">PRODUCT HUNT</div>
+              </div>
+            </div>
+            <div className="flex items-center bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 px-6 py-3 rounded-full">
+              <Star className="h-5 w-5 text-blue-600 mr-2" />
+              <div className="text-center">
+                <div className="text-sm font-bold text-blue-700">Featured by</div>
+                <div className="text-xs text-blue-600">TOP PICK</div>
+              </div>
+            </div>
+          </div>
+
           <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-              AI-Powered Resume Intelligence
+            <h2 className="text-4xl sm:text-6xl font-black text-gray-900 mb-6 leading-tight">
+              No More Solo Resume Building
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 mt-2">
+                DO IT WITH AI COPILOT
+              </span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our advanced AI analyzes your resume against job descriptions and provides 
-              actionable insights to maximize your interview potential.
+            <p className="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              Our AI makes landing job interviews <span className="font-bold text-emerald-600">dramatically easier and faster!</span> - 
+              get optimized keywords, ATS compatibility, and insider insights in less than 1 min!
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              {[
-                { 
-                  icon: Target, 
-                  title: "Smart Keyword Optimization", 
-                  desc: "AI identifies and suggests the exact keywords recruiters are looking for",
-                  color: "bg-blue-100 text-blue-600"
-                },
-                { 
-                  icon: FileCheck, 
-                  title: "ATS Compatibility Check", 
-                  desc: "Ensure your resume passes through applicant tracking systems flawlessly",
-                  color: "bg-green-100 text-green-600"
-                },
-                { 
-                  icon: TrendingUp, 
-                  title: "Impact Quantification", 
-                  desc: "Transform weak bullet points into powerful, metrics-driven achievements",
-                  color: "bg-purple-100 text-purple-600"
-                },
-                { 
-                  icon: Zap, 
-                  title: "Instant Analysis", 
-                  desc: "Get comprehensive feedback and optimization suggestions in under 30 seconds",
-                  color: "bg-orange-100 text-orange-600"
-                }
-              ].map((feature, index) => (
-                <div key={index} className="flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200">
-                  <div className={`p-3 rounded-xl ${feature.color}`}>
-                    <feature.icon className="h-6 w-6" />
+          {/* Interactive Dashboard Preview */}
+          <div className="max-w-7xl mx-auto mb-20">
+            <div className="relative bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 rounded-3xl p-8 border border-emerald-100 shadow-2xl">
+              {/* Dashboard Header */}
+              <div className="flex items-center justify-between mb-8 p-6 bg-white rounded-2xl shadow-lg">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
+                    <Sprout className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h4>
-                    <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+                    <h3 className="text-xl font-bold text-gray-900">SproutCV Dashboard</h3>
+                    <p className="text-gray-600">AI-Powered Resume Analysis</p>
                   </div>
                 </div>
-              ))}
+                <div className="flex space-x-2">
+                  <div className="flex items-center bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-semibold">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full mr-2"></div>
+                    Recommended
+                  </div>
+                  <div className="flex items-center bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                    Applied: 23
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Job Match Card */}
+                <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold">
+                        G
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-900">Senior Software Engineer</h4>
+                        <p className="text-gray-600">Google • San Francisco, CA • Full Time</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-emerald-500 text-white hover:bg-emerald-600">APPLY NOW</Badge>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Target className="h-4 w-4 mr-1" />
+                      $120k/yr - $180k/yr
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Clock className="h-4 w-4 mr-1" />
+                      1 hour ago
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-4 rounded-xl mb-4">
+                    <div className="flex items-center mb-2">
+                      <Zap className="h-4 w-4 text-emerald-600 mr-2" />
+                      <span className="text-sm font-semibold text-emerald-700">Why This Job Is A Match</span>
+                    </div>
+                    <p className="text-sm text-gray-700">Your React and TypeScript skills align perfectly with their tech stack. Strong experience in cloud platforms matches their requirements.</p>
+                  </div>
+
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm text-gray-600">Less than 25 applicants</div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm">ASK ORION</Button>
+                      <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600">Quick Guide</Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Score Card */}
+                <div className="bg-white rounded-2xl p-6 shadow-lg">
+                  <div className="text-center mb-6">
+                    <div className="relative w-32 h-32 mx-auto mb-4">
+                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
+                        <span className="text-3xl font-black text-white">97%</span>
+                      </div>
+                      <div className="absolute -inset-2 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full opacity-20 animate-pulse"></div>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900">STRONG MATCH</h3>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">✓ H1B Sponsorship</span>
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">✓ Actively Hiring</span>
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">✓ Career Opportunities</span>
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Copilot Chat */}
+              <div className="mt-8 bg-white rounded-2xl p-6 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">AI</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900">Orion</h4>
+                      <p className="text-xs text-gray-600">Your AI Copilot</p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">PRO</Badge>
+                  </div>
+                  <Button size="sm" variant="outline">Quick Guide</Button>
+                </div>
+                
+                <div className="bg-emerald-50 p-4 rounded-xl">
+                  <p className="text-sm text-gray-700 mb-3">
+                    <strong>Hi, I'm Orion, your AI Copilot to navigate you through the job universe.</strong>
+                  </p>
+                  <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white">
+                    Show me Connections for potential referral
+                  </Button>
+                </div>
+              </div>
             </div>
-            
-            <Card className="p-8 shadow-2xl border-0 bg-gradient-to-br from-white to-green-50 transform hover:scale-105 transition-all duration-200">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-6 shadow-xl">
-                  <span className="text-3xl font-black text-white">94</span>
+          </div>
+
+          {/* Feature Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { 
+                icon: Target, 
+                title: "Smart Job Matching", 
+                desc: "AI identifies perfect role matches based on your skills and experience",
+                color: "from-emerald-500 to-teal-500",
+                bgColor: "from-emerald-50 to-teal-50"
+              },
+              { 
+                icon: FileCheck, 
+                title: "ATS Optimization", 
+                desc: "Ensure your resume passes through all applicant tracking systems",
+                color: "from-blue-500 to-cyan-500",
+                bgColor: "from-blue-50 to-cyan-50"
+              },
+              { 
+                icon: Users, 
+                title: "Insider Connections", 
+                desc: "Get recommended connections at your target companies for referrals",
+                color: "from-purple-500 to-pink-500",
+                bgColor: "from-purple-50 to-pink-50"
+              },
+              { 
+                icon: Zap, 
+                title: "Instant Analysis", 
+                desc: "Get comprehensive feedback and optimization in under 30 seconds",
+                color: "from-orange-500 to-red-500",
+                bgColor: "from-orange-50 to-red-50"
+              }
+            ].map((feature, index) => (
+              <Card key={index} className={`p-8 text-center border-0 bg-gradient-to-br ${feature.bgColor} hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 group`}>
+                <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br ${feature.color} rounded-2xl mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <feature.icon className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Resume Score</h3>
-                <p className="text-gray-600">Optimized for maximum impact!</p>
-              </div>
-              
-              <div className="space-y-6">
-                {[
-                  { name: "Keyword Match", score: 96, color: "from-green-500 to-emerald-500" },
-                  { name: "ATS Compatibility", score: 94, color: "from-blue-500 to-cyan-500" },
-                  { name: "Skills Alignment", score: 92, color: "from-purple-500 to-pink-500" },
-                  { name: "Experience Match", score: 89, color: "from-orange-500 to-red-500" }
-                ].map((metric, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">{metric.name}</span>
-                      <span className="text-sm font-bold text-gray-900">{metric.score}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className={`bg-gradient-to-r ${metric.color} h-3 rounded-full transition-all duration-1000 ease-out`}
-                        style={{ width: `${metric.score}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+                <h4 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h4>
+                <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+              </Card>
+            ))}
           </div>
         </div>
 
