@@ -84,88 +84,173 @@ const Hero = () => {
         </div>
 
         {/* Features Section */}
-        <div id="features" className="mb-20">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-              AI-Powered Resume Intelligence
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Our advanced AI analyzes your resume against job descriptions and provides 
-              actionable insights to maximize your interview potential.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              {[
-                { 
-                  icon: Target, 
-                  title: "Smart Keyword Optimization", 
-                  desc: "AI identifies and suggests the exact keywords recruiters are looking for",
-                  color: "bg-blue-100 text-blue-600"
-                },
-                { 
-                  icon: FileCheck, 
-                  title: "ATS Compatibility Check", 
-                  desc: "Ensure your resume passes through applicant tracking systems flawlessly",
-                  color: "bg-green-100 text-green-600"
-                },
-                { 
-                  icon: TrendingUp, 
-                  title: "Impact Quantification", 
-                  desc: "Transform weak bullet points into powerful, metrics-driven achievements",
-                  color: "bg-purple-100 text-purple-600"
-                },
-                { 
-                  icon: Zap, 
-                  title: "Instant Analysis", 
-                  desc: "Get comprehensive feedback and optimization suggestions in under 30 seconds",
-                  color: "bg-orange-100 text-orange-600"
-                }
-              ].map((feature, index) => (
-                <div key={index} className="flex items-start space-x-4 p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200">
-                  <div className={`p-3 rounded-xl ${feature.color}`}>
-                    <feature.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h4>
-                    <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <Card className="p-8 shadow-2xl border-0 bg-gradient-to-br from-white to-green-50 transform hover:scale-105 transition-all duration-200">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-6 shadow-xl">
-                  <span className="text-3xl font-black text-white">94</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Resume Score</h3>
-                <p className="text-gray-600">Optimized for maximum impact!</p>
+        <div id="features" className="mb-20 relative overflow-hidden">
+          {/* Background Elements */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-green-50/30 pointer-events-none" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-green-200/20 to-blue-200/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full blur-3xl animate-pulse animation-delay-2000" />
+          
+          <div className="relative">
+            <div className="text-center mb-20">
+              <div className="inline-block mb-6">
+                <Badge className="bg-gradient-to-r from-green-100 to-blue-100 text-green-800 hover:from-green-200 hover:to-blue-200 px-6 py-2 text-sm font-semibold border-0 shadow-lg">
+                  ✨ Powered by Advanced AI
+                </Badge>
               </div>
-              
-              <div className="space-y-6">
+              <h2 className="text-5xl sm:text-7xl font-black text-gray-900 mb-8 leading-tight">
+                AI-Powered
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-blue-600 to-purple-600">
+                  Resume Intelligence
+                </span>
+              </h2>
+              <p className="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+                Our advanced AI analyzes your resume against job descriptions and provides 
+                <span className="font-semibold text-green-700"> actionable insights</span> to maximize your interview potential.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+              <div className="space-y-8">
                 {[
-                  { name: "Keyword Match", score: 96, color: "from-green-500 to-emerald-500" },
-                  { name: "ATS Compatibility", score: 94, color: "from-blue-500 to-cyan-500" },
-                  { name: "Skills Alignment", score: 92, color: "from-purple-500 to-pink-500" },
-                  { name: "Experience Match", score: 89, color: "from-orange-500 to-red-500" }
-                ].map((metric, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-700">{metric.name}</span>
-                      <span className="text-sm font-bold text-gray-900">{metric.score}%</span>
+                  { 
+                    icon: Target, 
+                    title: "Smart Keyword Optimization", 
+                    desc: "AI identifies and suggests the exact keywords recruiters are looking for",
+                    gradient: "from-blue-500 to-cyan-500",
+                    bgGradient: "from-blue-50 to-cyan-50",
+                    delay: "animation-delay-200"
+                  },
+                  { 
+                    icon: FileCheck, 
+                    title: "ATS Compatibility Check", 
+                    desc: "Ensure your resume passes through applicant tracking systems flawlessly",
+                    gradient: "from-green-500 to-emerald-500",
+                    bgGradient: "from-green-50 to-emerald-50",
+                    delay: "animation-delay-400"
+                  },
+                  { 
+                    icon: TrendingUp, 
+                    title: "Impact Quantification", 
+                    desc: "Transform weak bullet points into powerful, metrics-driven achievements",
+                    gradient: "from-purple-500 to-pink-500",
+                    bgGradient: "from-purple-50 to-pink-50",
+                    delay: "animation-delay-600"
+                  },
+                  { 
+                    icon: Zap, 
+                    title: "Instant Analysis", 
+                    desc: "Get comprehensive feedback and optimization suggestions in under 30 seconds",
+                    gradient: "from-orange-500 to-red-500",
+                    bgGradient: "from-orange-50 to-red-50",
+                    delay: "animation-delay-800"
+                  }
+                ].map((feature, index) => (
+                  <div 
+                    key={index} 
+                    className={`group relative p-8 bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105 animate-fade-in ${feature.delay} border border-white/50`}
+                  >
+                    {/* Gradient background on hover */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.bgGradient} opacity-0 group-hover:opacity-100 rounded-3xl transition-opacity duration-500`} />
+                    
+                    {/* Animated border */}
+                    <div className={`absolute inset-0 bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-20 rounded-3xl blur-xl transition-opacity duration-500`} />
+                    
+                    <div className="relative flex items-start space-x-6">
+                      <div className={`relative p-4 rounded-2xl bg-gradient-to-br ${feature.gradient} shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110`}>
+                        <feature.icon className="h-8 w-8 text-white" />
+                        {/* Glow effect */}
+                        <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-300`} />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-gray-800 transition-colors duration-300">{feature.title}</h4>
+                        <p className="text-gray-600 leading-relaxed text-lg group-hover:text-gray-700 transition-colors duration-300">{feature.desc}</p>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                      <div 
-                        className={`bg-gradient-to-r ${metric.color} h-3 rounded-full transition-all duration-1000 ease-out`}
-                        style={{ width: `${metric.score}%` }}
-                      ></div>
-                    </div>
+                    
+                    {/* Floating particles effect */}
+                    <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-green-400 to-blue-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
+                    <div className="absolute bottom-6 right-8 w-1 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping animation-delay-1000 transition-opacity duration-300" />
                   </div>
                 ))}
               </div>
-            </Card>
+              
+              {/* Enhanced Dashboard Preview */}
+              <div className="relative">
+                {/* Floating elements */}
+                <div className="absolute -top-8 -left-8 w-20 h-20 bg-gradient-to-br from-green-400/20 to-blue-400/20 rounded-full animate-bounce" />
+                <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full animate-bounce animation-delay-1000" />
+                
+                <Card className="relative p-10 shadow-2xl border-0 bg-gradient-to-br from-white via-gray-50/50 to-green-50/80 backdrop-blur-sm transform hover:scale-105 transition-all duration-700 hover:rotate-1 overflow-hidden">
+                  {/* Animated background pattern */}
+                  <div className="absolute inset-0 bg-grid-green-100 bg-[size:30px_30px] opacity-20 animate-pulse" />
+                  
+                  {/* Main score display */}
+                  <div className="relative text-center mb-10">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full blur-lg opacity-50 animate-pulse" />
+                      <div className="relative inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-6 shadow-2xl">
+                        <span className="text-4xl font-black text-white animate-pulse">94</span>
+                        {/* Orbiting elements */}
+                        <div className="absolute w-3 h-3 bg-white/80 rounded-full top-2 left-1/2 transform -translate-x-1/2 animate-spin" style={{animationDuration: '3s'}} />
+                        <div className="absolute w-2 h-2 bg-white/60 rounded-full bottom-3 right-6 animate-spin" style={{animationDuration: '4s', animationDirection: 'reverse'}} />
+                      </div>
+                    </div>
+                    <h3 className="text-3xl font-bold text-gray-900 mb-3">Resume Score</h3>
+                    <p className="text-gray-600 text-lg">Optimized for maximum impact!</p>
+                    
+                    {/* Achievement badges */}
+                    <div className="flex justify-center space-x-2 mt-6">
+                      <Badge className="bg-green-100 text-green-800 px-3 py-1 animate-bounce">🎯 ATS Ready</Badge>
+                      <Badge className="bg-blue-100 text-blue-800 px-3 py-1 animate-bounce animation-delay-300">🚀 Interview Ready</Badge>
+                      <Badge className="bg-purple-100 text-purple-800 px-3 py-1 animate-bounce animation-delay-600">💼 HR Approved</Badge>
+                    </div>
+                  </div>
+                  
+                  {/* Enhanced metrics */}
+                  <div className="space-y-8">
+                    {[
+                      { name: "Keyword Match", score: 96, color: "from-green-500 to-emerald-500", icon: "🎯" },
+                      { name: "ATS Compatibility", score: 94, color: "from-blue-500 to-cyan-500", icon: "🤖" },
+                      { name: "Skills Alignment", score: 92, color: "from-purple-500 to-pink-500", icon: "⚡" },
+                      { name: "Experience Match", score: 89, color: "from-orange-500 to-red-500", icon: "📈" }
+                    ].map((metric, index) => (
+                      <div key={index} className="space-y-3 group">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-xl group-hover:scale-110 transition-transform duration-300">{metric.icon}</span>
+                            <span className="text-base font-semibold text-gray-700 group-hover:text-gray-900 transition-colors duration-300">{metric.name}</span>
+                          </div>
+                          <span className="text-lg font-bold text-gray-900 group-hover:scale-110 transition-transform duration-300">{metric.score}%</span>
+                        </div>
+                        <div className="relative w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
+                          <div 
+                            className={`absolute inset-0 bg-gradient-to-r ${metric.color} h-4 rounded-full transition-all duration-2000 ease-out transform origin-left scale-x-0 animate-scale-in`}
+                            style={{ 
+                              width: `${metric.score}%`,
+                              animationDelay: `${index * 200}ms`,
+                              animationFillMode: 'forwards'
+                            }}
+                          />
+                          {/* Shine effect */}
+                          <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent h-4 rounded-full translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* AI Insights preview */}
+                  <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-100/50">
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-bold">AI</span>
+                      </div>
+                      <span className="font-semibold text-gray-800">Latest AI Insight</span>
+                    </div>
+                    <p className="text-sm text-gray-600 italic">"Add 3 more technical skills to increase ATS compatibility by 12%"</p>
+                  </div>
+                </Card>
+              </div>
+            </div>
           </div>
         </div>
 
