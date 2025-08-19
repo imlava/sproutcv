@@ -255,15 +255,29 @@ const Hero = () => {
         </div>
 
         {/* Pricing Section */}
-        <div id="pricing" className="mb-20">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Pay only for what you need. No subscriptions, no hidden fees. 
-              Start free and scale as you grow your career.
-            </p>
+        <div id="pricing" className="mb-20 relative overflow-hidden">
+          {/* Background Elements */}
+          <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 via-transparent to-emerald-50/30 pointer-events-none" />
+          <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-gradient-to-br from-green-200/20 to-emerald-200/20 rounded-full blur-3xl animate-pulse" />
+          
+          <div className="relative">
+            <div className="text-center mb-16">
+              <div className="inline-block mb-6">
+                <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 hover:from-green-200 hover:to-emerald-200 px-6 py-2 text-sm font-semibold border-0 shadow-lg">
+                  💰 Affordable Excellence
+                </Badge>
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
+                Simple, Transparent
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
+                  Pricing
+                </span>
+              </h2>
+              <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+                Pay only for what you need. No subscriptions, no hidden fees. 
+                <span className="font-semibold text-green-700"> Start free and scale</span> as you grow your career.
+              </p>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
@@ -327,46 +341,84 @@ const Hero = () => {
                 cta: "Contact Us"
               }
             ].map((plan, index) => (
-              <Card key={index} className={`p-8 text-center relative ${
-                plan.popular 
-                  ? 'border-2 border-green-500 shadow-2xl scale-105 bg-gradient-to-br from-white to-green-50' 
-                  : 'border border-gray-200 shadow-lg hover:shadow-xl'
-              } transition-all duration-200`}>
+              <div key={index} className="relative group">
+                {/* Floating decoration for popular plan */}
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white">
-                    Most Popular
-                  </Badge>
+                  <div className="absolute -top-6 -left-6 w-20 h-20 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full animate-bounce" />
                 )}
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                <div className="mb-2">
-                  <div className="text-4xl font-black text-gray-900">{plan.price}</div>
-                  {plan.originalPrice && (
-                    <div className="text-lg text-gray-500 line-through">{plan.originalPrice}</div>
-                  )}
-                  {plan.originalPrice && (
-                    <div className="text-sm text-green-600 font-semibold">20% Launch Discount</div>
-                  )}
-                </div>
-                <p className="text-gray-600 mb-6">{plan.description}</p>
-                <ul className="space-y-3 text-sm text-gray-600 mb-8 text-left">
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-green-500 mr-3 flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Button 
-                  className={`w-full ${
-                    plan.popular 
-                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg' 
-                      : 'bg-white border-2 border-gray-200 text-gray-900 hover:border-green-300 hover:bg-green-50'
-                  } transition-all duration-200`}
-                  onClick={() => navigate('/auth')}
-                >
-                  {plan.cta}
-                </Button>
-              </Card>
+                
+                <Card className={`relative p-8 text-center ${
+                  plan.popular 
+                    ? 'bg-gradient-to-br from-white via-green-50/50 to-emerald-50/80 shadow-2xl border-2 border-green-500 transform scale-105 hover:scale-110' 
+                    : 'bg-white/70 backdrop-blur-sm shadow-lg hover:shadow-2xl border border-white/50 hover:border-green-200'
+                } transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden`}>
+                  
+                  {/* Background gradient on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 to-emerald-50/30 opacity-0 group-hover:opacity-100 rounded-3xl transition-opacity duration-500" />
+                  
+                  {/* Animated border glow */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 opacity-0 group-hover:opacity-20 rounded-3xl blur-xl transition-opacity duration-500" />
+                  
+                  <div className="relative">
+                    {plan.popular && (
+                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                        <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg animate-pulse px-4 py-2">
+                          ⭐ Most Popular
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    <div className="pt-4 mb-6">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-gray-800 transition-colors duration-300">{plan.name}</h3>
+                      <div className="mb-2">
+                        <div className={`text-4xl font-black mb-1 ${
+                          plan.popular 
+                            ? 'text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600' 
+                            : 'text-gray-900 group-hover:text-green-700'
+                        } transition-colors duration-300`}>
+                          {plan.price}
+                        </div>
+                        {plan.originalPrice && (
+                          <div className="text-lg text-gray-500 line-through">{plan.originalPrice}</div>
+                        )}
+                        {plan.originalPrice && (
+                          <div className="text-sm text-green-600 font-semibold animate-pulse">🎉 20% Launch Discount</div>
+                        )}
+                      </div>
+                      <p className="text-gray-600 group-hover:text-gray-700 transition-colors duration-300">{plan.description}</p>
+                    </div>
+                    
+                    <ul className="space-y-4 text-sm text-gray-600 mb-8 text-left">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-center group-hover:text-gray-700 transition-colors duration-300">
+                          <div className="relative mr-3 flex-shrink-0">
+                            <CheckCircle className="h-5 w-5 text-green-500 group-hover:text-green-600 transition-colors duration-300" />
+                            <div className="absolute inset-0 bg-green-400 rounded-full opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-300" />
+                          </div>
+                          <span className="font-medium">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <Button 
+                      className={`w-full relative overflow-hidden ${
+                        plan.popular 
+                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105' 
+                          : 'bg-white border-2 border-green-200 text-gray-900 hover:border-green-400 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-700'
+                      } transition-all duration-300 py-4 font-semibold`}
+                      onClick={() => navigate('/auth')}
+                    >
+                      <span className="relative z-10">{plan.cta}</span>
+                      {/* Shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+                    </Button>
+                  </div>
+                  
+                  {/* Floating particles effect */}
+                  <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
+                  <div className="absolute bottom-6 left-6 w-1 h-1 bg-gradient-to-r from-emerald-400 to-green-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping animation-delay-500 transition-opacity duration-300" />
+                </Card>
+              </div>
             ))}
           </div>
         </div>
