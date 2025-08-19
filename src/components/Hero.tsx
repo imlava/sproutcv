@@ -93,17 +93,17 @@ const Hero = () => {
           <div className="relative">
             <div className="text-center mb-20">
               <div className="inline-block mb-6">
-                <Badge className="bg-gradient-to-r from-green-100 to-blue-100 text-green-800 hover:from-green-200 hover:to-blue-200 px-6 py-2 text-sm font-semibold border-0 shadow-lg">
+                <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 hover:from-green-200 hover:to-emerald-200 px-6 py-2 text-sm font-semibold border-0 shadow-lg">
                   ✨ Powered by Advanced AI
                 </Badge>
               </div>
-              <h2 className="text-5xl sm:text-7xl font-black text-gray-900 mb-8 leading-tight">
+              <h2 className="text-5xl sm:text-7xl font-black text-black mb-8 leading-tight">
                 AI-Powered
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-blue-600 to-purple-600">
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-500 via-green-600 to-emerald-600">
                   Resume Intelligence
                 </span>
               </h2>
-              <p className="text-xl sm:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              <p className="text-xl sm:text-2xl text-gray-800 max-w-4xl mx-auto leading-relaxed">
                 Our advanced AI analyzes your resume against job descriptions and provides 
                 <span className="font-semibold text-green-700"> actionable insights</span> to maximize your interview potential.
               </p>
