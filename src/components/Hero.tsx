@@ -342,16 +342,25 @@ const Hero = () => {
               }
             ].map((plan, index) => (
               <div key={index} className="relative group">
-                {/* Floating decoration for popular plan */}
-                {plan.popular && (
-                  <div className="absolute -top-6 -left-6 w-20 h-20 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full animate-bounce" />
-                )}
-                
-                <Card className={`relative p-8 text-center ${
+                <Card className={`relative text-center transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden ${
                   plan.popular 
-                    ? 'bg-gradient-to-br from-white via-green-50/50 to-emerald-50/80 shadow-2xl border-2 border-green-500 transform scale-105 hover:scale-110' 
-                    : 'bg-white/70 backdrop-blur-sm shadow-lg hover:shadow-2xl border border-white/50 hover:border-green-200'
-                } transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden`}>
+                    ? 'bg-gradient-to-br from-white via-green-50/50 to-emerald-50/80 shadow-2xl border-2 border-green-500 transform scale-105 hover:scale-110 pt-16 p-8' 
+                    : 'bg-white/70 backdrop-blur-sm shadow-lg hover:shadow-2xl border border-white/50 hover:border-green-200 p-8'
+                }`}>
+                  
+                  {/* Popular badge positioned properly */}
+                  {plan.popular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg px-4 py-2 text-sm font-semibold">
+                        ⭐ Most Popular
+                      </Badge>
+                    </div>
+                  )}
+                  
+                  {/* Floating decoration for popular plan - positioned to not overlap */}
+                  {plan.popular && (
+                    <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full animate-bounce" />
+                  )}
                   
                   {/* Background gradient on hover */}
                   <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 to-emerald-50/30 opacity-0 group-hover:opacity-100 rounded-3xl transition-opacity duration-500" />
@@ -360,14 +369,6 @@ const Hero = () => {
                   <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 opacity-0 group-hover:opacity-20 rounded-3xl blur-xl transition-opacity duration-500" />
                   
                   <div className="relative">
-                    {plan.popular && (
-                      <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                        <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg animate-pulse px-4 py-2">
-                          ⭐ Most Popular
-                        </Badge>
-                      </div>
-                    )}
-                    
                     <div className="pt-4 mb-6">
                       <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-gray-800 transition-colors duration-300">{plan.name}</h3>
                       <div className="mb-2">
