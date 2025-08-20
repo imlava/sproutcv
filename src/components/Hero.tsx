@@ -354,8 +354,8 @@ const Hero = () => {
                   
                   {/* Popular badge positioned properly */}
                   {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                      <Badge className="bg-green-600 text-white shadow-sm px-3 py-1 text-xs font-medium rounded-full border border-green-700/20">
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
+                      <Badge className="bg-green-700 text-white shadow-md px-4 py-2 text-sm font-semibold rounded-full border border-white/10">
                         Most Popular
                       </Badge>
                     </div>
