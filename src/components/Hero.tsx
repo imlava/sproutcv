@@ -99,7 +99,7 @@ const Hero = () => {
               </div>
               <h2 className="text-5xl sm:text-7xl font-black text-black mb-8 leading-tight">
                 AI-Powered
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-500 via-green-600 to-emerald-600">
+                <span className="block text-transparent bg-clip-text" style={{backgroundImage: 'linear-gradient(to right, rgb(22, 164, 74), rgb(5, 150, 105))'}}>
                   Resume Intelligence
                 </span>
               </h2>
@@ -280,7 +280,7 @@ const Hero = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {[
               {
                 name: "Free Trial",
@@ -289,8 +289,10 @@ const Hero = () => {
                 features: [
                   "1 Resume Analysis",
                   "Basic ATS Check",
-                  "Score Overview",
-                  "Email Support"
+                  "Score Overview", 
+                  "Email Support",
+                  "",
+                  ""
                 ],
                 popular: false,
                 cta: "Start Free"
@@ -305,7 +307,8 @@ const Hero = () => {
                   "Detailed Suggestions",
                   "ATS Optimization",
                   "PDF Export",
-                  "Priority Support"
+                  "Priority Support",
+                  ""
                 ],
                 popular: false,
                 cta: "Get Started"
@@ -335,22 +338,23 @@ const Hero = () => {
                   "Personal Career Coach",
                   "Custom Templates",
                   "Priority Review",
-                  "Dedicated Support"
+                  "Dedicated Support",
+                  ""
                 ],
                 popular: false,
                 cta: "Contact Us"
               }
             ].map((plan, index) => (
-              <div key={index} className="relative group">
-                <Card className={`relative text-center transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden ${
+              <div key={index} className="relative group h-full">
+                <Card className={`relative h-full flex flex-col text-center transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden ${
                   plan.popular 
-                    ? 'bg-gradient-to-br from-white via-green-50/50 to-emerald-50/80 shadow-2xl border-2 border-green-500 transform scale-105 hover:scale-110 pt-16 p-8' 
-                    : 'bg-white/70 backdrop-blur-sm shadow-lg hover:shadow-2xl border border-white/50 hover:border-green-200 p-8'
+                    ? 'bg-gradient-to-br from-white via-green-50/50 to-emerald-50/80 shadow-2xl border-2 border-green-500 transform scale-105 hover:scale-110' 
+                    : 'bg-white/70 backdrop-blur-sm shadow-lg hover:shadow-2xl border border-white/50 hover:border-green-200'
                 }`}>
                   
                   {/* Popular badge positioned properly */}
                   {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-10">
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
                       <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg px-4 py-2 text-sm font-semibold">
                         ⭐ Most Popular
                       </Badge>
@@ -368,10 +372,11 @@ const Hero = () => {
                   {/* Animated border glow */}
                   <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 opacity-0 group-hover:opacity-20 rounded-3xl blur-xl transition-opacity duration-500" />
                   
-                  <div className="relative">
-                    <div className="pt-4 mb-6">
+                  <div className={`relative flex flex-col h-full ${plan.popular ? 'pt-12 p-8' : 'p-8'}`}>
+                    {/* Header Section - Fixed Height */}
+                    <div className="pt-4 mb-6 min-h-[140px] flex flex-col justify-start">
                       <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-gray-800 transition-colors duration-300">{plan.name}</h3>
-                      <div className="mb-2">
+                      <div className="mb-3">
                         <div className={`text-4xl font-black mb-1 ${
                           plan.popular 
                             ? 'text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600' 
@@ -389,30 +394,40 @@ const Hero = () => {
                       <p className="text-gray-600 group-hover:text-gray-700 transition-colors duration-300">{plan.description}</p>
                     </div>
                     
-                    <ul className="space-y-4 text-sm text-gray-600 mb-8 text-left">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-center group-hover:text-gray-700 transition-colors duration-300">
-                          <div className="relative mr-3 flex-shrink-0">
-                            <CheckCircle className="h-5 w-5 text-green-500 group-hover:text-green-600 transition-colors duration-300" />
-                            <div className="absolute inset-0 bg-green-400 rounded-full opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-300" />
-                          </div>
-                          <span className="font-medium">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {/* Features Section - Flexible Height */}
+                    <div className="flex-1 mb-8">
+                      <ul className="space-y-4 text-sm text-gray-600 text-left h-full">
+                        {plan.features.map((feature, idx) => (
+                          feature ? (
+                            <li key={idx} className="flex items-center group-hover:text-gray-700 transition-colors duration-300">
+                              <div className="relative mr-3 flex-shrink-0">
+                                <CheckCircle className="h-5 w-5 text-green-500 group-hover:text-green-600 transition-colors duration-300" />
+                                <div className="absolute inset-0 bg-green-400 rounded-full opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-300" />
+                              </div>
+                              <span className="font-medium">{feature}</span>
+                            </li>
+                          ) : (
+                            <li key={idx} className="h-6"></li>
+                          )
+                        ))}
+                      </ul>
+                    </div>
                     
-                    <Button 
-                      className={`w-full relative overflow-hidden ${
-                        plan.popular 
-                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105' 
-                          : 'bg-white border-2 border-green-200 text-gray-900 hover:border-green-400 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-700'
-                      } transition-all duration-300 py-4 font-semibold`}
-                      onClick={() => navigate('/auth')}
-                    >
-                      <span className="relative z-10">{plan.cta}</span>
-                      {/* Shimmer effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
-                    </Button>
+                    {/* CTA Button - Fixed at Bottom */}
+                    <div className="mt-auto">
+                      <Button 
+                        className={`w-full relative overflow-hidden ${
+                          plan.popular 
+                            ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105' 
+                            : 'bg-white border-2 border-green-200 text-gray-900 hover:border-green-400 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-700'
+                        } transition-all duration-300 py-4 font-semibold`}
+                        onClick={() => navigate('/auth')}
+                      >
+                        <span className="relative z-10">{plan.cta}</span>
+                        {/* Shimmer effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+                      </Button>
+                    </div>
                   </div>
                   
                   {/* Floating particles effect */}
