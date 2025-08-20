@@ -298,7 +298,7 @@ const Hero = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
             {[
               {
                 name: "Free Trial",
@@ -308,9 +308,7 @@ const Hero = () => {
                   "1 Resume Analysis",
                   "Basic ATS Check",
                   "Score Overview", 
-                  "Email Support",
-                  "",
-                  ""
+                  "Email Support"
                 ],
                 popular: false,
                 cta: "Start Free"
@@ -325,8 +323,7 @@ const Hero = () => {
                   "Detailed Suggestions",
                   "ATS Optimization",
                   "PDF Export",
-                  "Priority Support",
-                  ""
+                  "Priority Support"
                 ],
                 popular: false,
                 cta: "Get Started"
@@ -356,77 +353,69 @@ const Hero = () => {
                   "Personal Career Coach",
                   "Custom Templates",
                   "Priority Review",
-                  "Dedicated Support",
-                  ""
+                  "Dedicated Support"
                 ],
                 popular: false,
                 cta: "Contact Us"
               }
             ].map((plan, index) => (
               <div key={index} className="relative group h-full">
-                <Card className={`relative h-full flex flex-col text-center transition-all duration-500 hover:-translate-y-2 rounded-3xl overflow-hidden ${
+                {/* Popular badge - positioned outside card */}
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-30">
+                    <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-xl px-4 py-2 text-sm font-bold rounded-full border-2 border-white">
+                      Most Popular
+                    </Badge>
+                  </div>
+                )}
+                
+                <Card className={`relative h-full flex flex-col text-center transition-all duration-500 hover:-translate-y-3 rounded-2xl overflow-hidden border-2 ${
                   plan.popular 
-                    ? 'bg-gradient-to-br from-white via-green-50/50 to-emerald-50/80 shadow-2xl border-2 border-green-500 transform scale-105 hover:scale-110' 
-                    : 'bg-white/70 backdrop-blur-sm shadow-lg hover:shadow-2xl border border-white/50 hover:border-green-200'
+                    ? 'bg-gradient-to-br from-white via-green-50/80 to-emerald-50/90 shadow-2xl border-green-500 scale-105 hover:scale-110' 
+                    : 'bg-white/90 backdrop-blur-sm shadow-xl hover:shadow-2xl border-gray-200 hover:border-green-300'
                 }`}>
                   
-                  {/* Popular badge positioned properly */}
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20">
-                      <Badge className="bg-green-700 text-white shadow-md px-4 py-2 text-sm font-semibold rounded-full border border-white/10">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
+                  {/* Enhanced background effects */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-50/20 to-emerald-50/20 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 to-emerald-500/10 opacity-0 group-hover:opacity-100 rounded-2xl blur-xl transition-opacity duration-500" />
                   
-                  {/* Floating decoration for popular plan - positioned to not overlap */}
-                  {plan.popular && (
-                    <div className="absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-green-400/20 to-emerald-400/20 rounded-full animate-bounce" />
-                  )}
-                  
-                  {/* Background gradient on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 to-emerald-50/30 opacity-0 group-hover:opacity-100 rounded-3xl transition-opacity duration-500" />
-                  
-                  {/* Animated border glow */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 opacity-0 group-hover:opacity-20 rounded-3xl blur-xl transition-opacity duration-500" />
-                  
-                  <div className={`relative flex flex-col h-full ${plan.popular ? 'pt-12 p-8' : 'p-8'}`}>
-                    {/* Header Section - Fixed Height */}
-                    <div className="pt-4 mb-6 min-h-[140px] flex flex-col justify-start">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-gray-800 transition-colors duration-300">{plan.name}</h3>
-                      <div className="mb-3">
-                        <div className={`text-4xl font-black mb-1 ${
-                          plan.popular 
-                            ? 'text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600' 
-                            : 'text-gray-900 group-hover:text-green-700'
-                        } transition-colors duration-300`}>
-                          {plan.price}
+                  <div className={`relative flex flex-col h-full ${plan.popular ? 'pt-10 p-8' : 'p-8'}`}>
+                    {/* Header Section - Consistent Height */}
+                    <div className="mb-8 min-h-[160px] flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-gray-800 transition-colors duration-300">{plan.name}</h3>
+                        <div className="mb-4">
+                          <div className={`text-5xl font-black mb-2 ${
+                            plan.popular 
+                              ? 'text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600' 
+                              : 'text-gray-900 group-hover:text-green-700'
+                          } transition-colors duration-300`}>
+                            {plan.price}
+                          </div>
+                          {plan.originalPrice && (
+                            <>
+                              <div className="text-lg text-gray-500 line-through mb-1">{plan.originalPrice}</div>
+                              <div className="text-sm text-green-600 font-semibold bg-green-100 px-3 py-1 rounded-full inline-block">
+                                🎉 20% Launch Discount
+                              </div>
+                            </>
+                          )}
                         </div>
-                        {plan.originalPrice && (
-                          <div className="text-lg text-gray-500 line-through">{plan.originalPrice}</div>
-                        )}
-                        {plan.originalPrice && (
-                          <div className="text-sm text-green-600 font-semibold animate-pulse">🎉 20% Launch Discount</div>
-                        )}
                       </div>
-                      <p className="text-gray-600 group-hover:text-gray-700 transition-colors duration-300">{plan.description}</p>
+                      <p className="text-gray-600 group-hover:text-gray-700 transition-colors duration-300 font-medium">{plan.description}</p>
                     </div>
                     
-                    {/* Features Section - Flexible Height */}
+                    {/* Features Section - Consistent Height */}
                     <div className="flex-1 mb-8">
-                      <ul className="space-y-4 text-sm text-gray-600 text-left h-full">
+                      <ul className="space-y-4 text-sm text-gray-600 text-left min-h-[240px]">
                         {plan.features.map((feature, idx) => (
-                          feature ? (
-                            <li key={idx} className="flex items-center group-hover:text-gray-700 transition-colors duration-300">
-                              <div className="relative mr-3 flex-shrink-0">
-                                <CheckCircle className="h-5 w-5 text-green-500 group-hover:text-green-600 transition-colors duration-300" />
-                                <div className="absolute inset-0 bg-green-400 rounded-full opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-300" />
-                              </div>
-                              <span className="font-medium">{feature}</span>
-                            </li>
-                          ) : (
-                            <li key={idx} className="h-6"></li>
-                          )
+                          <li key={idx} className="flex items-center group-hover:text-gray-700 transition-colors duration-300">
+                            <div className="relative mr-3 flex-shrink-0">
+                              <CheckCircle className="h-5 w-5 text-green-500 group-hover:text-green-600 transition-colors duration-300" />
+                              <div className="absolute inset-0 bg-green-400 rounded-full opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-300" />
+                            </div>
+                            <span className="font-medium">{feature}</span>
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -434,23 +423,23 @@ const Hero = () => {
                     {/* CTA Button - Fixed at Bottom */}
                     <div className="mt-auto">
                       <Button 
-                        className={`w-full relative overflow-hidden ${
+                        className={`w-full relative overflow-hidden group/btn ${
                           plan.popular 
                             ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-xl hover:shadow-2xl transform hover:scale-105' 
                             : 'bg-white border-2 border-green-200 text-gray-900 hover:border-green-400 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-700'
-                        } transition-all duration-300 py-4 font-semibold`}
+                        } transition-all duration-300 py-4 font-semibold text-lg rounded-xl`}
                         onClick={() => navigate('/auth')}
                       >
                         <span className="relative z-10">{plan.cta}</span>
-                        {/* Shimmer effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+                        {/* Enhanced shimmer effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
                       </Button>
                     </div>
                   </div>
                   
-                  {/* Floating particles effect */}
-                  <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
-                  <div className="absolute bottom-6 left-6 w-1 h-1 bg-gradient-to-r from-emerald-400 to-green-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping animation-delay-500 transition-opacity duration-300" />
+                  {/* Enhanced floating particles */}
+                  <div className="absolute top-6 right-6 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
+                  <div className="absolute bottom-8 left-6 w-2 h-2 bg-gradient-to-r from-emerald-400 to-green-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping animation-delay-700 transition-opacity duration-300" />
                 </Card>
               </div>
             ))}
