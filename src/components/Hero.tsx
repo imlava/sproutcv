@@ -254,29 +254,47 @@ const Hero = () => {
           </div>
         </div>
 
-        {/* Pricing Section */}
+        {/* Enhanced Pricing Section */}
         <div id="pricing" className="mb-20 relative overflow-hidden">
           {/* Background Elements */}
           <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 via-transparent to-emerald-50/30 pointer-events-none" />
           <div className="absolute top-1/4 right-1/3 w-96 h-96 bg-gradient-to-br from-green-200/20 to-emerald-200/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-gradient-to-br from-emerald-200/15 to-green-200/15 rounded-full blur-2xl animate-pulse animation-delay-2000" />
           
           <div className="relative">
-            <div className="text-center mb-16">
-              <div className="inline-block mb-6">
-                <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 hover:from-green-200 hover:to-emerald-200 px-6 py-2 text-sm font-semibold border-0 shadow-lg">
+            {/* Enhanced Header */}
+            <div className="text-center mb-20">
+              <div className="inline-block mb-8">
+                <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 hover:from-green-200 hover:to-emerald-200 px-8 py-3 text-base font-semibold border-0 shadow-xl rounded-full">
                   💰 Affordable Excellence
                 </Badge>
               </div>
-              <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
+              <h2 className="text-5xl sm:text-6xl font-black text-gray-900 mb-8 leading-tight">
                 Simple, Transparent
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600 mt-2">
                   Pricing
                 </span>
               </h2>
-              <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              <p className="text-xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed">
                 Pay only for what you need. No subscriptions, no hidden fees. 
                 <span className="font-semibold text-green-700"> Start free and scale</span> as you grow your career.
               </p>
+              
+              {/* Pricing Benefits */}
+              <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-gray-600">
+                <div className="flex items-center bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-green-100">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  No Hidden Fees
+                </div>
+                <div className="flex items-center bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-green-100">
+                  <Shield className="h-5 w-5 text-green-500 mr-2" />
+                  Secure Payments
+                </div>
+                <div className="flex items-center bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg border border-green-100">
+                  <Clock className="h-5 w-5 text-green-500 mr-2" />
+                  Instant Access
+                </div>
+              </div>
             </div>
           </div>
           
