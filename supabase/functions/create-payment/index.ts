@@ -79,34 +79,54 @@ serve(async (req) => {
 
     console.log("Dodo Payments API key found, proceeding with payment creation");
 
-    // Create payment with Dodo Payments API
-    const paymentData = {
-      amount: amount, // Amount in cents
-      currency: "USD",
-      customer: {
-        email: profile.email || user.email,
-        name: profile?.full_name || user.email?.split('@')[0] || "Customer"
-      },
-      metadata: {
-        user_id: user.id,
-        credits: credits.toString(),
-        source: "web_app",
-        product: "resume_credits"
-      },
-      success_url: `${domain}/payments?payment_id={payment_id}&status=success&amount=${amount}&credits=${credits}`,
-      cancel_url: `${domain}/payments?payment_id={payment_id}&status=cancelled`,
-      // Webhooks should call Supabase Functions URL, not the app domain
-      webhook_url: `${functionsBaseUrl}/payments-webhook`,
-      description: `${credits} Resume Analysis Credits`,
-      expires_in: 3600 // 1 hour
-    };
-
-    console.log("Creating Dodo payment with data:", { ...paymentData, webhook_url: "[redacted]" });
-
     try {
-      // Make API call to Dodo Payments (support sandbox when test_mode is true)
-      const dodoBase = test_mode ? "https://sandbox.api.dodopayments.com" : "https://api.dodopayments.com";
-      const dodoResponse = await fetch(`${dodoBase}/v1/payments`, {
+      // Use the correct Dodo Payments API endpoints
+      const dodoBaseUrl = test_mode ? 'https://test.dodopayments.com' : 'https://live.dodopayments.com';
+
+      console.log("Creating payment with params:", {
+        credits,
+        amount,
+        customer: profile.email || user.email,
+        name: profile?.full_name || user.email?.split('@')[0] || "Customer",
+        baseUrl: dodoBaseUrl
+      });
+
+      // Create payment data matching Dodo API spec
+      const paymentData = {
+        payment_link: true,
+        customer: {
+          email: profile.email || user.email,
+          name: profile?.full_name || user.email?.split('@')[0] || "Customer"
+        },
+        product_cart: [
+          {
+            product_id: "resume_credits", // This must exist in Dodo dashboard
+            quantity: 1 // Always 1, since each product represents the credit amount
+          }
+        ],
+        billing: {
+          city: "Unknown",
+          country: "US", 
+          state: "Unknown",
+          street: "Unknown",
+          zipcode: 12345
+        },
+        success_url: `${domain}/payments?payment_id={payment_id}&status=success&amount=${amount}&credits=${credits}`,
+        cancel_url: `${domain}/payments?payment_id={payment_id}&status=cancelled`,
+        webhook_url: `${functionsBaseUrl}/payments-webhook`,
+        metadata: {
+          user_id: user.id,
+          credits: credits.toString(),
+          source: "web_app",
+          product: "resume_credits",
+          amount: amount.toString()
+        }
+      };
+
+      console.log("Making API call to:", `${dodoBaseUrl}/api/v1/payments`);
+
+      // Make API call with clean headers
+      const response = await fetch(`${dodoBaseUrl}/api/v1/payments`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${dodoApiKey}`,
@@ -115,17 +135,21 @@ serve(async (req) => {
         body: JSON.stringify(paymentData)
       });
 
-      if (!dodoResponse.ok) {
-        const errorData = await dodoResponse.text();
-        console.error("Dodo API error:", dodoResponse.status, errorData);
-        throw new Error(`Payment creation failed: ${dodoResponse.status} - ${errorData}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Dodo API response error:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Dodo API error ${response.status}: ${errorText}`);
       }
 
-      const dodoPayment = await dodoResponse.json();
-      console.log("Dodo payment created:", dodoPayment);
+      const payment = await response.json();
+      console.log("Dodo payment created:", payment);
 
-      const paymentId = dodoPayment.id;
-      const paymentUrl = dodoPayment.payment_url || dodoPayment.checkout_url || dodoPayment.url;
+      const paymentId = payment.payment_id || payment.id;
+      const paymentUrl = payment.payment_url || payment.url;
 
       if (!paymentId || !paymentUrl) {
         throw new Error("Invalid response from Dodo Payments - missing payment ID or URL");
@@ -145,7 +169,7 @@ serve(async (req) => {
           status: "pending",
           payment_method: "dodo_payments",
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          payment_data: dodoPayment
+          payment_data: payment
         })
         .select()
         .single();

@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.payments-webhook]
 verify_jwt = false
+
+[functions.test-dodo-payments]
+verify_jwt = false
