@@ -14,6 +14,61 @@ interface ContactRequest {
   message: string;
 }
 
+// HTML sanitization function
+function sanitizeHtml(input: string): string {
+  return input
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+}
+
+// Input validation function
+function validateInput(data: ContactRequest): string | null {
+  const { name, email, subject, message } = data;
+
+  if (!name || !email || !subject || !message) {
+    return 'All fields are required';
+  }
+
+  if (name.length > 100) {
+    return 'Name must be 100 characters or less';
+  }
+
+  if (subject.length > 200) {
+    return 'Subject must be 200 characters or less';
+  }
+
+  if (message.length > 5000) {
+    return 'Message must be 5000 characters or less';
+  }
+
+  // Email validation
+  const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    return 'Please enter a valid email address';
+  }
+
+  return null;
+}
+
+// Get client IP address
+function getClientIP(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  const realIP = req.headers.get('x-real-ip');
+  
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  
+  if (realIP) {
+    return realIP;
+  }
+  
+  return '127.0.0.1'; // fallback
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -26,12 +81,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { name, email, subject, message }: ContactRequest = await req.json();
+    const requestData: ContactRequest = await req.json();
 
     // Validate input
-    if (!name || !email || !subject || !message) {
+    const validationError = validateInput(requestData);
+    if (validationError) {
       return new Response(
-        JSON.stringify({ error: 'All fields are required' }),
+        JSON.stringify({ error: validationError }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -39,14 +95,38 @@ serve(async (req) => {
       );
     }
 
+    // Get client IP for rate limiting
+    const clientIP = getClientIP(req);
+    
+    // Check rate limit
+    const { data: rateLimitCheck, error: rateLimitError } = await supabaseClient
+      .rpc('check_contact_rate_limit', { client_ip: clientIP });
+
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
+    } else if (!rateLimitCheck) {
+      return new Response(
+        JSON.stringify({ error: 'Too many submissions. Please try again later.' }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Sanitize inputs
+    const sanitizedData = {
+      name: sanitizeHtml(requestData.name.trim()),
+      email: requestData.email.toLowerCase().trim(),
+      subject: sanitizeHtml(requestData.subject.trim()),
+      message: sanitizeHtml(requestData.message.trim())
+    };
+
     // Insert contact message into database
     const { data, error } = await supabaseClient
       .from('contact_messages')
       .insert({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        subject: subject.trim(),
-        message: message.trim(),
+        ...sanitizedData,
         status: 'unread'
       })
       .select()
@@ -63,7 +143,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Contact message saved:', data.id);
+    console.log(`Contact form submitted by ${sanitizedData.email} from IP ${clientIP}. Message ID: ${data.id}`);
 
     return new Response(
       JSON.stringify({ 

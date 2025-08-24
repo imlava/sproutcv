@@ -270,6 +270,19 @@ const MasterAdminDashboard = () => {
     if (!selectedUser || !creditAmount) return;
 
     try {
+      // Validate admin action first
+      const { error: validationError } = await supabase.rpc('validate_admin_action', {
+        action_type: 'credit_modification',
+        target_user_id: selectedUser.id,
+        action_details: {
+          credits_added: parseInt(creditAmount),
+          admin_note: adminNote
+        }
+      });
+
+      if (validationError) throw validationError;
+
+      // Proceed with adding credits
       const { error } = await supabase.rpc('admin_add_credits', {
         target_user_id: selectedUser.id,
         credits_to_add: parseInt(creditAmount),
@@ -292,13 +305,26 @@ const MasterAdminDashboard = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add credits"
+        description: error.message || "Failed to add credits"
       });
     }
   };
 
   const handleRefundPayment = async (paymentId: string, amount: number) => {
     try {
+      // Validate admin action first
+      const { error: validationError } = await supabase.rpc('validate_admin_action', {
+        action_type: 'payment_refund',
+        target_user_id: null,
+        action_details: {
+          payment_id: paymentId,
+          refund_amount: amount
+        }
+      });
+
+      if (validationError) throw validationError;
+
+      // Proceed with refund
       const { error } = await supabase.rpc('process_payment_refund', {
         payment_id: paymentId,
         refund_amount: amount,
@@ -318,7 +344,7 @@ const MasterAdminDashboard = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process refund"
+        description: error.message || "Failed to process refund"
       });
     }
   };

@@ -17,21 +17,72 @@ const ContactUs = () => {
     message: ''
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Client-side validation
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      toast.error('Name is required');
+      return false;
+    }
+    if (formData.name.length > 100) {
+      toast.error('Name must be 100 characters or less');
+      return false;
+    }
+    if (!formData.email.trim()) {
+      toast.error('Email is required');
+      return false;
+    }
+    if (!formData.subject.trim()) {
+      toast.error('Subject is required');
+      return false;
+    }
+    if (formData.subject.length > 200) {
+      toast.error('Subject must be 200 characters or less');
+      return false;
+    }
+    if (!formData.message.trim()) {
+      toast.error('Message is required');
+      return false;
+    }
+    if (formData.message.length > 5000) {
+      toast.error('Message must be 5000 characters or less');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
     
     try {
       const { data, error } = await supabase.functions.invoke('contact-support', {
         body: formData
       });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message || 'Failed to send message');
+      }
 
       toast.success('Message sent successfully! We\'ll get back to you soon.');
       setFormData({ name: '', email: '', subject: '', message: '' });
     } catch (error: any) {
       console.error('Contact form error:', error);
-      toast.error('Failed to send message. Please try again.');
+      
+      // Handle specific error messages from the server
+      if (error.message?.includes('Too many submissions')) {
+        toast.error('Too many submissions. Please try again later.');
+      } else if (error.message?.includes('characters or less')) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to send message. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -79,8 +130,12 @@ const ContactUs = () => {
                         required
                         value={formData.name}
                         onChange={handleChange}
+                        maxLength={100}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
+                      <div className="text-xs text-gray-500 mt-1">
+                        {formData.name.length}/100 characters
+                      </div>
                     </div>
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -117,6 +172,9 @@ const ContactUs = () => {
                       <option value="feature">Feature Request</option>
                       <option value="bug">Bug Report</option>
                     </select>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formData.subject.length}/200 characters
+                    </div>
                   </div>
                   
                   <div>
@@ -130,14 +188,22 @@ const ContactUs = () => {
                       required
                       value={formData.message}
                       onChange={handleChange}
+                      maxLength={5000}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="Tell us how we can help you..."
                     />
+                    <div className="text-xs text-gray-500 mt-1">
+                      {formData.message.length}/5000 characters
+                    </div>
                   </div>
                   
-                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    disabled={isSubmitting}
+                  >
                     <Send className="h-4 w-4 mr-2" />
-                    Send Message
+                    {isSubmitting ? 'Sending...' : 'Send Message'}
                   </Button>
                 </form>
               </Card>

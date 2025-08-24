@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action_details: Json | null
+          action_type: string
+          admin_user_id: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          severity: string | null
+          target_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_details?: Json | null
+          action_type: string
+          admin_user_id: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          severity?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_details?: Json | null
+          action_type?: string
+          admin_user_id?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          severity?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           admin_notes: string | null
@@ -53,6 +89,39 @@ export type Database = {
           status?: string | null
           subject?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      contact_rate_limits: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: unknown
+          is_blocked: boolean | null
+          last_submission: string | null
+          submission_count: number | null
+          updated_at: string | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address: unknown
+          is_blocked?: boolean | null
+          last_submission?: string | null
+          submission_count?: number | null
+          updated_at?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          is_blocked?: boolean | null
+          last_submission?: string | null
+          submission_count?: number | null
+          updated_at?: string | null
+          window_start?: string | null
         }
         Relationships: []
       }
@@ -698,6 +767,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_contact_rate_limit: {
+        Args: { client_ip: unknown }
+        Returns: boolean
+      }
       consume_analysis_credit: {
         Args: { analysis_id: string; target_user_id: string }
         Returns: boolean
@@ -741,6 +814,14 @@ export type Database = {
           related_payment_id?: string
           target_user_id: string
           transaction_type: string
+        }
+        Returns: boolean
+      }
+      validate_admin_action: {
+        Args: {
+          action_details?: Json
+          action_type: string
+          target_user_id?: string
         }
         Returns: boolean
       }
