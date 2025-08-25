@@ -33,16 +33,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Use secure profile access function
+      const { data, error } = await supabase.rpc('get_user_profile_safe', {
+        target_user_id: userId
+      });
       
-      if (data && !error) {
-        setUserProfile(data);
+      if (data && !error && data.length > 0) {
+        setUserProfile(data[0]);
       } else if (error) {
         console.error('Error fetching user profile:', error);
+        // Fallback to direct access for backward compatibility
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, phone, credits, status, subscription_tier, created_at, last_login, two_factor_enabled, email_verified, is_active')
+          .eq('id', userId)
+          .single();
+        
+        if (fallbackData && !fallbackError) {
+          setUserProfile(fallbackData);
+        }
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);

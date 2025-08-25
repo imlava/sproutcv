@@ -612,6 +612,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_auth_secrets: {
+        Row: {
+          backup_codes_encrypted: string[] | null
+          created_at: string | null
+          encryption_key_id: string | null
+          id: string
+          two_factor_secret_encrypted: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          backup_codes_encrypted?: string[] | null
+          created_at?: string | null
+          encryption_key_id?: string | null
+          id?: string
+          two_factor_secret_encrypted?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          backup_codes_encrypted?: string[] | null
+          created_at?: string | null
+          encryption_key_id?: string | null
+          id?: string
+          two_factor_secret_encrypted?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -779,6 +809,23 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_profile_safe: {
+        Args: { target_user_id?: string }
+        Returns: {
+          created_at: string
+          credits: number
+          email: string
+          email_verified: boolean
+          full_name: string
+          id: string
+          is_active: boolean
+          last_login: string
+          phone: string
+          status: string
+          subscription_tier: string
+          two_factor_enabled: boolean
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -806,6 +853,10 @@ export type Database = {
         Args: { admin_notes?: string; message_id: string; new_status: string }
         Returns: boolean
       }
+      update_phone_number: {
+        Args: { new_phone: string; verification_code: string }
+        Returns: boolean
+      }
       update_user_credits: {
         Args: {
           credit_change: number
@@ -815,6 +866,10 @@ export type Database = {
           target_user_id: string
           transaction_type: string
         }
+        Returns: boolean
+      }
+      update_user_security_preferences: {
+        Args: { new_preferences: Json; verification_token?: string }
         Returns: boolean
       }
       validate_admin_action: {
