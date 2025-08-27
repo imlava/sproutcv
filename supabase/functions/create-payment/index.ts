@@ -125,11 +125,11 @@ serve(async (req) => {
 
       console.log("Making API call to:", `${dodoBaseUrl}/api/v1/payments`);
 
-      // Make API call with clean headers
+      // Make API call with properly stringified headers
       const response = await fetch(`${dodoBaseUrl}/api/v1/payments`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${dodoApiKey}`,
+          "Authorization": `Bearer ${String(dodoApiKey)}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify(paymentData)
