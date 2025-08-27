@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.test-dodo-payments]
 verify_jwt = false
+
+[functions.verify-dodo-config]
+verify_jwt = false

@@ -101,12 +101,27 @@ if (!profileData) {
     console.log("Dodo Payments API key found, proceeding with payment creation");
 
     try {
-      // Use the correct Dodo Payments API endpoints
-      const dodoBaseUrl = test_mode ? 'https://test.dodopayments.com' : 'https://live.dodopayments.com';
+      // Use the correct Dodo Payments API base URL
+      const dodoBaseUrl = test_mode ? 'https://api.dodopayments.com' : 'https://api.dodopayments.com';
+
+      // Get product ID from secrets based on credits
+      let productId = 'resume_credits'; // fallback
+      try {
+        if (credits === 5) {
+          productId = Deno.env.get("DODO_PRODUCT_ID_5_CREDITS") || 'resume_credits_5';
+        } else if (credits === 15) {
+          productId = Deno.env.get("DODO_PRODUCT_ID_15_CREDITS") || 'resume_credits_15';
+        } else if (credits === 30) {
+          productId = Deno.env.get("DODO_PRODUCT_ID_30_CREDITS") || 'resume_credits_30';
+        }
+      } catch (error) {
+        console.warn("Could not get product ID from secrets, using fallback:", error);
+      }
 
       console.log("Creating payment with params:", {
         credits,
         amount,
+        productId,
         customer: profile.email || user.email,
         name: profile?.full_name || user.email?.split('@')[0] || "Customer",
         baseUrl: dodoBaseUrl
@@ -114,23 +129,15 @@ if (!profileData) {
 
       // Create payment data matching Dodo API spec
       const paymentData = {
-        payment_link: true,
+        product_cart: [
+          {
+            product_id: productId,
+            quantity: 1
+          }
+        ],
         customer: {
           email: profile.email || user.email,
           name: profile?.full_name || user.email?.split('@')[0] || "Customer"
-        },
-        product_cart: [
-          {
-            product_id: "resume_credits", // This must exist in Dodo dashboard
-            quantity: 1 // Always 1, since each product represents the credit amount
-          }
-        ],
-        billing: {
-          city: "Unknown",
-          country: "US", 
-          state: "Unknown",
-          street: "Unknown",
-          zipcode: 12345
         },
         success_url: `${domain}/payments?payment_id={payment_id}&status=success&amount=${amount}&credits=${credits}`,
         cancel_url: `${domain}/payments?payment_id={payment_id}&status=cancelled`,
@@ -139,18 +146,18 @@ if (!profileData) {
           user_id: user.id,
           credits: credits.toString(),
           source: "web_app",
-          product: "resume_credits",
           amount: amount.toString()
         }
       };
 
-      console.log("Making API call to:", `${dodoBaseUrl}/api/v1/payments`);
+      console.log("Making API call to:", `${dodoBaseUrl}/v1/checkout_sessions`);
+      console.log("Payload:", JSON.stringify(paymentData, null, 2));
 
       // Make API call with properly stringified headers
-      const response = await fetch(`${dodoBaseUrl}/api/v1/payments`, {
+      const response = await fetch(`${dodoBaseUrl}/v1/checkout_sessions`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${String(dodoApiKey)}`,
+          "Authorization": `Bearer ${dodoApiKey}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify(paymentData)
@@ -161,16 +168,18 @@ if (!profileData) {
         console.error("Dodo API response error:", {
           status: response.status,
           statusText: response.statusText,
-          body: errorText
+          headers: Object.fromEntries(response.headers.entries()),
+          body: errorText,
+          requestBody: JSON.stringify(paymentData, null, 2)
         });
         throw new Error(`Dodo API error ${response.status}: ${errorText}`);
       }
 
       const payment = await response.json();
-      console.log("Dodo payment created:", payment);
+      console.log("Dodo payment created successfully:", payment);
 
-      const paymentId = payment.payment_id || payment.id;
-      const paymentUrl = payment.payment_url || payment.url;
+      const paymentId = payment.payment_id || payment.id || payment.checkout_session_id;
+      const paymentUrl = payment.payment_url || payment.url || payment.checkout_url;
 
       if (!paymentId || !paymentUrl) {
         throw new Error("Invalid response from Dodo Payments - missing payment ID or URL");
@@ -213,7 +222,16 @@ if (!profileData) {
       });
     } catch (error) {
       console.error("Dodo Payments API error:", error);
-      throw new Error(`Payment creation failed: ${error.message}`);
+      // Return more specific error message
+      if (error.message.includes('401')) {
+        throw new Error('Payment service authentication failed. Please check API configuration.');
+      } else if (error.message.includes('400')) {
+        throw new Error('Invalid payment request. Please check product configuration.');
+      } else if (error.message.includes('404')) {
+        throw new Error('Payment endpoint not found. Please check API configuration.');
+      } else {
+        throw new Error(`Payment creation failed: ${error.message}`);
+      }
     }
   } catch (error) {
     console.error("Payment creation error:", error);
