@@ -53,17 +53,38 @@ serve(async (req) => {
 
     const user = userData.user;
 
-    // Get user profile for customer details
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("full_name, email")
-      .eq("id", user.id)
-      .single();
+// Get user profile for customer details (create minimal if missing)
+let profile: { full_name: string | null; email: string | null } | null = null;
+const { data: profileData, error: profileError } = await supabaseAdmin
+  .from("profiles")
+  .select("full_name, email")
+  .eq("id", user.id)
+  .maybeSingle();
 
-    if (profileError) {
-      console.error("Profile fetch error:", profileError);
-      throw new Error("Failed to fetch user profile");
-    }
+if (profileError) {
+  console.warn("Profile fetch error, attempting to create minimal profile:", profileError);
+}
+
+if (!profileData) {
+  const minimalProfile = {
+    id: user.id,
+    email: user.email,
+    full_name: (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || (user.email ? user.email.split("@")[0] : null),
+  } as { id: string; email: string | null; full_name: string | null };
+
+  const { error: createProfileError } = await supabaseAdmin
+    .from("profiles")
+    .insert(minimalProfile);
+
+  if (createProfileError) {
+    console.error("Failed to auto-create profile:", createProfileError);
+  } else {
+    console.log("Auto-created minimal profile for user:", user.id);
+  }
+  profile = { full_name: minimalProfile.full_name, email: minimalProfile.email };
+} else {
+  profile = profileData as { full_name: string | null; email: string | null };
+}
 
     const domain = getDomain(req.headers.get("origin"));
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";

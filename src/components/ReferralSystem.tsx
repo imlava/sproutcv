@@ -26,12 +26,57 @@ const ReferralSystem = () => {
   const [emailToRefer, setEmailToRefer] = useState('');
   const [loading, setLoading] = useState(false);
   const [totalEarned, setTotalEarned] = useState(0);
+  const [referralCode, setReferralCode] = useState(userProfile?.referral_code || '');
 
-  useEffect(() => {
-    if (user) {
-      fetchReferrals();
+useEffect(() => {
+  if (user) {
+    fetchReferrals();
+  }
+}, [user]);
+
+useEffect(() => {
+  if (!user) return;
+  const ensureCode = async () => {
+    try {
+      const { data: prof, error: profErr } = await supabase
+        .from('profiles')
+        .select('referral_code')
+        .eq('id', user.id)
+        .single();
+      if (profErr) {
+        console.warn('Profile fetch for referral code failed:', profErr);
+      }
+      let code = (prof as any)?.referral_code as string | null;
+      if (!code) {
+        const { data: gen, error: genErr } = await supabase.rpc('generate_referral_code');
+        if (genErr) {
+          console.error('Failed to generate referral code:', genErr);
+          return;
+        }
+        if (gen) {
+          const { error: updErr } = await supabase
+            .from('profiles')
+            .update({ referral_code: gen })
+            .eq('id', user.id);
+          if (updErr) {
+            console.error('Failed to save referral code:', updErr);
+            return;
+          }
+          setReferralCode(gen as string);
+          toast({
+            title: 'Referral code created',
+            description: 'Share your link to earn credits.',
+          });
+        }
+      } else {
+        setReferralCode(code);
+      }
+    } catch (e) {
+      console.error('Error ensuring referral code:', e);
     }
-  }, [user]);
+  };
+  ensureCode();
+}, [user]);
 
   const fetchReferrals = async () => {
     try {
@@ -52,46 +97,41 @@ const ReferralSystem = () => {
     }
   };
 
-  const copyReferralLink = () => {
-    if (!userProfile?.referral_code) return;
-    
-    // Use proper domain configuration
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://sproutcv.app' 
-      : window.location.origin;
-    const referralLink = `${baseUrl}?ref=${userProfile.referral_code}`;
-    navigator.clipboard.writeText(referralLink);
-    
-    toast({
-      title: "Link copied!",
-      description: "Your referral link has been copied to clipboard",
-    });
-  };
+const copyReferralLink = () => {
+  if (!referralCode) return;
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://sproutcv.app' 
+    : window.location.origin;
+  const referralLink = `${baseUrl}?ref=${referralCode}`;
+  navigator.clipboard.writeText(referralLink);
+  toast({
+    title: "Link copied!",
+    description: "Your referral link has been copied to clipboard",
+  });
+};
 
-  const copyReferralCode = () => {
-    if (!userProfile?.referral_code) return;
-    
-    navigator.clipboard.writeText(userProfile.referral_code);
-    
-    toast({
-      title: "Code copied!",
-      description: "Your referral code has been copied to clipboard",
-    });
-  };
+const copyReferralCode = () => {
+  if (!referralCode) return;
+  navigator.clipboard.writeText(referralCode);
+  toast({
+    title: "Code copied!",
+    description: "Your referral code has been copied to clipboard",
+  });
+};
 
-  const sendReferralInvite = async () => {
-    if (!emailToRefer.trim() || !userProfile?.referral_code) return;
+const sendReferralInvite = async () => {
+  if (!emailToRefer.trim() || !referralCode) return;
 
-    setLoading(true);
-    
-    try {
-      const { error } = await supabase
-        .from('referrals')
-        .insert({
-          referrer_id: user?.id,
-          referral_code: userProfile.referral_code,
-          email_referred: emailToRefer.trim()
-        });
+  setLoading(true);
+  
+  try {
+    const { error } = await supabase
+      .from('referrals')
+      .insert({
+        referrer_id: user?.id,
+        referral_code: referralCode,
+        email_referred: emailToRefer.trim()
+      });
 
       if (error) throw error;
 
@@ -171,30 +211,31 @@ const ReferralSystem = () => {
           <div>
             <Label>Your Referral Code</Label>
             <div className="flex mt-2">
-              <Input 
-                value={userProfile?.referral_code || ''} 
-                readOnly 
-                className="font-mono"
-              />
-              <Button 
-                variant="outline" 
-                onClick={copyReferralCode}
-                className="ml-2"
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+  <Input 
+    value={referralCode} 
+    readOnly 
+    className="font-mono"
+  />
+<Button 
+  variant="outline" 
+  onClick={copyReferralCode}
+  className="ml-2"
+  disabled={!referralCode}
+>
+  <Copy className="h-4 w-4" />
+</Button>
             </div>
           </div>
 
           <div>
             <Label>Your Referral Link</Label>
             <div className="flex items-center space-x-2">
-              <Input
-                readOnly
-                value={`${process.env.NODE_ENV === 'production' ? 'https://sproutcv.app' : window.location.origin}?ref=${userProfile?.referral_code || ''}`}
-                className="flex-1"
-              />
-              <Button onClick={copyReferralLink} variant="outline">
+  <Input
+    readOnly
+    value={`${process.env.NODE_ENV === 'production' ? 'https://sproutcv.app' : window.location.origin}?ref=${referralCode}`}
+    className="flex-1"
+  />
+              <Button onClick={copyReferralLink} variant="outline" disabled={!referralCode}>
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
@@ -210,14 +251,14 @@ const ReferralSystem = () => {
                 onChange={(e) => setEmailToRefer(e.target.value)}
                 placeholder="friend@example.com"
               />
-              <Button 
-                onClick={sendReferralInvite}
-                disabled={!emailToRefer.trim() || loading}
-                className="ml-2"
-              >
-                <Gift className="h-4 w-4 mr-2" />
-                Send
-              </Button>
+<Button 
+  onClick={sendReferralInvite}
+  disabled={!emailToRefer.trim() || loading || !referralCode}
+  className="ml-2"
+>
+  <Gift className="h-4 w-4 mr-2" />
+  Send
+</Button>
             </div>
           </div>
         </div>
