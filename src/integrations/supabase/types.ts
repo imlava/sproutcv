@@ -833,6 +833,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_service_role: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       process_payment_refund: {
         Args: {
           payment_id: string
