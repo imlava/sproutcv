@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Mail, Lock } from 'lucide-react';
 import { PasswordInput } from './PasswordInput';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 
 interface SignInFormProps {
   onForgotPassword: () => void;
@@ -19,6 +20,8 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<HCaptcha>(null);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -27,12 +30,22 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!captchaToken) {
+      toast({
+        variant: "destructive",
+        title: "Captcha verification required",
+        description: "Please complete the captcha verification to continue.",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
       console.log('Starting signin process for:', formData.email);
       
-      const { error } = await signIn(formData.email, formData.password);
+      const { error } = await signIn(formData.email, formData.password, captchaToken);
       
       if (error) {
         console.error('Signin error:', error);
@@ -50,6 +63,12 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
     } catch (error: any) {
       console.error('Signin exception:', error);
       
+      // Reset captcha on error
+      if (captchaRef.current) {
+        captchaRef.current.resetCaptcha();
+        setCaptchaToken(null);
+      }
+      
       let errorMessage = error.message || "Invalid email or password";
       
       // Handle specific error cases
@@ -61,6 +80,8 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
         errorMessage = 'Too many login attempts. Please try again later.';
       } else if (error.message?.includes('User not found')) {
         errorMessage = 'No account found with this email address.';
+      } else if (error.message?.includes('captcha')) {
+        errorMessage = 'Captcha verification failed. Please try again.';
       }
       
       toast({
@@ -107,6 +128,22 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
         </div>
       </div>
       
+      <div className="space-y-4">
+        <HCaptcha
+          ref={captchaRef}
+          sitekey="10000000-ffff-ffff-ffff-000000000001"
+          onVerify={(token) => {
+            setCaptchaToken(token);
+          }}
+          onExpire={() => {
+            setCaptchaToken(null);
+          }}
+          onError={() => {
+            setCaptchaToken(null);
+          }}
+        />
+      </div>
+      
       <div className="text-right">
         <Button
           type="button"
@@ -118,7 +155,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
         </Button>
       </div>
       
-      <Button 
+      <Button
         type="submit" 
         className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
         disabled={loading}

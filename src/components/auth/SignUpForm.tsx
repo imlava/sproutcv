@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Mail, User, Lock, CheckCircle, XCircle } from 'lucide-react';
 import { PasswordInput } from './PasswordInput';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 
 interface SignUpFormProps {
   onSwitchToSignIn: () => void;
@@ -19,6 +20,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<HCaptcha>(null);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -62,12 +65,21 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
       return;
     }
 
+    if (!captchaToken) {
+      toast({
+        variant: "destructive",
+        title: "Captcha verification required",
+        description: "Please complete the captcha verification to continue.",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
       console.log('Starting signup process for:', formData.email);
       
-      const { error } = await signUp(formData.email, formData.password, formData.fullName);
+      const { error } = await signUp(formData.email, formData.password, formData.fullName, captchaToken);
       
       if (error) {
         console.error('Signup error:', error);
@@ -86,6 +98,12 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
     } catch (error: any) {
       console.error('Signup exception:', error);
       
+      // Reset captcha on error
+      if (captchaRef.current) {
+        captchaRef.current.resetCaptcha();
+        setCaptchaToken(null);
+      }
+      
       let errorMessage = error.message || 'Sign up failed. Please try again.';
       
       // Handle specific error cases
@@ -95,6 +113,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         errorMessage = 'Please ensure your password meets all requirements.';
       } else if (error.message?.includes('email')) {
         errorMessage = 'Please enter a valid email address.';
+      } else if (error.message?.includes('captcha')) {
+        errorMessage = 'Captcha verification failed. Please try again.';
       }
       
       toast({
@@ -190,10 +210,26 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         )}
       </div>
       
+      <div className="space-y-4">
+        <HCaptcha
+          ref={captchaRef}
+          sitekey="10000000-ffff-ffff-ffff-000000000001"
+          onVerify={(token) => {
+            setCaptchaToken(token);
+          }}
+          onExpire={() => {
+            setCaptchaToken(null);
+          }}
+          onError={() => {
+            setCaptchaToken(null);
+          }}
+        />
+      </div>
+      
       <Button 
         type="submit" 
         className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-3 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02]" 
-        disabled={loading || !isPasswordValid || !passwordsMatch}
+        disabled={loading || !isPasswordValid || !passwordsMatch || !captchaToken}
       >
         {loading ? (
           <>
