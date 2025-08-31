@@ -213,7 +213,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
       <div className="space-y-4">
         <HCaptcha
           ref={captchaRef}
-          sitekey="10000000-ffff-ffff-ffff-000000000001"
+          sitekey="849a7ce6-a714-49c2-8cb8-b12002a4b76a"
           onVerify={(token) => {
             setCaptchaToken(token);
           }}
