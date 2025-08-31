@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, email, fullName } = await req.json();
+    const { userId, email, fullName, referralCode } = await req.json();
 
     if (!userId || !email) {
       throw new Error("User ID and email are required");
@@ -28,7 +28,23 @@ serve(async (req) => {
       return Math.random().toString(36).substring(2, 10).toUpperCase();
     };
 
-    const referralCode = generateReferralCode();
+    const userReferralCode = generateReferralCode();
+
+    // Check if user was referred
+    let referrerUserId = null;
+    if (referralCode) {
+      console.log('Processing referral code:', referralCode);
+      const { data: referrer } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('referral_code', referralCode)
+        .single();
+      
+      if (referrer) {
+        referrerUserId = referrer.id;
+        console.log('Found referrer:', referrerUserId);
+      }
+    }
 
     // Create user profile
     const { data: profile, error: profileError } = await supabaseClient
@@ -39,7 +55,8 @@ serve(async (req) => {
         full_name: fullName,
         credits: 5, // Give 5 free credits
         email_verified: false,
-        referral_code: referralCode
+        referral_code: userReferralCode,
+        referred_by: referrerUserId
       })
       .select()
       .single();
@@ -91,12 +108,36 @@ serve(async (req) => {
         }
       });
 
+    // If user was referred, update the referral record
+    if (referrerUserId && referralCode) {
+      try {
+        const { error: referralError } = await supabaseClient
+          .from('referrals')
+          .update({
+            referred_id: userId,
+            is_signup_completed: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('referral_code', referralCode)
+          .eq('email_referred', email);
+
+        if (referralError) {
+          console.error('Error updating referral record:', referralError);
+        } else {
+          console.log('Referral record updated successfully');
+        }
+      } catch (refError) {
+        console.error('Exception updating referral:', refError);
+      }
+    }
+
     console.log('User profile created successfully:', userId);
 
     return new Response(JSON.stringify({ 
       message: "User profile created successfully",
       profile: profile,
-      success: true
+      success: true,
+      referral_processed: !!referrerUserId
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

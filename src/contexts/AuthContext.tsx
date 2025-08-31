@@ -7,7 +7,7 @@ interface AuthContextType {
   session: Session | null;
   userProfile: any;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, captchaToken?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string, captchaToken?: string, referralCode?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string, captchaToken?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, captchaToken?: string) => {
+  const signUp = async (email: string, password: string, fullName: string, captchaToken?: string, referralCode?: string) => {
     try {
       const redirectUrl = `${getRedirectUrl()}/dashboard`;
       
@@ -130,7 +130,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             body: {
               userId: data.user.id,
               email: email,
-              fullName: fullName
+              fullName: fullName,
+              referralCode: referralCode
             }
           });
           console.log('User profile created successfully');

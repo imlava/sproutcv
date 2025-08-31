@@ -34,6 +34,9 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
   const query = new URLSearchParams(window.location.search);
   const hcaptchaSitekey = query.get('sitekey') || '849a7ce6-a714-49c2-8cb8-b12002a4b76a';
   const hcaptchaLang = query.get('hl') || undefined;
+  
+  // Check for referral code in URL
+  const referralCode = query.get('ref');
 
   const getPasswordStrength = (password: string) => {
     const checks = [
@@ -84,7 +87,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
     try {
       console.log('Starting signup process for:', formData.email);
       
-      const { error } = await signUp(formData.email, formData.password, formData.fullName, captchaToken);
+      const { error } = await signUp(formData.email, formData.password, formData.fullName, captchaToken, referralCode);
       
       if (error) {
         console.error('Signup error:', error);

@@ -120,12 +120,13 @@ const copyReferralCode = () => {
 };
 
 const sendReferralInvite = async () => {
-  if (!emailToRefer.trim() || !referralCode) return;
+  if (!emailToRefer.trim() || !referralCode || !userProfile) return;
 
   setLoading(true);
   
   try {
-    const { error } = await supabase
+    // Insert referral record first
+    const { error: insertError } = await supabase
       .from('referrals')
       .insert({
         referrer_id: user?.id,
@@ -133,26 +134,51 @@ const sendReferralInvite = async () => {
         email_referred: emailToRefer.trim()
       });
 
-      if (error) throw error;
+    if (insertError) throw insertError;
 
+    // Send referral email
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://sproutcv.app' 
+      : window.location.origin;
+    const referralLink = `${baseUrl}?ref=${referralCode}`;
+
+    const { error: emailError } = await supabase.functions.invoke('send-referral-email', {
+      body: {
+        referrerName: userProfile.full_name || user?.email?.split('@')[0] || 'A friend',
+        referrerEmail: user?.email || '',
+        recipientEmail: emailToRefer.trim(),
+        referralCode: referralCode,
+        referralLink: referralLink
+      }
+    });
+
+    if (emailError) {
+      console.error('Email sending error:', emailError);
+      // Don't throw error here as referral was still recorded
+      toast({
+        title: "Invitation recorded!",
+        description: `Referral saved for ${emailToRefer}, but email sending failed. You can share your referral link manually.`,
+      });
+    } else {
       toast({
         title: "Invitation sent!",
-        description: `Referral invitation sent to ${emailToRefer}`,
+        description: `Referral email sent to ${emailToRefer} successfully!`,
       });
-
-      setEmailToRefer('');
-      fetchReferrals();
-    } catch (error) {
-      console.error('Error sending referral:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to send referral invitation",
-      });
-    } finally {
-      setLoading(false);
     }
-  };
+
+    setEmailToRefer('');
+    fetchReferrals();
+  } catch (error) {
+    console.error('Error sending referral:', error);
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: "Failed to send referral invitation",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getStatusBadge = (referral: Referral) => {
     if (referral.credits_awarded) {
