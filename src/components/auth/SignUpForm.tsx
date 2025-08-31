@@ -30,6 +30,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
     confirmPassword: ''
   });
 
+  // Public overrides via query params: ?sitekey=...&hl=...
+  const query = new URLSearchParams(window.location.search);
+  const hcaptchaSitekey = query.get('sitekey') || '849a7ce6-a714-49c2-8cb8-b12002a4b76a';
+  const hcaptchaLang = query.get('hl') || undefined;
+
   const getPasswordStrength = (password: string) => {
     const checks = [
       { valid: password.length >= 8 },
@@ -213,7 +218,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
       <div className="space-y-4">
         <HCaptcha
           ref={captchaRef}
-          sitekey="849a7ce6-a714-49c2-8cb8-b12002a4b76a"
+          sitekey={hcaptchaSitekey}
+          languageOverride={hcaptchaLang}
           onVerify={(token) => {
             setCaptchaToken(token);
           }}
