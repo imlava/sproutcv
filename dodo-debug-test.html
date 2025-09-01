@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodo API Debug Test</title>
+    <style>
+        body { 
+            font-family: 'Courier New', monospace; 
+            background: #1a1a2e; 
+            color: #eee; 
+            padding: 20px;
+            margin: 0;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: #16213e; 
+            padding: 30px; 
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        h1 { 
+            color: #4fc3f7; 
+            text-align: center; 
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        .section {
+            background: #0f1419;
+            padding: 20px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border-left: 4px solid #4fc3f7;
+        }
+        .section h3 {
+            color: #81c784;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        button { 
+            background: linear-gradient(45deg, #4fc3f7, #29b6f6);
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 25px;
+            cursor: pointer; 
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(79, 195, 247, 0.3);
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 195, 247, 0.4);
+        }
+        button:disabled { 
+            background: #555; 
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .results { 
+            background: #000;
+            color: #00ff00; 
+            padding: 20px; 
+            border-radius: 8px;
+            white-space: pre-wrap; 
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 2px solid #333;
+        }
+        .error { 
+            color: #ff6b6b; 
+            background: #2d1b1b;
+            border-color: #ff6b6b;
+        }
+        .success { 
+            color: #51cf66; 
+            background: #1b2d1b;
+            border-color: #51cf66;
+        }
+        .loading {
+            text-align: center;
+            color: #4fc3f7;
+            font-style: italic;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.success { background: #51cf66; color: #000; }
+        .status.error { background: #ff6b6b; color: #fff; }
+        .status.warning { background: #ffd93d; color: #000; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Dodo Payments API Debug</h1>
+        
+        <div class="section">
+            <h3>🎯 Purpose</h3>
+            <p>This diagnostic tool will:</p>
+            <ul>
+                <li>Check if DODO_PAYMENTS_API_KEY is properly set</li>
+                <li>Analyze the API key format and encoding</li>
+                <li>Test different header construction methods</li>
+                <li>Make actual API call to Dodo Payments</li>
+                <li>Identify the exact issue causing fallback mode</li>
+            </ul>
+        </div>
+
+        <button id="runDebug" onclick="runDodoDebug()">🚀 Run Dodo API Debug</button>
+        
+        <div class="section">
+            <h3 id="resultsTitle">📊 Debug Results</h3>
+            <div id="results" class="results" style="display: none;">
+                Waiting for debug results...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runDodoDebug() {
+            const button = document.getElementById('runDebug');
+            const results = document.getElementById('results');
+            const resultsTitle = document.getElementById('resultsTitle');
+            
+            button.disabled = true;
+            button.textContent = '🔄 Running Debug...';
+            results.style.display = 'block';
+            results.className = 'results loading';
+            results.textContent = '🔄 Initializing debug process...\n⏳ This may take a few seconds...';
+            
+            try {
+                console.log('🔍 Starting Dodo API debug...');
+                
+                const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-api-debug', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({
+                        test: 'dodo-api-debug'
+                    })
+                });
+                
+                console.log('📡 Response received:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('📊 Debug data:', data);
+                
+                // Format results
+                let output = '=== DODO API DEBUG RESULTS ===\n\n';
+                
+                // Environment Check
+                output += '🌍 ENVIRONMENT:\n';
+                if (data.environment) {
+                    output += `  ✅ API Key Present: ${data.environment.hasApiKey}\n`;
+                    output += `  📏 API Key Length: ${data.environment.apiKeyLength}\n`;
+                    output += `  🔗 Webhook URL: ${data.environment.webhookUrl || 'NOT SET'}\n\n`;
+                }
+                
+                // Sanitization Methods
+                if (data.sanitization) {
+                    output += '🧹 SANITIZATION METHODS:\n';
+                    for (const [method, value] of Object.entries(data.sanitization)) {
+                        output += `  ${method}: "${value}" (${value.length} chars)\n`;
+                    }
+                    output += '\n';
+                }
+                
+                // Header Tests
+                if (data.headerTests) {
+                    output += '🛠️ HEADER CONSTRUCTION TESTS:\n';
+                    for (const [method, result] of Object.entries(data.headerTests)) {
+                        output += `  ${method}:\n`;
+                        if (result.error) {
+                            output += `    ❌ ERROR: ${result.error}\n`;
+                        } else {
+                            output += `    ✅ Direct: ${result.direct}\n`;
+                            output += `    ✅ New Headers: ${result.newHeaders}\n`;
+                            output += `    ✅ Constructor: ${result.constructor}\n`;
+                        }
+                    }
+                    output += '\n';
+                }
+                
+                // Dodo API Call
+                if (data.dodoApiCall) {
+                    output += '🎯 DODO API CALL:\n';
+                    if (data.dodoApiCall.error) {
+                        output += `  ❌ ERROR: ${data.dodoApiCall.error}\n`;
+                        if (data.dodoApiCall.stack) {
+                            output += `  📚 Stack: ${data.dodoApiCall.stack}\n`;
+                        }
+                        results.className = 'results error';
+                        resultsTitle.innerHTML = '📊 Debug Results <span class="status error">API FAILED</span>';
+                    } else {
+                        output += `  📊 Status: ${data.dodoApiCall.status}\n`;
+                        output += `  ✅ Success: ${data.dodoApiCall.success}\n`;
+                        output += `  📄 Response: ${JSON.stringify(data.dodoApiCall.data, null, 2)}\n`;
+                        
+                        if (data.dodoApiCall.success) {
+                            results.className = 'results success';
+                            resultsTitle.innerHTML = '📊 Debug Results <span class="status success">API SUCCESS</span>';
+                        } else {
+                            results.className = 'results error';
+                            resultsTitle.innerHTML = '📊 Debug Results <span class="status error">API FAILED</span>';
+                        }
+                    }
+                    output += '\n';
+                }
+                
+                // Recommendation
+                if (data.recommendation) {
+                    output += `💡 RECOMMENDATION: ${data.recommendation}\n`;
+                }
+                
+                results.textContent = output;
+                
+            } catch (error) {
+                console.error('❌ Debug failed:', error);
+                results.className = 'results error';
+                resultsTitle.innerHTML = '📊 Debug Results <span class="status error">FAILED</span>';
+                results.textContent = `❌ DEBUG FAILED:\n${error.message}\n\n🔍 This usually means:\n- Network connection issue\n- Supabase function not deployed\n- Authentication problem`;
+            } finally {
+                button.disabled = false;
+                button.textContent = '🔄 Run Debug Again';
+            }
+        }
+        
+        function getAuthToken() {
+            // For testing, we'll use the anon key
+            // In production, this would be the user's session token
+            return '***REMOVED***';
+        }
+        
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            console.log('🔍 Dodo Debug Test Page Loaded');
+        });
+    </script>
+</body>
+</html>
