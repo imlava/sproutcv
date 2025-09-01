@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SproutCV Auth Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>SproutCV Authentication Test</h1>
+    <button onclick="testAuth()">Test Authentication</button>
+    <div id="result"></div>
+
+    <script>
+        const supabaseUrl = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const supabaseKey = '***REMOVED***';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function testAuth() {
+            console.log('=== AUTH TEST START ===');
+            
+            try {
+                // Get current session
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                console.log('Current session:', sessionData, sessionError);
+                
+                if (!sessionData.session) {
+                    document.getElementById('result').innerHTML = '<p style="color: red;">No active session. Please sign in first at the main app.</p>';
+                    return;
+                }
+                
+                const accessToken = sessionData.session.access_token;
+                console.log('Access token:', accessToken.substring(0, 20) + '...');
+                
+                // Test the auth token function
+                const { data, error } = await supabase.functions.invoke('test-auth-token', {
+                    body: { test: 'authentication' }
+                });
+                
+                console.log('Auth test result:', { data, error });
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>Authentication Test Results:</h3>
+                    <pre>${JSON.stringify({ data, error }, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h3>Test Error:</h3>
+                    <pre style="color: red;">${error.message}</pre>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

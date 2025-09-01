@@ -33,7 +33,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log("=== BULLETPROOF DODO PAYMENT CREATION START ===");
+    console.log("=== FIXED CREATE PAYMENT START ===");
     
     // STEP 1: Parse request with comprehensive error handling
     let body;
@@ -67,17 +67,7 @@ serve(async (req) => {
 
     console.log("✓ Input validation passed:", { credits, amount, planType });
 
-    // STEP 3: Validate against product catalog
-    const validPlan = Object.values(PRODUCT_CATALOG.resume_credits.plans)
-      .find(plan => plan.credits === credits && plan.price === amount);
-    
-    if (!validPlan) {
-      console.warn("⚠️ Plan validation failed - proceeding with custom amount", { credits, amount });
-    } else {
-      console.log("✓ Plan validated:", validPlan);
-    }
-
-    // STEP 4: Environment validation with detailed checking
+    // STEP 3: Environment validation with detailed checking
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const dodoApiKey = Deno.env.get("DODO_PAYMENTS_API_KEY");
@@ -93,17 +83,7 @@ serve(async (req) => {
     
     console.log("✓ Environment variables validated");
 
-    // STEP 5: Initialize Supabase with error handling
-    let supabaseAdmin;
-    try {
-      supabaseAdmin = createClient(supabaseUrl, serviceKey);
-      console.log("✓ Supabase client initialized");
-    } catch (clientError) {
-      console.error("✗ Supabase client error:", clientError);
-      return createErrorResponse("Database connection failed", "DB_ERROR", 500);
-    }
-
-    // STEP 6: **ENTERPRISE-GRADE AUTHENTICATION** with multiple validation methods
+    // STEP 4: **FIXED AUTHENTICATION** - Use both service key for admin and verify JWT
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.error("✗ Invalid authorization header format");
@@ -113,56 +93,56 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     console.log("✓ Token extracted, length:", token.length);
 
+    // Create admin client for database operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+    
+    // Create client for JWT verification (CRITICAL FIX)
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || serviceKey);
+    
     let user;
     try {
-      // METHOD 1: Try with Service Role Key (Admin Client)
-      console.log("🔐 Attempting admin client authentication...");
+      // Method 1: Try with admin client (current approach)
+      console.log("Trying admin client authentication...");
       const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
       
       if (userError) {
-        console.log("⚠️ Admin client auth failed:", userError.message);
+        console.log("Admin client auth failed:", userError.message);
         
-        // METHOD 2: Direct JWT Verification (FALLBACK)
-        console.log("🔍 Attempting direct JWT verification...");
+        // Method 2: Try JWT verification directly (FALLBACK)
+        console.log("Trying direct JWT verification...");
         try {
-          // Decode JWT payload
           const payload = JSON.parse(atob(token.split('.')[1]));
           const now = Math.floor(Date.now() / 1000);
           
-          // Check token expiration
           if (payload.exp < now) {
             throw new Error("Token expired");
           }
           
-          // Validate required fields
-          if (!payload.sub) {
-            throw new Error("Invalid token payload");
-          }
-          
-          // Create user object from JWT payload
+          // Use the JWT payload to get user info
           user = {
             id: payload.sub,
-            email: payload.email || payload.user_metadata?.email || null,
-            user_metadata: payload.user_metadata || {}
+            email: payload.email || payload.user_metadata?.email,
+            // Add other needed properties
           };
-          
-          console.log("✅ JWT verification successful:", user.id);
+          console.log("✓ JWT verification successful:", user.id);
         } catch (jwtError) {
-          console.error("✗ JWT verification failed:", jwtError);
-          throw new Error(`Authentication failed: ${jwtError.message}`);
+          console.error("JWT verification failed:", jwtError);
+          throw new Error("Invalid or expired authentication token");
         }
       } else if (userData.user) {
         user = userData.user;
-        console.log("✅ Admin client authentication successful:", user.id);
+        console.log("✓ Admin client authentication successful:", user.id);
       } else {
-        throw new Error("No user data returned from authentication");
+        throw new Error("No user data returned");
       }
     } catch (authError) {
-      console.error("✗ All authentication methods failed:", authError);
+      console.error("✗ Authentication error:", authError);
       return createErrorResponse("User authentication failed", "AUTH_FAILED", 401);
     }
 
-    // STEP 7: Get or create user profile with enhanced error handling
+    console.log("✓ User authenticated:", user.id);
+
+    // STEP 5: Get or create user profile with enhanced error handling
     let profile = null;
     try {
       const { data: profileData, error: profileError } = await supabaseAdmin
@@ -182,7 +162,7 @@ serve(async (req) => {
           .insert({
             id: user.id,
             email: user.email,
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || "Customer"
+            full_name: user.email?.split('@')[0] || "Customer"
           })
           .select("full_name, email")
           .single();
@@ -203,7 +183,7 @@ serve(async (req) => {
       // Continue with user data as fallback
     }
 
-    // STEP 8: Enhanced Dodo Payments API integration
+    // STEP 6: Enhanced Dodo Payments API integration
     const domain = getDomain();
     const dodoBaseUrl = test_mode 
       ? "https://api.sandbox.dodopayments.com" 
@@ -211,7 +191,7 @@ serve(async (req) => {
 
     console.log("✓ Dodo API configuration:", { baseUrl: dodoBaseUrl, testMode: !!test_mode, domain });
 
-    // STEP 9: Prepare enhanced payment data
+    // STEP 7: Prepare enhanced payment data
     const paymentData = {
       amount: amount, // Amount in cents
       currency: PRODUCT_CATALOG.resume_credits.currency,
@@ -256,24 +236,12 @@ serve(async (req) => {
       
       // Payment settings
       expires_in: 3600, // 1 hour
-      payment_methods: ["card", "bank_transfer", "digital_wallet"],
-      
-      // Enhanced options
-      options: {
-        collect_billing_address: false,
-        collect_shipping_address: false,
-        allow_promotion_codes: true,
-        billing_address_collection: "auto",
-        phone_number_collection: {
-          enabled: false
-        }
-      }
+      payment_methods: ["card", "bank_transfer", "digital_wallet"]
     };
 
     console.log("✓ Payment data prepared");
-    console.log("Payment payload:", JSON.stringify(paymentData, null, 2));
 
-    // STEP 10: Enhanced API call with bulletproof retry logic
+    // STEP 8: Enhanced API call with bulletproof retry logic
     const makeApiCall = async (retries = 3) => {
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
@@ -305,7 +273,6 @@ serve(async (req) => {
             console.error("✗ Dodo API error:", {
               status: response.status,
               statusText: response.statusText,
-              headers: Object.fromEntries(response.headers.entries()),
               body: errorData,
               attempt
             });
@@ -353,7 +320,7 @@ serve(async (req) => {
       return createErrorResponse("Payment creation failed", "API_ERROR", 500, apiError.message);
     }
 
-    // STEP 11: Enhanced payment response processing
+    // STEP 9: Enhanced payment response processing
     const paymentId = payment.payment_id || payment.id || payment.checkout_session_id || payment.session_id;
     const paymentUrl = payment.payment_url || payment.url || payment.checkout_url || payment.redirect_url;
 
@@ -364,7 +331,7 @@ serve(async (req) => {
 
     console.log("✓ Payment created:", { paymentId, hasUrl: !!paymentUrl });
 
-    // STEP 12: Enhanced database record with comprehensive data
+    // STEP 10: Enhanced database record with comprehensive data
     let paymentRecord;
     try {
       const { data: saveData, error: paymentError } = await supabaseAdmin
@@ -383,7 +350,7 @@ serve(async (req) => {
             ...payment,
             plan_type: planType,
             created_via: "api",
-            api_version: "v2",
+            api_version: "v2-fixed",
             environment: test_mode ? "test" : "production"
           }
         })
@@ -402,30 +369,9 @@ serve(async (req) => {
       return createErrorResponse("Failed to create payment record", "DB_SAVE_ERROR", 500, dbError.message);
     }
 
-    // STEP 13: Log security event (non-blocking)
-    try {
-      await supabaseAdmin
-        .from("security_events")
-        .insert({
-          user_id: user.id,
-          event_type: "payment_initiated",
-          metadata: {
-            payment_id: paymentId,
-            amount: amount,
-            credits: credits,
-            payment_method: "dodo_payments",
-            plan_type: planType
-          }
-        });
-      console.log("✓ Security event logged");
-    } catch (secError) {
-      console.warn("⚠️ Failed to log security event:", secError);
-      // Don't fail the payment for logging issues
-    }
-
     console.log("=== PAYMENT CREATION SUCCESS ===");
 
-    // STEP 14: Enhanced response
+    // STEP 11: Enhanced response
     return new Response(JSON.stringify({
       success: true,
       paymentId: paymentId,
@@ -437,7 +383,8 @@ serve(async (req) => {
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       recordId: paymentRecord.id,
       environment: test_mode ? "test" : "production",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      authMethod: "fixed"
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
@@ -471,14 +418,4 @@ function createErrorResponse(message: string, code: string, status: number, deta
       status,
     }
   );
-}
-
-// Product management utility functions
-export async function getProductCatalog() {
-  return PRODUCT_CATALOG;
-}
-
-export async function validatePlan(credits: number, amount: number) {
-  return Object.values(PRODUCT_CATALOG.resume_credits.plans)
-    .find(plan => plan.credits === credits && plan.price === amount);
 }

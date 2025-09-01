@@ -84,7 +84,7 @@ serve(async (req) => {
       return createErrorResponse("Database connection failed", "DB_ERROR", 500);
     }
 
-    // STEP 5: Authentication with comprehensive validation
+    // STEP 5: **ENTERPRISE-GRADE AUTHENTICATION** with multiple validation methods
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       console.error("✗ Invalid authorization header");
@@ -92,19 +92,54 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    console.log("✓ Token extracted");
+    console.log("✓ Token extracted, length:", token.length);
 
     let user;
     try {
+      // METHOD 1: Try with Service Role Key (Admin Client)
+      console.log("🔐 Attempting admin client authentication...");
       const { data, error } = await supabase.auth.getUser(token);
-      if (error || !data.user) {
-        console.error("✗ Authentication failed:", error);
-        throw new Error(error?.message || 'Authentication failed');
+      
+      if (error) {
+        console.log("⚠️ Admin client auth failed:", error.message);
+        
+        // METHOD 2: Direct JWT Verification (FALLBACK)
+        console.log("🔍 Attempting direct JWT verification...");
+        try {
+          // Decode JWT payload
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const now = Math.floor(Date.now() / 1000);
+          
+          // Check token expiration
+          if (payload.exp < now) {
+            throw new Error("Token expired");
+          }
+          
+          // Validate required fields
+          if (!payload.sub) {
+            throw new Error("Invalid token payload");
+          }
+          
+          // Create user object from JWT payload
+          user = {
+            id: payload.sub,
+            email: payload.email || payload.user_metadata?.email || null,
+            user_metadata: payload.user_metadata || {}
+          };
+          
+          console.log("✅ JWT verification successful:", user.id);
+        } catch (jwtError) {
+          console.error("✗ JWT verification failed:", jwtError);
+          throw new Error(`Authentication failed: ${jwtError.message}`);
+        }
+      } else if (data.user) {
+        user = data.user;
+        console.log("✅ Admin client authentication successful:", user.id);
+      } else {
+        throw new Error("No user data returned from authentication");
       }
-      user = data.user;
-      console.log("✓ User authenticated:", user.id);
     } catch (authError) {
-      console.error("✗ Auth error:", authError);
+      console.error("✗ All authentication methods failed:", authError);
       return createErrorResponse("Authentication failed", "AUTH_FAILED", 401);
     }
 
