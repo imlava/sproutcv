@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodo Endpoint Discovery</title>
+    <style>
+        body { 
+            font-family: 'Courier New', monospace; 
+            background: #0d1117; 
+            color: #fff; 
+            padding: 20px;
+            margin: 0;
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: #161b22; 
+            padding: 30px; 
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            border: 1px solid #30363d;
+        }
+        h1 { 
+            color: #58a6ff; 
+            text-align: center; 
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(88, 166, 255, 0.5);
+        }
+        .section {
+            background: #21262d;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 5px solid #58a6ff;
+        }
+        .section h3 {
+            color: #7c3aed;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        button { 
+            background: linear-gradient(135deg, #58a6ff, #1f6feb);
+            color: white; 
+            border: none; 
+            padding: 20px 40px; 
+            border-radius: 35px;
+            cursor: pointer; 
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(88, 166, 255, 0.3);
+            display: block;
+            margin: 30px auto;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        button:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(88, 166, 255, 0.5);
+            background: linear-gradient(135deg, #79c0ff, #388bfd);
+        }
+        button:disabled { 
+            background: #6e7681; 
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .results { 
+            background: #0d1117;
+            color: #7ee787; 
+            padding: 25px; 
+            border-radius: 10px;
+            white-space: pre-wrap; 
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 800px;
+            overflow-y: auto;
+            border: 2px solid #30363d;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+        }
+        .success { 
+            border-color: #238636;
+            background: #0d2818;
+        }
+        .error { 
+            border-color: #da3633;
+            background: #2d1012;
+            color: #f85149;
+        }
+        .loading {
+            text-align: center;
+            color: #58a6ff;
+            font-style: italic;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 15px;
+            text-transform: uppercase;
+        }
+        .status-badge.success { background: #238636; color: #fff; }
+        .status-badge.error { background: #da3633; color: #fff; }
+        .status-badge.warning { background: #bf8700; color: #fff; }
+        .endpoint-list {
+            background: #0d1117;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #30363d;
+        }
+        .endpoint-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 3px solid #6e7681;
+        }
+        .endpoint-item.success { border-left-color: #238636; background: #0d2818; }
+        .endpoint-item.error { border-left-color: #da3633; background: #2d1012; }
+        .endpoint-item.auth { border-left-color: #bf8700; background: #2d2000; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Dodo Payments Endpoint Discovery</h1>
+        
+        <div class="section">
+            <h3>🎯 Mission</h3>
+            <p>This tool will systematically test all possible Dodo Payments API endpoints to find the correct one for payment creation. We'll test:</p>
+            <div class="endpoint-list">
+                <div class="endpoint-item">📍 Multiple base URLs (test.dodo, live.dodo, api.dodo)</div>
+                <div class="endpoint-item">🛤️ Different endpoint paths (/v1/payments, /api/payments, etc.)</div>
+                <div class="endpoint-item">🔧 Various HTTP methods (GET, POST)</div>
+                <div class="endpoint-item">🔑 Authentication with your real API key</div>
+                <div class="endpoint-item">📊 Response analysis and recommendations</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🔑 API Key Status</h3>
+            <p><strong>✅ Ready:</strong> 8SSKFEsfH2o...KVzB2t (65 chars)</p>
+            <p><strong>✅ Format:</strong> Valid Dodo Payments format</p>
+            <p><strong>✅ Source:</strong> Your actual Dodo dashboard</p>
+        </div>
+
+        <button id="runDiscovery" onclick="runEndpointDiscovery()">🚀 Discover Working Endpoints</button>
+        
+        <div class="section">
+            <h3 id="resultsTitle">📋 Discovery Results</h3>
+            <div id="results" class="results" style="display: none;">
+                Waiting for discovery results...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runEndpointDiscovery() {
+            const button = document.getElementById('runDiscovery');
+            const results = document.getElementById('results');
+            const resultsTitle = document.getElementById('resultsTitle');
+            
+            button.disabled = true;
+            button.textContent = '🔄 Discovering...';
+            results.style.display = 'block';
+            results.className = 'results loading';
+            results.textContent = '🔄 Running comprehensive endpoint discovery...\n⏳ Testing multiple URLs and methods...\n🎯 This may take 20-30 seconds...';
+            
+            try {
+                console.log('🔍 Starting endpoint discovery...');
+                
+                const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-endpoint-discovery', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({
+                        discovery: 'comprehensive'
+                    })
+                });
+                
+                console.log('📡 Discovery complete:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('📊 Discovery data:', data);
+                
+                // Format comprehensive results
+                let output = '=== DODO PAYMENTS ENDPOINT DISCOVERY RESULTS ===\n\n';
+                
+                // Summary
+                if (data.summary) {
+                    output += '📊 DISCOVERY SUMMARY:\n';
+                    output += `  🧪 Total Tests: ${data.summary.totalTests}\n`;
+                    output += `  ✅ Working Endpoints: ${data.summary.hasWorkingEndpoints ? 'YES' : 'NO'}\n`;
+                    output += `  🔑 Auth Endpoints: ${data.summary.hasAuthenticationEndpoints ? 'YES' : 'NO'}\n`;
+                    
+                    if (data.summary.statusBreakdown) {
+                        output += '  📈 Status Breakdown:\n';
+                        for (const [status, count] of Object.entries(data.summary.statusBreakdown)) {
+                            output += `    ${status}: ${count}\n`;
+                        }
+                    }
+                    output += '\n';
+                }
+                
+                // Recommendations
+                if (data.recommendations) {
+                    output += '💡 RECOMMENDATIONS:\n';
+                    for (const rec of data.recommendations) {
+                        output += `  ${rec}\n`;
+                    }
+                    output += '\n';
+                }
+                
+                // Detailed Results
+                output += '🔍 DETAILED TEST RESULTS:\n';
+                if (data.testResults) {
+                    for (const [url, result] of Object.entries(data.testResults)) {
+                        output += `\n📍 ${result.method} ${url}:\n`;
+                        
+                        if (result.error) {
+                            output += `  ❌ ERROR: ${result.error}\n`;
+                            output += `  🔧 Analysis: ${result.analysis}\n`;
+                        } else {
+                            output += `  📊 Status: ${result.status} ${result.statusText}\n`;
+                            output += `  ${result.ok ? '✅' : '❌'} Success: ${result.ok}\n`;
+                            output += `  🔍 Analysis: ${result.analysis}\n`;
+                            
+                            if (result.data && typeof result.data === 'object' && Object.keys(result.data).length > 0) {
+                                output += `  📄 Response: ${JSON.stringify(result.data, null, 2)}\n`;
+                            }
+                            
+                            if (result.headers && Object.keys(result.headers).length > 0) {
+                                const importantHeaders = ['content-type', 'server', 'x-ratelimit-remaining'];
+                                const filteredHeaders = Object.entries(result.headers)
+                                    .filter(([key]) => importantHeaders.includes(key.toLowerCase()))
+                                    .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+                                
+                                if (Object.keys(filteredHeaders).length > 0) {
+                                    output += `  📋 Headers: ${JSON.stringify(filteredHeaders, null, 2)}\n`;
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Determine overall status
+                const hasWorkingEndpoints = data.summary?.hasWorkingEndpoints;
+                const hasAuthEndpoints = data.summary?.hasAuthenticationEndpoints;
+                
+                if (hasWorkingEndpoints) {
+                    results.className = 'results success';
+                    resultsTitle.innerHTML = '📋 Discovery Results <span class="status-badge success">SUCCESS</span>';
+                } else if (hasAuthEndpoints) {
+                    results.className = 'results';
+                    resultsTitle.innerHTML = '📋 Discovery Results <span class="status-badge warning">AUTH FOUND</span>';
+                } else {
+                    results.className = 'results error';
+                    resultsTitle.innerHTML = '📋 Discovery Results <span class="status-badge error">NO ENDPOINTS</span>';
+                }
+                
+                results.textContent = output;
+                
+            } catch (error) {
+                console.error('❌ Discovery failed:', error);
+                results.className = 'results error';
+                resultsTitle.innerHTML = '📋 Discovery Results <span class="status-badge error">FAILED</span>';
+                results.textContent = `❌ ENDPOINT DISCOVERY FAILED:\n${error.message}\n\n🔍 This could indicate:\n- Network connectivity issue\n- Supabase function problem\n- Dodo Payments API unavailable`;
+            } finally {
+                button.disabled = false;
+                button.textContent = '🔄 Run Discovery Again';
+            }
+        }
+        
+        function getAuthToken() {
+            return '***REMOVED***';
+        }
+        
+        window.addEventListener('load', () => {
+            console.log('🔍 Endpoint Discovery Test Page Loaded');
+        });
+    </script>
+</body>
+</html>

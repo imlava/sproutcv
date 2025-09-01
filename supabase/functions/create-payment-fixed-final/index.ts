@@ -177,7 +177,7 @@ serve(async (req) => {
       headers.set("Accept", "application/json");
       headers.set("User-Agent", "SproutCV/2.0");
 
-      const response = await fetch(`${dodoBaseUrl}/api/checkout_sessions`, {
+      const response = await fetch(`${dodoBaseUrl}/v1/payments`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(paymentData)
