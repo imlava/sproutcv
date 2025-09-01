@@ -18,14 +18,30 @@ const ResetPasswordForm = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const token = searchParams.get('token');
+  
+  // Get token from URL hash (Supabase auth format) or query params
+  const getTokenFromUrl = () => {
+    // Check URL hash first (Supabase format: #access_token=...&refresh_token=...)
+    const hash = window.location.hash;
+    if (hash.includes('access_token=')) {
+      const params = new URLSearchParams(hash.substring(1));
+      return params.get('access_token');
+    }
+    // Fallback to query params
+    return searchParams.get('token');
+  };
+  
+  const token = getTokenFromUrl();
 
   useEffect(() => {
+    console.log('Current URL:', window.location.href);
+    console.log('Hash:', window.location.hash);
+    console.log('Search params:', window.location.search);
+    console.log('Extracted token:', token ? token.substring(0, 20) + '...' : 'No token');
+    
     if (!token) {
       console.log("No token found, redirecting to auth");
       navigate('/auth');
-    } else {
-      console.log("Token found:", token.substring(0, 10) + "...");
     }
   }, [token, navigate]);
 
@@ -67,19 +83,15 @@ const ResetPasswordForm = () => {
     setLoading(true);
 
     try {
-      console.log("Submitting password reset request");
+      console.log("Attempting password update with Supabase auth");
       
-      const { data, error } = await supabase.functions.invoke('reset-password', {
-        body: { 
-          token: token,
-          newPassword: newPassword
-        }
+      // Use Supabase's built-in updateUser method
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
       });
 
-      console.log("Password reset response:", { data, error });
-
       if (error) {
-        console.error("Password reset error:", error);
+        console.error("Supabase updateUser error:", error);
         throw error;
       }
 

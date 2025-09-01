@@ -76,11 +76,13 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
       
       let errorMessage = error.message || "Invalid email or password";
       
-      // Handle specific error cases
+      // Handle specific error cases with better messaging
       if (error.message?.includes('Invalid login credentials')) {
         errorMessage = 'Invalid email or password. Please check your credentials.';
       } else if (error.message?.includes('Email not confirmed') || error.message?.includes('email_not_confirmed')) {
-        errorMessage = 'Please check your email and click the verification link before signing in.';
+        errorMessage = 'Please verify your email address first. Check your inbox for the verification link.';
+      } else if (error.message?.includes('email link has expired')) {
+        errorMessage = 'Your verification link has expired. Please request a new password reset.';
       } else if (error.message?.includes('Too many requests')) {
         errorMessage = 'Too many login attempts. Please try again later.';
       } else if (error.message?.includes('User not found')) {
