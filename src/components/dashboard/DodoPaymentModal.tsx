@@ -64,51 +64,83 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
     setLoading(true);
 
     try {
+      console.log('🎯 Initiating enhanced payment:', { credits, price, discountPercent });
+
       // Apply discount if any
       const finalAmount = discountPercent > 0 
         ? Math.round(price * (1 - discountPercent / 100) * 100) // Convert to cents
         : price * 100; // Convert to cents
 
-      // Create payment with Dodo Payments
+      // Determine plan type for better tracking
+      const planType = credits === 5 ? 'starter' : credits === 15 ? 'pro' : credits === 30 ? 'premium' : 'custom';
+
+      console.log('💰 Payment details:', { credits, finalAmount, planType });
+
+      // Enhanced payment creation with Dodo Payments
       const { data, error } = await supabase.functions.invoke('create-payment', {
         body: { 
           credits,
-          amount: finalAmount
+          amount: finalAmount,
+          planType,
+          test_mode: false // Set to true for testing
         }
       });
 
       if (error) {
+        console.error('❌ Payment creation error:', error);
         throw new Error(error.message);
       }
 
-      if (data?.url) {
-        // Open Dodo Payments checkout in a new tab
-        const win = window.open(data.url, '_blank');
+      console.log('✅ Payment response:', data);
+
+      if (data?.url && data?.paymentId) {
+        // Enhanced payment tracking
+        const paymentData = {
+          paymentId: data.paymentId,
+          credits,
+          amount: finalAmount,
+          planType,
+          timestamp: Date.now(),
+          provider: 'dodo_payments',
+          currency: data.currency || 'USD',
+          environment: data.environment || 'production',
+          recordId: data.recordId
+        };
+
+        // Store for tracking
+        localStorage.setItem('pending_payment', JSON.stringify(paymentData));
+        
+        // Open Dodo Payments checkout
+        const win = window.open(data.url, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+        
         if (!win) {
           throw new Error('Popup blocked. Please allow popups to complete payment.');
         }
         
+        // Monitor popup for completion
+        const checkClosed = setInterval(() => {
+          if (win.closed) {
+            clearInterval(checkClosed);
+            // Check payment status after popup closes
+            setTimeout(() => {
+              checkPendingPayment(data.paymentId);
+            }, 2000);
+          }
+        }, 1000);
+
         toast({
-          title: "Payment Initiated",
-          description: "Complete your payment in the new tab to add credits to your account.",
-          duration: 5000,
+          title: "🚀 Payment Initiated",
+          description: "Complete your payment in the new tab. We'll automatically verify your payment.",
+          duration: 7000,
         });
-        
-        // Store payment info for tracking (persist provider for clarity)
-        localStorage.setItem('pending_payment', JSON.stringify({
-          paymentId: data.paymentId,
-          credits,
-          amount: finalAmount,
-          timestamp: Date.now(),
-          provider: data.paymentMethod || 'dodo_payments'
-        }));
         
         onClose();
       } else {
-        throw new Error("No payment URL received");
+        console.error('❌ Invalid payment response:', data);
+        throw new Error("Invalid payment response - missing URL or payment ID");
       }
     } catch (error: any) {
-      console.error('Payment error:', error);
+      console.error('💥 Payment error:', error);
       toast({
         variant: "destructive",
         title: "Payment Failed",
@@ -116,6 +148,52 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Enhanced payment status checking
+  const checkPendingPayment = async (paymentId: string) => {
+    try {
+      console.log('🔍 Checking payment status:', paymentId);
+      
+      const { data, error } = await supabase.functions.invoke('check-payment-status', {
+        body: { paymentId }
+      });
+
+      if (error) {
+        console.error('❌ Status check error:', error);
+        return;
+      }
+
+      console.log('📊 Payment status:', data);
+
+      if (data?.status === 'completed') {
+        localStorage.removeItem('pending_payment');
+        
+        toast({
+          title: "🎉 Payment Successful!",
+          description: `${data.credits} credits have been added to your account.`,
+        });
+        
+        onSuccess(); // Refresh the parent component
+      } else if (data?.status === 'failed') {
+        localStorage.removeItem('pending_payment');
+        
+        toast({
+          variant: "destructive",
+          title: "Payment Failed",
+          description: "Your payment could not be processed. Please try again.",
+        });
+      } else if (data?.status === 'cancelled') {
+        localStorage.removeItem('pending_payment');
+        
+        toast({
+          title: "Payment Cancelled",
+          description: "Your payment was cancelled. You can try again anytime.",
+        });
+      }
+    } catch (error) {
+      console.error('💥 Status check error:', error);
     }
   };
 
