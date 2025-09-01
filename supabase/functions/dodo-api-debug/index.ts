@@ -112,7 +112,7 @@ serve(async (req) => {
       };
       
       console.log("Calling Dodo API...");
-      const response = await fetch("https://api.dodopayments.com/v1/payments", {
+      const response = await fetch("https://test.dodopayments.com/api/checkout_sessions", {
         method: "POST",
         headers: headers,
         body: JSON.stringify(testPayload)

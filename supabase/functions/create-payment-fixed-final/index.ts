@@ -119,8 +119,8 @@ serve(async (req) => {
 
     const domain = getDomain();
     const dodoBaseUrl = test_mode 
-      ? "https://api.sandbox.dodopayments.com" 
-      : "https://api.dodopayments.com";
+      ? "https://test.dodopayments.com" 
+      : "https://live.dodopayments.com";
 
     // STEP 6: Prepare payment data
     const paymentData = {
@@ -177,7 +177,7 @@ serve(async (req) => {
       headers.set("Accept", "application/json");
       headers.set("User-Agent", "SproutCV/2.0");
 
-      const response = await fetch(`${dodoBaseUrl}/v1/checkout_sessions`, {
+      const response = await fetch(`${dodoBaseUrl}/api/checkout_sessions`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(paymentData)

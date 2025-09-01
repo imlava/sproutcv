@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Dodo API Test</title>
+    <style>
+        body { 
+            font-family: 'Courier New', monospace; 
+            background: #0a0e27; 
+            color: #fff; 
+            padding: 20px;
+            margin: 0;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: #1a1a2e; 
+            padding: 30px; 
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid #333;
+        }
+        h1 { 
+            color: #00d4aa; 
+            text-align: center; 
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            text-shadow: 0 0 10px rgba(0, 212, 170, 0.5);
+        }
+        .section {
+            background: #16213e;
+            padding: 25px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border-left: 5px solid #00d4aa;
+        }
+        .section h3 {
+            color: #4fc3f7;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        button { 
+            background: linear-gradient(135deg, #00d4aa, #007a6b);
+            color: white; 
+            border: none; 
+            padding: 18px 35px; 
+            border-radius: 30px;
+            cursor: pointer; 
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0, 212, 170, 0.3);
+            display: block;
+            margin: 30px auto;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.5);
+            background: linear-gradient(135deg, #00f5cc, #00a085);
+        }
+        button:disabled { 
+            background: #555; 
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .results { 
+            background: #000;
+            color: #00ff00; 
+            padding: 25px; 
+            border-radius: 10px;
+            white-space: pre-wrap; 
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            max-height: 700px;
+            overflow-y: auto;
+            border: 2px solid #333;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .success { 
+            border-color: #00d4aa;
+            background: #0a1a15;
+        }
+        .error { 
+            border-color: #ff4757;
+            background: #1a0a0a;
+            color: #ff6b6b;
+        }
+        .loading {
+            text-align: center;
+            color: #4fc3f7;
+            font-style: italic;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 15px;
+            text-transform: uppercase;
+        }
+        .status-badge.success { background: #00d4aa; color: #000; }
+        .status-badge.error { background: #ff4757; color: #fff; }
+        .status-badge.warning { background: #ffa502; color: #000; }
+        .api-info {
+            background: #0f1419;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #333;
+        }
+        .api-info h4 {
+            color: #00d4aa;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Real Dodo Payments API Test</h1>
+        
+        <div class="section">
+            <h3>🔑 API Key Information</h3>
+            <div class="api-info">
+                <h4>Current API Key:</h4>
+                <p><strong>Length:</strong> 65 characters ✅</p>
+                <p><strong>Format:</strong> 8SSKFEsfH2o...KVzB2t ✅</p>
+                <p><strong>Source:</strong> Real Dodo Payments Dashboard ✅</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>🧪 Test Coverage</h3>
+            <ul>
+                <li>✅ Test multiple Dodo API endpoints</li>
+                <li>✅ Verify API key authentication</li>
+                <li>✅ Check webhook connectivity</li>
+                <li>✅ Identify working endpoint</li>
+                <li>✅ Generate implementation recommendations</li>
+            </ul>
+        </div>
+
+        <button id="runTest" onclick="runRealDodoTest()">🚀 Test Real Dodo API</button>
+        
+        <div class="section">
+            <h3 id="resultsTitle">📊 API Test Results</h3>
+            <div id="results" class="results" style="display: none;">
+                Waiting for test results...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runRealDodoTest() {
+            const button = document.getElementById('runTest');
+            const results = document.getElementById('results');
+            const resultsTitle = document.getElementById('resultsTitle');
+            
+            button.disabled = true;
+            button.textContent = '🔄 Testing Real API...';
+            results.style.display = 'block';
+            results.className = 'results loading';
+            results.textContent = '🔄 Testing real Dodo Payments API...\n⏳ This may take 10-15 seconds...\n🎯 Using your actual API key from dashboard...';
+            
+            try {
+                console.log('🎯 Starting real Dodo API test...');
+                
+                const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/test-real-dodo-api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}`
+                    },
+                    body: JSON.stringify({
+                        test: 'real-dodo-api'
+                    })
+                });
+                
+                console.log('📡 Response received:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('📊 Test results:', data);
+                
+                // Format comprehensive results
+                let output = '=== REAL DODO PAYMENTS API TEST RESULTS ===\n\n';
+                
+                // API Key Status
+                output += '🔑 API KEY STATUS:\n';
+                if (data.apiKey) {
+                    output += `  ✅ Length: ${data.apiKey.length} characters\n`;
+                    output += `  ✅ Format: ${data.apiKey.format}\n`;
+                    output += `  🔍 Preview: ${data.apiKey.preview}\n\n`;
+                }
+                
+                // Endpoint Tests
+                output += '🌐 ENDPOINT TESTS:\n';
+                if (data.endpointTests) {
+                    for (const [endpoint, result] of Object.entries(data.endpointTests)) {
+                        if (endpoint === 'webhook_test') continue;
+                        
+                        output += `\n📍 ${endpoint}:\n`;
+                        if (result.error) {
+                            output += `  ❌ ERROR: ${result.error}\n`;
+                            output += `  🔧 Type: ${result.type || 'Unknown'}\n`;
+                        } else {
+                            output += `  📊 Status: ${result.status}\n`;
+                            output += `  ${result.ok ? '✅' : '❌'} Success: ${result.ok}\n`;
+                            if (result.data && typeof result.data === 'object') {
+                                output += `  📄 Response: ${JSON.stringify(result.data, null, 2)}\n`;
+                            }
+                        }
+                    }
+                }
+                
+                // Webhook Test
+                output += '\n🔗 WEBHOOK TEST:\n';
+                if (data.endpointTests?.webhook_test) {
+                    const webhook = data.endpointTests.webhook_test;
+                    output += `  📊 Status: ${webhook.status || 'N/A'}\n`;
+                    output += `  ${webhook.accessible ? '✅' : '❌'} Accessible: ${webhook.accessible}\n`;
+                    if (webhook.error) {
+                        output += `  ❌ Error: ${webhook.error}\n`;
+                    }
+                }
+                
+                // Recommendation
+                output += '\n💡 RECOMMENDATION:\n';
+                output += `  ${data.recommendation}\n`;
+                
+                // Determine overall status
+                const hasSuccessfulEndpoint = Object.values(data.endpointTests || {})
+                    .some(result => result.ok === true);
+                
+                if (hasSuccessfulEndpoint) {
+                    results.className = 'results success';
+                    resultsTitle.innerHTML = '📊 API Test Results <span class="status-badge success">SUCCESS</span>';
+                } else {
+                    results.className = 'results error';
+                    resultsTitle.innerHTML = '📊 API Test Results <span class="status-badge error">FAILED</span>';
+                }
+                
+                results.textContent = output;
+                
+            } catch (error) {
+                console.error('❌ Test failed:', error);
+                results.className = 'results error';
+                resultsTitle.innerHTML = '📊 API Test Results <span class="status-badge error">ERROR</span>';
+                results.textContent = `❌ REAL API TEST FAILED:\n${error.message}\n\n🔍 Possible causes:\n- Network connectivity issue\n- Supabase function deployment problem\n- Authentication error`;
+            } finally {
+                button.disabled = false;
+                button.textContent = '🔄 Test Again';
+            }
+        }
+        
+        function getAuthToken() {
+            return '***REMOVED***';
+        }
+        
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            console.log('🎯 Real Dodo API Test Page Loaded');
+        });
+    </script>
+</body>
+</html>
