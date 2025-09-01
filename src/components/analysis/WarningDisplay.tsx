@@ -15,9 +15,12 @@ import {
   HelpCircle,
   Target,
   TrendingUp,
-  Award
+  Award,
+  Lightbulb,
+  CheckCircle2
 } from 'lucide-react';
 import { Warning } from '@/types/validation';
+import ContextualHelp from '@/components/help/ContextualHelp';
 
 interface WarningDisplayProps {
   warnings: Warning[];
@@ -45,31 +48,41 @@ export const WarningDisplay: React.FC<WarningDisplayProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <AlertTriangle className="w-5 h-5 text-warning" />
-        <h2 className="text-lg font-semibold text-foreground">Resume Analysis Alerts</h2>
-        <Badge variant="outline" className="ml-auto">
-          {warnings.length} {warnings.length === 1 ? 'Issue' : 'Issues'} Found
+    <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-12 h-12 bg-gradient-to-br from-warning to-destructive rounded-xl flex items-center justify-center">
+          <AlertTriangle className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex-1">
+          <h2 className="text-xl font-bold text-foreground">Critical Issues Found</h2>
+          <p className="text-muted-foreground">
+            These issues could significantly impact your application success
+          </p>
+        </div>
+        <Badge variant="destructive" className="text-base px-4 py-2 font-semibold">
+          {warnings.length} {warnings.length === 1 ? 'Issue' : 'Issues'}
         </Badge>
       </div>
 
-      {warnings.map(warning => (
-        <WarningCard
-          key={warning.id}
-          warning={warning}
-          isExpanded={expandedWarnings.includes(warning.id)}
-          onExpand={() => handleExpand(warning.id)}
-          onDismiss={() => onDismiss(warning.id)}
-          onAction={(action) => onAction(warning.id, action)}
-        />
-      ))}
+      <div className="space-y-4">
+        {warnings.map((warning, index) => (
+          <WarningCard
+            key={warning.id}
+            warning={warning}
+            index={index}
+            isExpanded={expandedWarnings.includes(warning.id)}
+            onExpand={() => handleExpand(warning.id)}
+            onDismiss={() => onDismiss(warning.id)}
+            onAction={(action) => onAction(warning.id, action)}
+          />
+        ))}
+      </div>
 
-      <Alert>
-        <Info className="w-4 h-4" />
-        <AlertDescription>
-          These alerts identify significant gaps that could impact your application success. 
-          Review each item and take action to improve your match score.
+      <Alert className="bg-primary/5 border-primary/20">
+        <Lightbulb className="w-4 h-4" />
+        <AlertDescription className="text-sm">
+          <strong>Pro Tip:</strong> Addressing these issues can improve your match score by 20-40%. 
+          Click on any warning to see detailed solutions and examples.
         </AlertDescription>
       </Alert>
     </div>
@@ -78,6 +91,7 @@ export const WarningDisplay: React.FC<WarningDisplayProps> = ({
 
 interface WarningCardProps {
   warning: Warning;
+  index: number;
   isExpanded: boolean;
   onExpand: () => void;
   onDismiss: () => void;
@@ -86,6 +100,7 @@ interface WarningCardProps {
 
 const WarningCard: React.FC<WarningCardProps> = ({
   warning,
+  index,
   isExpanded,
   onExpand,
   onDismiss,
@@ -137,29 +152,68 @@ const WarningCard: React.FC<WarningCardProps> = ({
   };
 
   return (
-    <Card className={`transition-all duration-200 ${getSeverityStyles(warning.severity)}`}>
-      <div className="p-6">
+    <Card className={`transition-all duration-300 hover:shadow-lg ${getSeverityStyles(warning.severity)} relative overflow-hidden`}>
+      {/* Severity indicator bar */}
+      <div className={`absolute top-0 left-0 w-1 h-full ${
+        warning.severity === 'HIGH' ? 'bg-destructive' : 
+        warning.severity === 'MEDIUM' ? 'bg-warning' : 'bg-muted-foreground'
+      }`} />
+      
+      <div className="p-6 pl-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {getSeverityIcon(warning.severity)}
-            <div>
-              <h3 className="font-semibold text-foreground flex items-center gap-2">
-                {warning.title}
-                <Badge variant={warning.severity === 'HIGH' ? 'destructive' : warning.severity === 'MEDIUM' ? 'secondary' : 'outline'}>
-                  {warning.severity}
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-4 flex-1">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              warning.severity === 'HIGH' ? 'bg-destructive/10 text-destructive' :
+              warning.severity === 'MEDIUM' ? 'bg-warning/10 text-warning' : 
+              'bg-muted text-muted-foreground'
+            }`}>
+              {getSeverityIcon(warning.severity)}
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="font-bold text-lg text-foreground">{warning.title}</h3>
+                <Badge 
+                  variant={warning.severity === 'HIGH' ? 'destructive' : warning.severity === 'MEDIUM' ? 'secondary' : 'outline'}
+                  className="text-xs font-medium"
+                >
+                  {warning.severity} PRIORITY
                 </Badge>
-              </h3>
-              <p className="text-sm text-muted-foreground mt-1">{warning.description}</p>
+                <div className="ml-auto flex items-center gap-2">
+                  <ContextualHelp warning={warning}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <HelpCircle className="w-4 h-4" />
+                    </Button>
+                  </ContextualHelp>
+                </div>
+              </div>
+              
+              <p className="text-muted-foreground leading-relaxed mb-4">{warning.description}</p>
+              
+              {/* Quick stats */}
+              <div className="flex items-center gap-4 text-sm mb-4">
+                <div className="flex items-center gap-1">
+                  <Target className="w-4 h-4 text-primary" />
+                  <span className="text-muted-foreground">Impact Score: </span>
+                  <span className="font-semibold text-foreground">{Math.round(warning.criticalityScore * 100)}%</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                  <span className="text-muted-foreground">Solutions: </span>
+                  <span className="font-semibold text-foreground">{warning.solutions.length}</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          
+          <div className="flex items-center gap-2 ml-4">
             {warning.dismissible && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onDismiss}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -168,7 +222,7 @@ const WarningCard: React.FC<WarningCardProps> = ({
               variant="ghost"
               size="sm"
               onClick={onExpand}
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
             >
               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </Button>
