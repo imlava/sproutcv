@@ -158,17 +158,16 @@ async function performEnhancedResumeAnalysis(resumeText: string, jobDescription:
   }
 
   // Extract comprehensive keywords and skills with semantic context
-  const { jobKeywords, resumeKeywords, technicalSkills, softSkills } = await extractComprehensiveKeywords(
+  const { jobKeywords, resumeKeywords, technicalSkills, softSkills } = extractComprehensiveKeywords(
     jobDesc, 
-    resume,
-    semanticSimilarity
+    resume
   );
 
-  // Calculate detailed matching scores
+  // Calculate detailed matching scores with proper string matching
   const matchingKeywords = jobKeywords.filter(keyword => 
-    resume.includes(keyword.toLowerCase())
+    resume.toLowerCase().includes(keyword.toLowerCase())
   );
-  const keywordMatch = Math.round((matchingKeywords.length / jobKeywords.length) * 100);
+  const keywordMatch = jobKeywords.length > 0 ? Math.round((matchingKeywords.length / jobKeywords.length) * 100) : 50;
 
   // Enhanced calculations
   const skillsAlignment = calculateEnhancedSkillsAlignment(resume, jobDesc, technicalSkills, softSkills);
@@ -217,7 +216,7 @@ async function performEnhancedResumeAnalysis(resumeText: string, jobDescription:
   };
 }
 
-function extractComprehensiveKeywords(jobDesc: string, resume: string) {
+function extractComprehensiveKeywords(jobDesc: string, resume: string): { jobKeywords: string[], resumeKeywords: string[], technicalSkills: string[], softSkills: string[] } {
   // Technical skills database
   const technicalSkills = [
     // Programming Languages
@@ -254,10 +253,10 @@ function extractComprehensiveKeywords(jobDesc: string, resume: string) {
     'cybersecurity', 'blockchain', 'iot', 'mobile development', 'web development'
   ];
 
-  // Extract job keywords
+  // Extract job keywords with proper case-insensitive matching
   const allKeywords = [...technicalSkills, ...softSkills, ...industryTerms];
-  const jobKeywords = allKeywords.filter(keyword => jobDesc.includes(keyword));
-  const resumeKeywords = allKeywords.filter(keyword => resume.includes(keyword));
+  const jobKeywords = allKeywords.filter(keyword => jobDesc.toLowerCase().includes(keyword.toLowerCase()));
+  const resumeKeywords = allKeywords.filter(keyword => resume.toLowerCase().includes(keyword.toLowerCase()));
 
   return { jobKeywords, resumeKeywords, technicalSkills, softSkills };
 }
@@ -265,18 +264,18 @@ function extractComprehensiveKeywords(jobDesc: string, resume: string) {
 function calculateEnhancedSkillsAlignment(resume: string, jobDesc: string, technicalSkills: string[], softSkills: string[]) {
   let score = 50; // Base score
   
-  // Technical skills matching
-  const jobTechSkills = technicalSkills.filter(skill => jobDesc.includes(skill));
-  const resumeTechSkills = technicalSkills.filter(skill => resume.includes(skill));
+  // Technical skills matching with proper case-insensitive comparison
+  const jobTechSkills = technicalSkills.filter(skill => jobDesc.toLowerCase().includes(skill.toLowerCase()));
+  const resumeTechSkills = technicalSkills.filter(skill => resume.toLowerCase().includes(skill.toLowerCase()));
   const techMatches = jobTechSkills.filter(skill => resumeTechSkills.includes(skill));
   
   if (jobTechSkills.length > 0) {
     score += Math.round((techMatches.length / jobTechSkills.length) * 30);
   }
   
-  // Soft skills matching
-  const jobSoftSkills = softSkills.filter(skill => jobDesc.includes(skill));
-  const resumeSoftSkills = softSkills.filter(skill => resume.includes(skill));
+  // Soft skills matching with proper case-insensitive comparison
+  const jobSoftSkills = softSkills.filter(skill => jobDesc.toLowerCase().includes(skill.toLowerCase()));
+  const resumeSoftSkills = softSkills.filter(skill => resume.toLowerCase().includes(skill.toLowerCase()));
   const softMatches = jobSoftSkills.filter(skill => resumeSoftSkills.includes(skill));
   
   if (jobSoftSkills.length > 0) {
@@ -326,8 +325,8 @@ function calculateEnhancedExperienceRelevance(resume: string, jobDesc: string, j
   
   let industryScore = 0;
   Object.entries(industries).forEach(([industry, terms]) => {
-    const jobMatch = terms.some(term => jobDesc.includes(term));
-    const resumeMatch = terms.some(term => resume.includes(term));
+    const jobMatch = terms.some(term => jobDesc.toLowerCase().includes(term.toLowerCase()));
+    const resumeMatch = terms.some(term => resume.toLowerCase().includes(term.toLowerCase()));
     if (jobMatch && resumeMatch) {
       industryScore += 5;
     }
