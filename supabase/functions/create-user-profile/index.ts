@@ -46,6 +46,36 @@ serve(async (req) => {
       }
     }
 
+    // Check if profile already exists (prevents duplicate key error)
+    const { data: existingProfile } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (existingProfile) {
+      console.log('Profile already exists for user:', userId);
+      // Update existing profile with referral info if needed
+      if (referrerUserId) {
+        await supabaseClient
+          .from('profiles')
+          .update({
+            referred_by: referrerUserId,
+            referral_code: userReferralCode
+          })
+          .eq('id', userId);
+      }
+      
+      return new Response(JSON.stringify({ 
+        message: "User profile already exists",
+        success: true,
+        referral_processed: !!referrerUserId
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Create user profile
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')

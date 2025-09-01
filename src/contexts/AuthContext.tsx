@@ -126,7 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Create user profile using Edge Function
       if (data.user && !error) {
         try {
-          await supabase.functions.invoke('create-user-profile', {
+          console.log('Creating user profile with referral code:', referralCode);
+          const response = await supabase.functions.invoke('create-user-profile', {
             body: {
               userId: data.user.id,
               email: email,
@@ -134,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               referralCode: referralCode
             }
           });
-          console.log('User profile created successfully');
+          console.log('User profile creation response:', response);
         } catch (profileError) {
           console.error('Failed to create user profile:', profileError);
           // Don't throw error here as signup was successful

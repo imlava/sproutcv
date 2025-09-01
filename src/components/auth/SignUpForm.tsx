@@ -37,6 +37,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
   
   // Check for referral code in URL
   const referralCode = query.get('ref');
+  
+  console.log('Referral code from URL:', referralCode);
 
   const getPasswordStrength = (password: string) => {
     const checks = [
