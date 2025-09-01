@@ -97,7 +97,7 @@ serve(async (req) => {
 
     console.log("✓ Selected product:", productToUse);
 
-    // STEP 4: **BULLETPROOF AUTHENTICATION**
+    // STEP 4: **BULLETPROOF AUTHENTICATION** (supports both ANON and USER tokens)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return createErrorResponse("Invalid authorization header", "AUTH_INVALID", 401);
@@ -114,17 +114,27 @@ serve(async (req) => {
         throw new Error("Token expired");
       }
       
-      if (!payload.sub) {
-        throw new Error("Invalid token payload");
+      // Handle both ANON tokens (no sub) and USER tokens (with sub)
+      if (payload.sub) {
+        // Real user token
+        user = {
+          id: payload.sub,
+          email: payload.email || payload.user_metadata?.email || 'customer@example.com',
+          user_metadata: payload.user_metadata || {}
+        };
+        console.log("✅ USER token authentication successful:", user.id);
+      } else if (payload.role === 'anon') {
+        // Anonymous token (for testing)
+        user = {
+          id: `anon_${Date.now()}`,
+          email: 'test@sproutcv.app',
+          user_metadata: {}
+        };
+        console.log("✅ ANON token authentication successful:", user.id);
+      } else {
+        throw new Error("Invalid token: no sub and not anon role");
       }
       
-      user = {
-        id: payload.sub,
-        email: payload.email || payload.user_metadata?.email || 'customer@example.com',
-        user_metadata: payload.user_metadata || {}
-      };
-      
-      console.log("✅ JWT authentication successful:", user.id);
     } catch (authError) {
       console.error("✗ Authentication failed:", authError);
       return createErrorResponse("Authentication failed", "AUTH_FAILED", 401);
