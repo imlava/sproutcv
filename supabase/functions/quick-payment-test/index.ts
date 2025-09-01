@@ -15,44 +15,45 @@ serve(async (req) => {
     
     const apiKey = "8SSKFEsfH2oztWzS.pvF6gFUWVK5JGfWgNjjuRl0SLVb4X-KMUT7GSw7EfnKVzB2t";
     
-    // Test the exact payload structure we're using
+    // **OFFICIAL DODO PAYMENTS PAYLOAD STRUCTURE** (from docs.dodopayments.com)
     const testPayload = {
-      amount: 500,
-      currency: "USD",
+      // REQUIRED: Generate payment link
+      payment_link: true,
       
-      // The product_cart field that caused 422 error before
-      product_cart: [{
-        name: "Resume Analysis Credits (5)",
-        description: "AI-powered resume analysis - 5 credits",
-        price: 500,
-        quantity: 1,
-        product_id: "resume_credits"
-      }],
-      
-      customer: {
-        email: "test@example.com",
-        name: "Test User",
-        id: "test_user_123"
+      // REQUIRED: Billing information (exact field names from official docs)
+      billing: {
+        city: "New York",         // REQUIRED: String
+        country: "US",           // REQUIRED: String (ISO 3166-1 alpha-2)
+        state: "NY",             // REQUIRED: String  
+        street: "123 Main St",   // REQUIRED: String
+        zipcode: "10001"         // REQUIRED: String (from webhook example)
       },
       
+      // REQUIRED: Customer information
+      customer: {
+        email: "test@example.com",  // REQUIRED: String
+        name: "Test User"           // REQUIRED: String
+      },
+      
+      // REQUIRED: Product cart (simplified structure from docs)
+      product_cart: [
+        {
+          product_id: "pdt_k7wJTFUEwjV6mbLUSUl8Y",  // REQUIRED: Actual Dodo product ID
+          quantity: 5                    // REQUIRED: Integer
+        }
+      ],
+      
+      // OPTIONAL: Return URL (where customer goes after payment)
+      return_url: "https://sproutcv.app/payments?status=success&amount=500&credits=5&source=dodo",
+      
+      // OPTIONAL: Metadata field (added in v0.12.0)
       metadata: {
         user_id: "test_user_123",
         credits: "5",
-        source: "web_app",
-        product: "resume_credits",
         plan_type: "starter",
-        environment: "production",
-        timestamp: new Date().toISOString()
-      },
-      
-      success_url: "https://sproutcv.app/payments?payment_id={payment_id}&status=success&amount=500&credits=5&source=dodo",
-      cancel_url: "https://sproutcv.app/payments?payment_id={payment_id}&status=cancelled&source=dodo",
-      webhook_url: "https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook",
-      webhook_events: ["payment.succeeded", "payment.failed", "payment.cancelled"],
-      
-      description: "5 Resume Analysis Credits",
-      expires_in: 3600,
-      payment_methods: ["card"]
+        source: "sproutcv_test",
+        environment: "test"
+      }
     };
     
     console.log("Testing with payload:", JSON.stringify(testPayload, null, 2));
@@ -64,9 +65,9 @@ serve(async (req) => {
     headers.set("Accept", "application/json");
     headers.set("User-Agent", "SproutCV/2.0");
     
-    console.log("Making API call to: https://live.dodopayments.com/payments");
+    console.log("Making API call to: https://live.dodopayments.com/checkouts");
     
-    const response = await fetch("https://live.dodopayments.com/payments", {
+    const response = await fetch("https://live.dodopayments.com/checkouts", {
       method: "POST",
       headers: headers,
       body: JSON.stringify(testPayload)
@@ -100,7 +101,7 @@ serve(async (req) => {
       success: true,
       test: "quick-payment-test",
       api_call: {
-        url: "https://live.dodopayments.com/payments",
+        url: "https://live.dodopayments.com/checkouts",
         method: "POST",
         status: response.status,
         ok: response.ok,

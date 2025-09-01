@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create SproutCV Products</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff; 
+            padding: 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px; 
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        h1 { 
+            text-align: center; 
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #fff, #f0f8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .intro {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 5px solid #00d4aa;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .product-card {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .product-card.popular {
+            border: 2px solid #00d4aa;
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
+        }
+        .product-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00d4aa;
+        }
+        .product-price {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .product-credits {
+            background: rgba(0, 212, 170, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        button { 
+            background: linear-gradient(135deg, #00d4aa, #007a6b);
+            color: white; 
+            border: none; 
+            padding: 18px 35px; 
+            border-radius: 25px;
+            cursor: pointer; 
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0, 212, 170, 0.3);
+            display: block;
+            margin: 30px auto;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.5);
+            background: linear-gradient(135deg, #00f5cc, #00a085);
+        }
+        button:disabled { 
+            background: #666; 
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .results { 
+            background: rgba(0,0,0,0.3);
+            color: #fff; 
+            padding: 25px; 
+            border-radius: 15px;
+            white-space: pre-wrap; 
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            max-height: 600px;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.2);
+            margin-top: 30px;
+        }
+        .success { 
+            border-left: 5px solid #00d4aa;
+        }
+        .error { 
+            border-left: 5px solid #ff4757;
+        }
+        .loading {
+            text-align: center;
+            color: #00d4aa;
+            font-style: italic;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .badge {
+            background: #ff4757;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            position: absolute;
+            top: -10px;
+            right: -10px;
+        }
+        .popular-badge {
+            background: #00d4aa;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Create SproutCV Products in Dodo Payments</h1>
+        
+        <div class="intro">
+            <h3>📋 What This Will Create:</h3>
+            <p>This will create all SproutCV credit packages in your Dodo Payments account with the correct pricing, descriptions, and metadata. Each product will be properly configured for immediate use in your payment system.</p>
+        </div>
+
+        <div class="products-grid">
+            <div class="product-card">
+                <div class="product-title">🎯 Starter Pack</div>
+                <div class="product-credits">5 Credits</div>
+                <div class="product-price">$5.00 <span style="font-size:0.6em; text-decoration:line-through; color:#ccc;">$7.50</span></div>
+                <p>Perfect for getting started with AI Resume Analysis, ATS Optimization, and Export Options.</p>
+            </div>
+            
+            <div class="product-card popular" style="position: relative;">
+                <div class="badge popular-badge">POPULAR</div>
+                <div class="product-title">⭐ Pro Pack</div>
+                <div class="product-credits">15 Credits</div>
+                <div class="product-price">$15.00 <span style="font-size:0.6em; text-decoration:line-through; color:#ccc;">$22.50</span></div>
+                <p>Most popular choice with Priority Support, Advanced Analytics, and Custom Templates.</p>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-title">💎 Premium Pack</div>
+                <div class="product-credits">30 Credits</div>
+                <div class="product-price">$25.00 <span style="font-size:0.6em; text-decoration:line-through; color:#ccc;">$45.00</span></div>
+                <p>Best value with Unlimited Exports, Personal Branding, and 30-Day History.</p>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-title">⚡ Single Credit</div>
+                <div class="product-credits">1 Credit</div>
+                <div class="product-price">$1.50</div>
+                <p>Individual resume analysis for one-time use.</p>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-title">🏢 Enterprise Pack</div>
+                <div class="product-credits">100 Credits</div>
+                <div class="product-price">$75.00 <span style="font-size:0.6em; text-decoration:line-through; color:#ccc;">$150.00</span></div>
+                <p>For teams with bulk processing, team management, and custom integrations.</p>
+            </div>
+        </div>
+
+        <button id="createBtn" onclick="createAllProducts()">🎉 Create All Products in Dodo Payments</button>
+        
+        <div id="results" class="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function createAllProducts() {
+            const button = document.getElementById('createBtn');
+            const results = document.getElementById('results');
+            
+            button.disabled = true;
+            button.textContent = '🔄 Creating Products...';
+            results.style.display = 'block';
+            results.className = 'results loading';
+            results.textContent = '🔄 Creating all SproutCV products in Dodo Payments...\n⏳ This may take 10-15 seconds...\n📦 Setting up 5 different credit packages...';
+            
+            try {
+                const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/create-sproutcv-products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ***REMOVED***'
+                    },
+                    body: JSON.stringify({ action: 'create_all_products' })
+                });
+                
+                const data = await response.json();
+                
+                let output = '=== SPROUTCV PRODUCTS CREATION RESULTS ===\n\n';
+                
+                if (data.summary) {
+                    output += '📊 SUMMARY:\n';
+                    output += `  🎯 Total Products: ${data.summary.total_products}\n`;
+                    output += `  ✅ Successful: ${data.summary.successful_creations}\n`;
+                    output += `  ❌ Failed: ${data.summary.failed_creations}\n`;
+                    output += `  📈 Success Rate: ${data.summary.success_rate}\n\n`;
+                }
+                
+                if (data.products_created) {
+                    output += '📦 INDIVIDUAL PRODUCT RESULTS:\n\n';
+                    data.products_created.forEach((product, i) => {
+                        output += `${i + 1}. ${product.product}\n`;
+                        output += `   💰 Price: ${product.price}\n`;
+                        output += `   📊 Credits: ${product.credits}\n`;
+                        output += `   🏷️ Plan: ${product.plan_type}\n`;
+                        output += `   📋 Status: ${product.analysis}\n`;
+                        
+                        if (product.product_id) {
+                            output += `   🆔 Product ID: ${product.product_id}\n`;
+                        }
+                        
+                        if (product.error) {
+                            output += `   ❌ Error: ${product.error}\n`;
+                        }
+                        
+                        output += '\n';
+                    });
+                }
+                
+                if (data.recommendation) {
+                    output += `💡 RECOMMENDATION:\n  ${data.recommendation}\n\n`;
+                }
+                
+                if (data.next_steps) {
+                    output += '📋 NEXT STEPS:\n';
+                    data.next_steps.forEach((step, i) => {
+                        output += `  ${step}\n`;
+                    });
+                }
+                
+                const successCount = data.products_created?.filter(p => p.success).length || 0;
+                const totalCount = data.products_created?.length || 0;
+                
+                if (successCount === totalCount && totalCount > 0) {
+                    results.className = 'results success';
+                } else if (successCount > 0) {
+                    results.className = 'results';
+                } else {
+                    results.className = 'results error';
+                }
+                
+                results.textContent = output;
+                
+            } catch (error) {
+                results.className = 'results error';
+                results.textContent = `❌ PRODUCT CREATION FAILED:\n${error.message}\n\nThis could indicate:\n- Network connectivity issue\n- API authentication problem\n- Dodo Payments service unavailable`;
+            } finally {
+                button.disabled = false;
+                button.textContent = '🔄 Create Products Again';
+            }
+        }
+    </script>
+</body>
+</html>

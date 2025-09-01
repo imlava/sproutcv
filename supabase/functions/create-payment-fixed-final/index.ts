@@ -142,6 +142,19 @@ serve(async (req) => {
         id: user.id
       },
       
+      // CRITICAL: Dodo Payments requires 'billing' field
+      billing: {
+        email: user.email,
+        name: user.email?.split('@')[0] || "Customer",
+        country: "US",
+        address: {
+          line1: "N/A",
+          city: "N/A", 
+          state: "N/A",
+          postal_code: "00000"
+        }
+      },
+      
       metadata: {
         user_id: user.id,
         credits: credits.toString(),

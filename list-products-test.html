@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Dodo Products</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #111; 
+            color: #fff; 
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: #222; 
+            padding: 20px; 
+            border-radius: 10px;
+        }
+        button { 
+            background: #007acc; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 5px;
+            cursor: pointer; 
+            font-size: 16px;
+            margin: 20px auto;
+            display: block;
+        }
+        button:hover { 
+            background: #005a9e; 
+        }
+        .results { 
+            background: #000; 
+            color: #0f0; 
+            padding: 20px; 
+            border-radius: 5px;
+            white-space: pre-wrap; 
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 List Dodo Products</h1>
+        <p>This will check what products exist in your Dodo account and try to create one if needed.</p>
+        
+        <button onclick="listProducts()">📋 List Products & Create If Needed</button>
+        
+        <div id="results" class="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function listProducts() {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            results.textContent = '🔄 Checking Dodo products...';
+            
+            try {
+                const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/list-dodo-products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ***REMOVED***'
+                    },
+                    body: JSON.stringify({ action: 'list_products' })
+                });
+                
+                const data = await response.json();
+                
+                let output = '=== DODO PRODUCTS CHECK RESULTS ===\n\n';
+                
+                if (data.environments_checked) {
+                    for (const [env, result] of Object.entries(data.environments_checked)) {
+                        output += `🌍 ${env.toUpperCase()} ENVIRONMENT:\n`;
+                        
+                        if (result.error) {
+                            output += `  ❌ Error: ${result.error}\n`;
+                        } else {
+                            output += `  📊 Status: ${result.status}\n`;
+                            output += `  ${result.ok ? '✅' : '❌'} Success: ${result.ok}\n`;
+                            output += `  🔍 Analysis: ${result.analysis}\n`;
+                            
+                            if (result.data && typeof result.data === 'object') {
+                                if (Array.isArray(result.data) && result.data.length > 0) {
+                                    output += `  📦 Products Found: ${result.data.length}\n`;
+                                    result.data.forEach((product, i) => {
+                                        output += `    ${i + 1}. ID: ${product.id || product.product_id || 'N/A'}, Name: ${product.name || 'N/A'}\n`;
+                                    });
+                                } else {
+                                    output += `  📄 Response: ${JSON.stringify(result.data, null, 2)}\n`;
+                                }
+                            }
+                        }
+                        output += '\n';
+                    }
+                }
+                
+                if (data.recommendation) {
+                    output += `💡 RECOMMENDATION:\n  ${data.recommendation}\n\n`;
+                }
+                
+                results.textContent = output;
+                
+            } catch (error) {
+                results.textContent = `❌ Failed to check products: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

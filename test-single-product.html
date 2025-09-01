@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Single Product Creation</title>
+    <style>
+        body { 
+            font-family: monospace; 
+            background: #111; 
+            color: #fff; 
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: #222; 
+            padding: 20px; 
+            border-radius: 10px;
+        }
+        button { 
+            background: #007acc; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 5px;
+            cursor: pointer; 
+            font-size: 16px;
+            margin: 20px auto;
+            display: block;
+        }
+        .results { 
+            background: #000; 
+            color: #0f0; 
+            padding: 20px; 
+            border-radius: 5px;
+            white-space: pre-wrap; 
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Single Product Creation</h1>
+        <p>This will test creating a simple product to identify validation issues.</p>
+        
+        <button onclick="testSingleProduct()">🔬 Test Product Creation</button>
+        
+        <div id="results" class="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function testSingleProduct() {
+            const results = document.getElementById('results');
+            results.style.display = 'block';
+            results.textContent = '🔄 Testing single product creation...';
+            
+            try {
+                const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/test-single-product', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ***REMOVED***'
+                    },
+                    body: JSON.stringify({ test: 'single_product' })
+                });
+                
+                const data = await response.json();
+                
+                let output = '=== SINGLE PRODUCT CREATION TEST ===\n\n';
+                
+                if (data.simple_product) {
+                    output += '🔬 SIMPLE PRODUCT TEST:\n';
+                    output += `  Status: ${data.simple_product.status}\n`;
+                    output += `  Success: ${data.simple_product.ok}\n`;
+                    output += `  Analysis: ${data.simple_product.analysis}\n`;
+                    
+                    if (data.simple_product.data) {
+                        output += '  Response:\n';
+                        output += JSON.stringify(data.simple_product.data, null, 2) + '\n';
+                    }
+                    
+                    output += '  Payload Sent:\n';
+                    output += JSON.stringify(data.simple_product.payload, null, 2) + '\n\n';
+                }
+                
+                if (data.complex_product) {
+                    output += '🧪 COMPLEX PRODUCT TEST:\n';
+                    output += `  Status: ${data.complex_product.status}\n`;
+                    output += `  Success: ${data.complex_product.ok}\n`;
+                    
+                    if (data.complex_product.data) {
+                        output += '  Response:\n';
+                        output += JSON.stringify(data.complex_product.data, null, 2) + '\n';
+                    }
+                    
+                    output += '  Payload Sent:\n';
+                    output += JSON.stringify(data.complex_product.payload, null, 2) + '\n\n';
+                }
+                
+                if (data.recommendation) {
+                    output += `💡 RECOMMENDATION:\n  ${data.recommendation}\n`;
+                }
+                
+                results.textContent = output;
+                
+            } catch (error) {
+                results.textContent = `❌ Test failed: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
