@@ -119,15 +119,22 @@ serve(async (req) => {
 
     const domain = getDomain();
     const dodoBaseUrl = test_mode 
-      ? "https://test.dodopayments.com" 
+      ? "https://live.dodopayments.com" 
       : "https://live.dodopayments.com";
 
     // STEP 6: Prepare payment data
     const paymentData = {
       amount: amount,
       currency: PRODUCT_CATALOG.resume_credits.currency,
-      product_id: "resume_credits",
-      quantity: 1,
+      
+      // CRITICAL: Dodo Payments requires 'product_cart' field
+      product_cart: [{
+        name: `Resume Analysis Credits (${credits})`,
+        description: `AI-powered resume analysis - ${credits} credits`,
+        price: amount,
+        quantity: 1,
+        product_id: "resume_credits"
+      }],
       
       customer: {
         email: user.email,
@@ -151,14 +158,6 @@ serve(async (req) => {
       webhook_events: ["payment.succeeded", "payment.failed", "payment.cancelled"],
       
       description: `${credits} ${PRODUCT_CATALOG.resume_credits.description}`,
-      line_items: [{
-        name: `Resume Analysis Credits (${credits})`,
-        description: `AI-powered resume analysis - ${credits} credits`,
-        amount: amount,
-        quantity: 1,
-        product_id: "resume_credits"
-      }],
-      
       expires_in: 3600,
       payment_methods: ["card"]
     };
@@ -177,7 +176,7 @@ serve(async (req) => {
       headers.set("Accept", "application/json");
       headers.set("User-Agent", "SproutCV/2.0");
 
-      const response = await fetch(`${dodoBaseUrl}/v1/payments`, {
+      const response = await fetch(`${dodoBaseUrl}/payments`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(paymentData)
