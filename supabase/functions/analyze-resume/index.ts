@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { Configuration, OpenAIApi } from "https://esm.sh/openai@4.28.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -111,8 +112,35 @@ async function performEnhancedResumeAnalysis(resumeText: string, jobDescription:
   const resume = resumeText.toLowerCase();
   const jobDesc = jobDescription.toLowerCase();
 
-  // Extract comprehensive keywords and skills
-  const { jobKeywords, resumeKeywords, technicalSkills, softSkills } = extractComprehensiveKeywords(jobDesc, resume);
+  // Initialize OpenAI
+  const openai = new OpenAIApi(new Configuration({
+    apiKey: Deno.env.get("OPENAI_API_KEY")
+  }));
+
+  // Get embeddings for semantic matching
+  const [resumeEmbedding, jobEmbedding] = await Promise.all([
+    openai.createEmbedding({
+      model: "text-embedding-ada-002",
+      input: resumeText
+    }),
+    openai.createEmbedding({
+      model: "text-embedding-ada-002",
+      input: jobDescription
+    })
+  ]);
+
+  // Calculate semantic similarity
+  const semanticSimilarity = calculateCosineSimilarity(
+    resumeEmbedding.data.data[0].embedding,
+    jobEmbedding.data.data[0].embedding
+  );
+
+  // Extract comprehensive keywords and skills with semantic context
+  const { jobKeywords, resumeKeywords, technicalSkills, softSkills } = await extractComprehensiveKeywords(
+    jobDesc, 
+    resume,
+    semanticSimilarity
+  );
 
   // Calculate detailed matching scores
   const matchingKeywords = jobKeywords.filter(keyword => 
@@ -236,38 +264,112 @@ function calculateEnhancedSkillsAlignment(resume: string, jobDesc: string, techn
   return Math.min(score, 100);
 }
 
-function calculateEnhancedExperienceRelevance(resume: string, jobDesc: string, jobTitle?: string) {
-  let score = 60; // Base score
+function calculateEnhancedExperienceRelevance(resume: string, jobDesc: string, jobTitle?: string, semanticSimilarity: number) {
+  let score = 50; // Lower base score to allow more room for detailed analysis
   
-  // Extract years of experience
-  const resumeYears = extractYearsOfExperience(resume);
-  const jobYears = extractYearsOfExperience(jobDesc);
+  // Extract detailed experience information
+  const resumeExp = extractDetailedExperience(resume);
+  const jobExp = extractDetailedExperience(jobDesc);
   
-  if (resumeYears && jobYears) {
-    if (resumeYears >= jobYears) score += 15;
-    else if (resumeYears >= jobYears * 0.7) score += 10;
-    else if (resumeYears >= jobYears * 0.5) score += 5;
+  // Compare role levels with more granular scoring
+  if (resumeExp.level >= jobExp.level) {
+    score += 15;
+  } else if (resumeExp.level >= jobExp.level * 0.8) {
+    score += 10;
+  } else if (resumeExp.level >= jobExp.level * 0.6) {
+    score += 5;
   }
   
-  // Industry and role alignment
-  const industries = ['healthcare', 'finance', 'technology', 'education', 'retail', 'consulting', 'marketing'];
-  industries.forEach(industry => {
-    if (jobDesc.includes(industry) && resume.includes(industry)) {
-      score += 3;
+  // Compare years of experience with context
+  if (resumeExp.years && jobExp.years) {
+    if (resumeExp.years >= jobExp.years) {
+      score += 15;
+    } else if (resumeExp.years >= jobExp.years * 0.8) {
+      score += 10;
+    } else if (resumeExp.years >= jobExp.years * 0.6) {
+      score += 5;
+    }
+  }
+  
+  // Industry alignment with weighted scoring
+  const industries = {
+    'healthcare': ['medical', 'clinical', 'patient', 'health'],
+    'finance': ['banking', 'investment', 'financial', 'trading'],
+    'technology': ['software', 'tech', 'digital', 'IT'],
+    'education': ['teaching', 'academic', 'education', 'learning'],
+    'retail': ['retail', 'ecommerce', 'sales', 'store'],
+    'consulting': ['consulting', 'advisory', 'strategy', 'management'],
+    'marketing': ['marketing', 'advertising', 'brand', 'digital marketing']
+  };
+  
+  let industryScore = 0;
+  Object.entries(industries).forEach(([industry, terms]) => {
+    const jobMatch = terms.some(term => jobDesc.includes(term));
+    const resumeMatch = terms.some(term => resume.includes(term));
+    if (jobMatch && resumeMatch) {
+      industryScore += 5;
     }
   });
+  score += Math.min(industryScore, 15);
   
-  // Role-specific terms
+  // Role-specific terms with context
   if (jobTitle) {
-    const roleTerms = jobTitle.toLowerCase().split(' ');
-    roleTerms.forEach(term => {
-      if (term.length > 2 && resume.includes(term)) {
-        score += 2;
-      }
-    });
+    const roleTerms = extractRoleTerms(jobTitle);
+    const matchedTerms = roleTerms.filter(term => 
+      resume.toLowerCase().includes(term.toLowerCase())
+    );
+    score += Math.min(matchedTerms.length * 3, 10);
   }
   
+  // Add semantic similarity boost
+  score += Math.round(semanticSimilarity * 10);
+  
   return Math.min(score, 100);
+}
+
+function extractDetailedExperience(text: string) {
+  const levelIndicators = {
+    entry: ['entry', 'junior', 'associate', 'intern', 'graduate'],
+    mid: ['mid', 'intermediate', 'regular', 'experienced'],
+    senior: ['senior', 'lead', 'principal', 'architect', 'head', 'manager', 'director']
+  };
+  
+  // Calculate experience level (1-3)
+  let level = 1;
+  for (const [key, indicators] of Object.entries(levelIndicators)) {
+    if (indicators.some(i => text.toLowerCase().includes(i))) {
+      level = key === 'entry' ? 1 : key === 'mid' ? 2 : 3;
+      break;
+    }
+  }
+  
+  // Extract years of experience with multiple patterns
+  const yearPatterns = [
+    /(\d+)\+?\s*years?\s*of\s*experience/i,
+    /(\d+)\+?\s*years?\s*experience/i,
+    /experience\s*of\s*(\d+)\+?\s*years?/i,
+    /(\d+)\+?\s*yrs/i,
+    /(\d+)\+?\s*years?\s*in\s*(?:the\s*)?(?:industry|field)/i
+  ];
+  
+  let years = 0;
+  for (const pattern of yearPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const extracted = parseInt(match[1]);
+      if (extracted > years) years = extracted;
+    }
+  }
+  
+  return { level, years };
+}
+
+function extractRoleTerms(jobTitle: string): string[] {
+  const terms = jobTitle.toLowerCase().split(/\s+/);
+  return terms.filter(term => 
+    term.length > 2 && 
+    !['and', 'the', 'for', 'with'].includes(term)
+  );
 }
 
 function detectExperienceMismatch(resume: string, jobDesc: string, jobTitle?: string) {
@@ -387,6 +489,24 @@ function extractYearsOfExperience(text: string): number | null {
   }
   
   return null;
+}
+
+function calculateCosineSimilarity(embedding1: number[], embedding2: number[]): number {
+  if (embedding1.length !== embedding2.length) {
+    throw new Error('Embeddings must have the same length');
+  }
+
+  let dotProduct = 0;
+  let norm1 = 0;
+  let norm2 = 0;
+
+  for (let i = 0; i < embedding1.length; i++) {
+    dotProduct += embedding1[i] * embedding2[i];
+    norm1 += embedding1[i] * embedding1[i];
+    norm2 += embedding2[i] * embedding2[i];
+  }
+
+  return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
 }
 
 function suggestBetterMatchingRoles(resume: string) {

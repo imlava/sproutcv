@@ -16,18 +16,61 @@ import {
 } from '@/types/validation';
 import { supabase } from '@/integrations/supabase/client';
 
+interface CacheEntry {
+  result: ValidationResult;
+  timestamp: number;
+  hash: string;
+}
+
 export class ResumeMatchValidator {
+  private static readonly CACHE_DURATION = 1000 * 60 * 60; // 1 hour
+  private static instance: ResumeMatchValidator;
+  private cache: Map<string, CacheEntry>;
+
+  private constructor() {
+    this.cache = new Map();
+  }
+
+  static getInstance(): ResumeMatchValidator {
+    if (!ResumeMatchValidator.instance) {
+      ResumeMatchValidator.instance = new ResumeMatchValidator();
+    }
+    return ResumeMatchValidator.instance;
+  }
+
+  private generateHash(text: string): string {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash.toString(36);
+  }
+
+  private isCacheValid(entry: CacheEntry): boolean {
+    return Date.now() - entry.timestamp < ResumeMatchValidator.CACHE_DURATION;
+  }
+
+  private cleanCache(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.timestamp >= ResumeMatchValidator.CACHE_DURATION) {
+        this.cache.delete(key);
+      }
+    }
+  }
   private static readonly SEVERITY_THRESHOLDS = {
-    HIGH: 0.7,    // 70% mismatch
-    MEDIUM: 0.5,  // 50% mismatch  
-    LOW: 0.3      // 30% mismatch
+    HIGH: 0.8,    // 80% mismatch - Higher threshold for reduced false positives
+    MEDIUM: 0.6,  // 60% mismatch - More balanced medium severity
+    LOW: 0.4      // 40% mismatch - Higher bar for low severity warnings
   };
 
   private static readonly MINIMUM_TRIGGER_THRESHOLD = {
-    keywordMismatch: 0.4,     // Only trigger if > 40% keywords missing
-    skillsMismatch: 0.5,      // Only trigger if > 50% skills missing
-    experienceMismatch: 0.6,  // Only trigger if > 60% experience mismatch
-    achievementsMissing: 0.7  // Only trigger if > 70% achievements not quantified
+    keywordMismatch: 0.6,     // Only trigger if > 60% keywords missing
+    skillsMismatch: 0.7,      // Only trigger if > 70% skills missing
+    experienceMismatch: 0.7,  // Only trigger if > 70% experience mismatch
+    achievementsMissing: 0.8  // Only trigger if > 80% achievements not quantified
   };
 
   private static readonly INDUSTRY_CONTEXT = {
@@ -55,6 +98,18 @@ export class ResumeMatchValidator {
 
   async validateMatch(resumeText: string, jobDescription: string, userId?: string): Promise<ValidationResult> {
     try {
+      // Generate cache key
+      const resumeHash = this.generateHash(resumeText);
+      const jobHash = this.generateHash(jobDescription);
+      const cacheKey = `${resumeHash}:${jobHash}`;
+
+      // Check cache
+      const cachedEntry = this.cache.get(cacheKey);
+      if (cachedEntry && this.isCacheValid(cachedEntry)) {
+        console.log('Using cached validation result');
+        return cachedEntry.result;
+      }
+
       console.log('Starting resume validation...');
       
       const analysis = await this.performDeepAnalysis(resumeText, jobDescription);
@@ -67,6 +122,16 @@ export class ResumeMatchValidator {
         details: analysis,
         confidence
       };
+
+      // Store in cache
+      this.cache.set(cacheKey, {
+        result,
+        timestamp: Date.now(),
+        hash: cacheKey
+      });
+
+      // Clean old cache entries
+      this.cleanCache();
 
       // Log validation results for monitoring
       if (userId) {
@@ -110,16 +175,80 @@ export class ResumeMatchValidator {
   }
 
   private async analyzeKeywords(resumeText: string, jobDescription: string): Promise<KeywordAnalysisResult> {
-    const jobKeywords = this.extractJobKeywords(jobDescription);
-    const resumeKeywords = this.extractResumeKeywords(resumeText);
+    // Use NLP for better keyword extraction
+    const nlp = await import('compromise');
+    const natural = await import('natural');
+    const tokenizer = new natural.WordTokenizer();
+    const TfIdf = natural.TfIdf;
     
-    const semanticMatches = this.findSemanticMatches(resumeKeywords, jobKeywords);
-    const missingKeywords = this.identifyMissingKeywords(jobKeywords, resumeKeywords, semanticMatches);
-    const criticalKeywords = this.identifyCriticalKeywords(jobKeywords, semanticMatches);
+    // Initialize TF-IDF
+    const tfidf = new TfIdf();
+    tfidf.addDocument(jobDescription);
+    tfidf.addDocument(resumeText);
     
-    const matchScore = this.calculateKeywordMatchScore(jobKeywords, semanticMatches);
-    const keywordDensity = this.calculateKeywordDensity(resumeText, jobKeywords);
-    const contextualRelevance = this.calculateContextualRelevance(resumeText, jobDescription);
+    // Extract noun phrases and technical terms
+    const jobDoc = nlp.default(jobDescription);
+    const resumeDoc = nlp.default(resumeText);
+    
+    // Get noun phrases
+    const jobPhrases = jobDoc.match('#Noun+').out('array');
+    const resumePhrases = resumeDoc.match('#Noun+').out('array');
+    
+    // Get technical terms
+    const jobTech = jobDoc.match('#Technical+').out('array');
+    const resumeTech = resumeDoc.match('#Technical+').out('array');
+    
+    // Combine and filter unique terms
+    const jobKeywords = [...new Set([...jobPhrases, ...jobTech])];
+    const resumeKeywords = [...new Set([...resumePhrases, ...resumeTech])];
+    
+    // Use TF-IDF to identify important terms
+    const importantTerms = new Set<string>();
+    tfidf.listTerms(0 /* jobDescription */).forEach(item => {
+      if (item.tfidf > 5) { // Threshold for importance
+        importantTerms.add(item.term);
+      }
+    });
+    
+    // Enhanced semantic matching
+    const semanticMatches = await this.findSemanticMatches(
+      resumeKeywords,
+      jobKeywords,
+      importantTerms
+    );
+    
+    // Calculate scores with context
+    const matchScore = this.calculateContextualMatchScore(
+      semanticMatches,
+      jobKeywords,
+      resumeKeywords,
+      importantTerms
+    );
+    
+    const missingKeywords = this.identifyMissingKeywords(
+      jobKeywords,
+      resumeKeywords,
+      semanticMatches,
+      importantTerms
+    );
+    
+    const criticalKeywords = this.identifyCriticalKeywords(
+      jobKeywords,
+      semanticMatches,
+      importantTerms
+    );
+    
+    const keywordDensity = this.calculateEnhancedKeywordDensity(
+      resumeText,
+      jobKeywords,
+      importantTerms
+    );
+    
+    const contextualRelevance = await this.calculateContextualRelevance(
+      resumeText,
+      jobDescription,
+      importantTerms
+    );
 
     return {
       missingKeywords,
@@ -127,7 +256,8 @@ export class ResumeMatchValidator {
       criticalKeywords,
       semanticMatches,
       keywordDensity,
-      contextualRelevance
+      contextualRelevance,
+      importantTerms: Array.from(importantTerms)
     };
   }
 
@@ -474,13 +604,133 @@ export class ResumeMatchValidator {
   }
 
   private async analyzeATSCompatibility(resumeText: string): Promise<ATSCompatibilityResult> {
-    // Implementation for ATS compatibility
+    const issues: string[] = [];
+    let formatScore = 100;
+    let contentScore = 100;
+    
+    // Check for common ATS formatting issues
+    const formattingChecks = [
+      {
+        check: (text: string) => text.includes('│') || text.includes('─') || text.includes('┌') || text.includes('┐'),
+        penalty: 15,
+        issue: 'Tables or complex formatting detected - may cause parsing issues'
+      },
+      {
+        check: (text: string) => text.match(/\s{5,}/g) !== null,
+        penalty: 10,
+        issue: 'Excessive spacing detected - may affect parsing'
+      },
+      {
+        check: (text: string) => text.match(/[^\x00-\x7F]/g) !== null,
+        penalty: 10,
+        issue: 'Non-standard characters detected - may cause compatibility issues'
+      },
+      {
+        check: (text: string) => text.match(/\[.*?\]/g) !== null,
+        penalty: 5,
+        issue: 'Square brackets detected - may affect parsing'
+      }
+    ];
+
+    // Apply formatting checks
+    formattingChecks.forEach(({ check, penalty, issue }) => {
+      if (check(resumeText)) {
+        formatScore -= penalty;
+        issues.push(issue);
+      }
+    });
+
+    // Check for required sections
+    const requiredSections = [
+      { name: 'contact information', pattern: /(?:email|phone|address):/i },
+      { name: 'experience', pattern: /(?:experience|employment|work history):/i },
+      { name: 'education', pattern: /education:/i },
+      { name: 'skills', pattern: /(?:skills|expertise|competencies):/i }
+    ];
+
+    const missingSections = requiredSections.filter(
+      section => !section.pattern.test(resumeText)
+    );
+
+    if (missingSections.length > 0) {
+      contentScore -= (missingSections.length * 10);
+      issues.push(`Missing standard sections: ${missingSections.map(s => s.name).join(', ')}`);
+    }
+
+    // Check contact information format
+    const contactChecks = [
+      {
+        type: 'email',
+        pattern: /[\w.-]+@[\w.-]+\.\w+/,
+        penalty: 10,
+        issue: 'Email address not found or in incorrect format'
+      },
+      {
+        type: 'phone',
+        pattern: /(?:\+\d{1,3}[-. ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}/,
+        penalty: 5,
+        issue: 'Phone number not found or in incorrect format'
+      }
+    ];
+
+    contactChecks.forEach(({ pattern, penalty, issue }) => {
+      if (!pattern.test(resumeText)) {
+        contentScore -= penalty;
+        issues.push(issue);
+      }
+    });
+
+    // Check for proper date formatting
+    const dateCheck = resumeText.match(/(?:19|20)\d{2}(?:\s*[-–]\s*(?:present|current|now|\d{4})?)?/gi);
+    if (!dateCheck) {
+      contentScore -= 10;
+      issues.push('Dates not found or in incorrect format');
+    }
+
+    // Check bullet point consistency
+    const bulletPoints = resumeText.match(/[•\-\*]\s+/g);
+    if (!bulletPoints || bulletPoints.length < 3) {
+      contentScore -= 5;
+      issues.push('Limited or inconsistent use of bullet points');
+    }
+
+    // Generate recommendations based on issues
+    const recommendations = issues.map(issue => {
+      switch (true) {
+        case issue.includes('Tables'):
+          return 'Convert tables to bullet points or simple text format';
+        case issue.includes('spacing'):
+          return 'Use consistent single spacing and standard margins';
+        case issue.includes('characters'):
+          return 'Replace special characters with standard ASCII alternatives';
+        case issue.includes('sections'):
+          return 'Add all standard resume sections with clear headings';
+        case issue.includes('bullet points'):
+          return 'Use consistent bullet points to list achievements and responsibilities';
+        case issue.includes('Email'):
+          return 'Add a properly formatted email address';
+        case issue.includes('Phone'):
+          return 'Add a properly formatted phone number';
+        case issue.includes('Dates'):
+          return 'Use clear date ranges in YYYY-YYYY format';
+        default:
+          return 'Review and fix formatting issues for better ATS compatibility';
+      }
+    });
+
+    // Normalize scores
+    formatScore = Math.max(Math.min(formatScore, 100), 0);
+    contentScore = Math.max(Math.min(contentScore, 100), 0);
+
+    // Calculate overall score with weighted average
+    const score = (formatScore * 0.4 + contentScore * 0.6) / 100;
+
     return {
-      score: 0.8,
-      issues: [],
-      recommendations: [],
-      formatScore: 0.9,
-      contentScore: 0.7
+      score,
+      issues,
+      recommendations,
+      formatScore: formatScore / 100,
+      contentScore: contentScore / 100
     };
   }
 
