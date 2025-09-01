@@ -141,15 +141,17 @@ export class AIService {
     try {
       const { error } = await supabase
         .from('resume_analyses')
-        .insert([{
+        .insert({
           user_id: userId,
+          resume_text: 'Resume analysis', // Placeholder - will be set by calling function
+          job_description: 'Job analysis', // Placeholder - will be set by calling function
           analysis_results: analysis as any,
           overall_score: analysis.overallScore,
           keyword_match: analysis.keywordAnalysis.matched.length,
           skills_alignment: analysis.skillsGap.matchedSkills.length,
           ats_compatibility: analysis.atsCompatibility.score,
           experience_relevance: analysis.experienceMatch.relevantExperience ? 100 : 50
-        }]);
+        });
 
       if (error) {
         console.error('Database Save Error:', error);
@@ -163,16 +165,18 @@ export class AIService {
     try {
       const { error: logError } = await supabase
         .from('security_events')
-        .insert([{
-          event_type: 'error',
-          user_id: context.userId,
+        .insert({
+          event_type: 'ai_error',
+          user_id: context.userId || null,
           metadata: {
             error_type: error.name,
             error_message: error.message,
             error_stack: error.stack,
-            context: context
-          }
-        }]);
+            timestamp: context.timestamp,
+            userAgent: context.userAgent
+          } as any,
+          severity: 'high'
+        });
 
       if (logError) {
         console.error('Failed to log error:', logError);

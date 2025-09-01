@@ -64,32 +64,28 @@ export class ErrorMonitoring {
 
   private async saveErrorToDatabase(error: Error, context: ErrorContext): Promise<void> {
     try {
-      const errorData = {
-        error_type: error.name,
-        error_message: error.message,
-        error_stack: error.stack || '',
-        context: {
-          ...context,
-          timestamp: context.timestamp || new Date().toISOString(),
-          url: window.location.href,
-          userAgent: navigator.userAgent
-        },
-        severity: this.determineSeverity(error),
-        created_at: new Date().toISOString()
-      };
-
       const { error: dbError } = await supabase
         .from('security_events')
-        .insert([{
-          event_type: 'error',
-          user_id: context.userId,
-          metadata: errorData
-        }]);
+        .insert({
+          event_type: 'application_error',
+          user_id: context.userId || null,
+          metadata: {
+            error_type: error.name,
+            error_message: error.message,
+            error_stack: error.stack || '',
+            context: {
+              timestamp: context.timestamp || new Date().toISOString(),
+              url: typeof window !== 'undefined' ? window.location.href : '',
+              userAgent: context.userAgent || (typeof navigator !== 'undefined' ? navigator.userAgent : '')
+            }
+          } as any,
+          severity: this.determineSeverity(error)
+        });
 
       if (dbError) {
         console.error('Failed to save error to database:', dbError);
         // Fallback to local storage for critical errors
-        this.saveToLocalStorage(errorData);
+        this.saveToLocalStorage({ error, context });
       }
 
     } catch (saveError) {
@@ -99,25 +95,25 @@ export class ErrorMonitoring {
     }
   }
 
-  private determineSeverity(error: Error): 'low' | 'medium' | 'high' | 'critical' {
+  private determineSeverity(error: Error): string {
     switch (error.name) {
       case 'AIAnalysisError':
-        return 'high';
+        return 'critical';
       case 'ProcessingError':
-        return 'high';
+        return 'critical';
       case 'QuotaExceededError':
-        return 'medium';
+        return 'warning';
       case 'RateLimitError':
-        return 'low';
+        return 'info';
       case 'UnsupportedFileTypeError':
-        return 'low';
+        return 'info';
       case 'DocumentProcessingError':
-        return 'medium';
+        return 'warning';
       default:
         if (error.message.includes('network') || error.message.includes('fetch')) {
-          return 'medium';
+          return 'warning';
         }
-        return 'high';
+        return 'critical';
     }
   }
 
@@ -145,7 +141,7 @@ export class ErrorMonitoring {
     }
   }
 
-  // Public method to get error statistics
+  // Public method to get error statistics using existing security_events table
   async getErrorStats(userId?: string): Promise<{
     total: number;
     byType: Record<string, number>;
@@ -154,12 +150,13 @@ export class ErrorMonitoring {
   }> {
     try {
       let query = supabase
-        .from('error_logs')
+        .from('security_events')
         .select('*')
+        .eq('event_type', 'application_error')
         .order('created_at', { ascending: false });
 
       if (userId) {
-        query = query.eq('context->userId', userId);
+        query = query.eq('user_id', userId);
       }
 
       const { data: errors, error } = await query.limit(100);
@@ -176,8 +173,11 @@ export class ErrorMonitoring {
       };
 
       errors?.forEach(err => {
-        stats.byType[err.error_type] = (stats.byType[err.error_type] || 0) + 1;
-        stats.bySeverity[err.severity] = (stats.bySeverity[err.severity] || 0) + 1;
+        const errorType = (err.metadata as any)?.error_type || 'unknown';
+        const severity = err.severity || 'unknown';
+        
+        stats.byType[errorType] = (stats.byType[errorType] || 0) + 1;
+        stats.bySeverity[severity] = (stats.bySeverity[severity] || 0) + 1;
       });
 
       return stats;
@@ -200,8 +200,9 @@ export class ErrorMonitoring {
       cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
       const { error } = await supabase
-        .from('error_logs')
+        .from('security_events')
         .delete()
+        .eq('event_type', 'application_error')
         .lt('created_at', cutoffDate.toISOString());
 
       if (error) {
@@ -217,12 +218,13 @@ export class ErrorMonitoring {
   async exportErrors(userId?: string, startDate?: string, endDate?: string): Promise<any[]> {
     try {
       let query = supabase
-        .from('error_logs')
+        .from('security_events')
         .select('*')
+        .eq('event_type', 'application_error')
         .order('created_at', { ascending: false });
 
       if (userId) {
-        query = query.eq('context->userId', userId);
+        query = query.eq('user_id', userId);
       }
 
       if (startDate) {
