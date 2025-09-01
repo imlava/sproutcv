@@ -210,7 +210,12 @@ const UnifiedResumeAnalyzer: React.FC = () => {
       });
 
       if (error) {
+        console.error('Analysis error:', error);
         throw new Error(error.message || 'Analysis failed');
+      }
+
+      if (!data) {
+        throw new Error('No analysis results returned');
       }
 
       await updateProgress(90, 'Finalizing results...');
@@ -230,10 +235,16 @@ const UnifiedResumeAnalyzer: React.FC = () => {
 
     } catch (error) {
       console.error('Analysis error:', error);
-      updateState({ processing: false });
+      updateState({ 
+        processing: false,
+        step: 'job' // Return to job input step on error
+      });
+      
       toast({
         title: "Analysis Failed",
-        description: error instanceof Error ? error.message : "Analysis failed",
+        description: error instanceof Error ? 
+          error.message : 
+          "Failed to analyze resume. Please try again.",
         variant: "destructive",
       });
     }

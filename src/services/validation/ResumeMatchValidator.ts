@@ -24,9 +24,12 @@ interface CacheEntry {
 }
 
 export class ResumeMatchValidator {
+  // Add stack depth tracking to prevent infinite recursion
+  private static readonly MAX_RECURSION_DEPTH = 3;
   private static readonly CACHE_DURATION = 1000 * 60 * 60; // 1 hour
   private static instance: ResumeMatchValidator;
   private cache: Map<string, CacheEntry>;
+  private recursionDepth = 0;
 
   private constructor() {
     this.cache = new Map();
@@ -39,14 +42,11 @@ export class ResumeMatchValidator {
     return ResumeMatchValidator.instance;
   }
 
+  // Update hash generation to be more efficient
   private generateHash(text: string): string {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString(36);
+    return text.slice(0, 100).split('').reduce((hash, char) => {
+      return (((hash << 5) - hash) + char.charCodeAt(0)) | 0;
+    }, 0).toString(36);
   }
 
   private isCacheValid(entry: CacheEntry): boolean {
@@ -99,6 +99,11 @@ export class ResumeMatchValidator {
 
   async validateMatch(resumeText: string, jobDescription: string, userId?: string): Promise<ValidationResult> {
     try {
+      if (this.recursionDepth >= ResumeMatchValidator.MAX_RECURSION_DEPTH) {
+        throw new Error('Maximum recursion depth exceeded');
+      }
+      this.recursionDepth++;
+
       // Generate cache key
       const resumeHash = this.generateHash(resumeText);
       const jobHash = this.generateHash(jobDescription);
@@ -108,6 +113,7 @@ export class ResumeMatchValidator {
       const cachedEntry = this.cache.get(cacheKey);
       if (cachedEntry && this.isCacheValid(cachedEntry)) {
         console.log('Using cached validation result');
+        this.recursionDepth--;
         return cachedEntry.result;
       }
 
@@ -136,11 +142,15 @@ export class ResumeMatchValidator {
 
       // Log validation results for monitoring
       if (userId) {
-        await this.logValidationResults(userId, result);
+        await this.logValidationResults(userId, result).catch(error => {
+          console.error('Failed to log validation results:', error);
+        });
       }
 
+      this.recursionDepth--;
       return result;
     } catch (error) {
+      this.recursionDepth = 0; // Reset on error
       console.error('Validation error:', error);
       throw new ValidationError('Failed to validate resume match', 'VALIDATION_FAILED', error);
     }

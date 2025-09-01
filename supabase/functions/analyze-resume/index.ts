@@ -14,6 +14,14 @@ serve(async (req) => {
   }
 
   try {
+    // Check required environment variables
+    const requiredEnvVars = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
+    const missingEnvVars = requiredEnvVars.filter(varName => !Deno.env.get(varName));
+    
+    if (missingEnvVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingEnvVars.join(", ")}`);
+    }
+
     const body = await req.json();
     const resume_text = body.resumeText ?? body.resume_text;
     const job_description = body.jobDescription ?? body.job_description;
@@ -103,11 +111,17 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Analysis error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("Function error:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        details: Deno.env.get("DENO_DEPLOYMENT_ID") ? undefined : error.stack
+      }),
+      { 
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500
+      }
+    );
   }
 });
 
@@ -115,105 +129,110 @@ serve(async (req) => {
 async function performEnhancedResumeAnalysis(resumeText: string, jobDescription: string, jobTitle?: string) {
   const resume = resumeText.toLowerCase();
   const jobDesc = jobDescription.toLowerCase();
-
   let semanticSimilarity = 0.5; // Default fallback value
-  
+
   try {
-    // Try OpenAI first
     console.log("Attempting OpenAI analysis...");
-    const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openaiApiKey) {
+      throw new Error("OpenAI API key not configured");
+    }
 
-    // Get embeddings for semantic matching
-    const [resumeEmbedding, jobEmbedding] = await Promise.all([
-      openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: resumeText
-      }),
-      openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: jobDescription
-      })
-    ]);
+    const openai = new OpenAI({ apiKey: openaiApiKey });
 
-    // Calculate semantic similarity
-    semanticSimilarity = calculateCosineSimilarity(
-      resumeEmbedding.data[0].embedding,
-      jobEmbedding.data[0].embedding
-    );
-    
-    console.log("OpenAI analysis successful");
+    // Add error handling for embeddings with text length limits
+    try {
+      const [resumeEmbedding, jobEmbedding] = await Promise.all([
+        openai.embeddings.create({
+          model: "text-embedding-3-small",
+          input: resumeText.slice(0, 8000) // Add length limit to prevent token overflow
+        }),
+        openai.embeddings.create({
+          model: "text-embedding-3-small",
+          input: jobDescription.slice(0, 8000)
+        })
+      ]);
+
+      semanticSimilarity = calculateCosineSimilarity(
+        resumeEmbedding.data[0].embedding,
+        jobEmbedding.data[0].embedding
+      );
+      
+      console.log("OpenAI analysis successful, similarity:", semanticSimilarity);
+    } catch (embeddingError) {
+      console.error("OpenAI embeddings failed:", embeddingError);
+      throw embeddingError; // Propagate to outer catch block
+    }
   } catch (openaiError) {
     console.error("OpenAI failed, falling back to Gemini:", openaiError);
     
     try {
-      // Fallback to Gemini for semantic analysis
       semanticSimilarity = await getGeminiSemanticSimilarity(resumeText, jobDescription);
-      console.log("Gemini fallback successful");
+      console.log("Gemini fallback successful, similarity:", semanticSimilarity);
     } catch (geminiError) {
       console.error("Both OpenAI and Gemini failed:", geminiError);
-      // Use rule-based similarity as final fallback
       semanticSimilarity = calculateRuleBasedSimilarity(resume, jobDesc);
-      console.log("Using rule-based similarity fallback");
+      console.log("Using rule-based similarity fallback:", semanticSimilarity);
     }
   }
 
-  // Extract comprehensive keywords and skills with semantic context
-  const { jobKeywords, resumeKeywords, technicalSkills, softSkills } = extractComprehensiveKeywords(
-    jobDesc, 
-    resume
-  );
+  // Rest of the analysis with proper error handling
+  try {
+    const { jobKeywords, resumeKeywords, technicalSkills, softSkills } = extractComprehensiveKeywords(
+      jobDesc, 
+      resume
+    );
 
-  // Calculate detailed matching scores with proper string matching
-  const matchingKeywords = jobKeywords.filter(keyword => 
-    resume.toLowerCase().includes(keyword.toLowerCase())
-  );
-  const keywordMatch = jobKeywords.length > 0 ? Math.round((matchingKeywords.length / jobKeywords.length) * 100) : 50;
+    const matchingKeywords = jobKeywords.filter(keyword => 
+      resume.toLowerCase().includes(keyword.toLowerCase())
+    );
 
-  // Enhanced calculations
-  const skillsAlignment = calculateEnhancedSkillsAlignment(resume, jobDesc, technicalSkills, softSkills);
-  const atsCompatibility = calculateATSCompatibility(resumeText);
-  const experienceRelevance = calculateEnhancedExperienceRelevance(resume, jobDesc, jobTitle, semanticSimilarity);
-  
-  // Experience mismatch detection
-  const experienceMismatch = detectExperienceMismatch(resume, jobDesc, jobTitle);
-  
-  // Overall score with enhanced weighting
-  let overallScore = Math.round(
-    (keywordMatch * 0.35) +
-    (skillsAlignment * 0.25) +
-    (atsCompatibility * 0.15) +
-    (experienceRelevance * 0.25)
-  );
+    const keywordMatch = jobKeywords.length > 0 ? 
+      Math.round((matchingKeywords.length / jobKeywords.length) * 100) : 50;
 
-  // Apply penalty for major mismatches
-  if (experienceMismatch.severity === 'high') {
-    overallScore = Math.max(overallScore - 30, 10);
-  } else if (experienceMismatch.severity === 'medium') {
-    overallScore = Math.max(overallScore - 15, 20);
+    const skillsAlignment = calculateEnhancedSkillsAlignment(resume, jobDesc, technicalSkills, softSkills);
+    const atsCompatibility = calculateATSCompatibility(resumeText);
+    const experienceRelevance = calculateEnhancedExperienceRelevance(resume, jobDesc, jobTitle, semanticSimilarity);
+    const experienceMismatch = detectExperienceMismatch(resume, jobDesc, jobTitle);
+
+    // Calculate overall score with safeguards
+    const overallScore = Math.min(Math.max(
+      Math.round(
+        (keywordMatch * 0.35) +
+        (skillsAlignment * 0.25) +
+        (atsCompatibility * 0.15) +
+        (experienceRelevance * 0.25)
+      ),
+      0
+    ), 100);
+
+    // Generate enhanced suggestions
+    const suggestions = generateEnhancedSuggestions(
+      resume, 
+      jobDesc, 
+      matchingKeywords, 
+      jobKeywords, 
+      experienceMismatch,
+      overallScore
+    );
+
+    return {
+      overallScore,
+      keywordMatch,
+      skillsAlignment,
+      atsCompatibility,
+      experienceRelevance,
+      experienceMismatch,
+      suggestions,
+      matchingKeywords: matchingKeywords.length,
+      totalKeywords: jobKeywords.length,
+      recommendedRoles: experienceMismatch.severity !== 'none' ? 
+        suggestBetterMatchingRoles(resume) : []
+    };
+  } catch (analysisError) {
+    console.error("Analysis processing error:", analysisError);
+    throw new Error(`Analysis failed: ${analysisError.message}`);
   }
-
-  // Generate enhanced suggestions
-  const suggestions = generateEnhancedSuggestions(
-    resume, 
-    jobDesc, 
-    matchingKeywords, 
-    jobKeywords, 
-    experienceMismatch,
-    overallScore
-  );
-
-  return {
-    overallScore,
-    keywordMatch,
-    skillsAlignment,
-    atsCompatibility,
-    experienceRelevance,
-    experienceMismatch,
-    suggestions,
-    matchingKeywords: matchingKeywords.length,
-    totalKeywords: jobKeywords.length,
-    recommendedRoles: experienceMismatch.severity !== 'none' ? suggestBetterMatchingRoles(resume) : []
-  };
 }
 
 function extractComprehensiveKeywords(jobDesc: string, resume: string): { jobKeywords: string[], resumeKeywords: string[], technicalSkills: string[], softSkills: string[] } {
