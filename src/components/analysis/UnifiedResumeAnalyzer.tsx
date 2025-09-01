@@ -239,7 +239,7 @@ const UnifiedResumeAnalyzer: React.FC = () => {
       await updateProgress(20, 'Preparing analysis...');
       await updateProgress(40, 'Running AI analysis...');
       
-      const { data, error } = await supabase.functions.invoke('analyze-resume', {
+      const { data, error } = await supabase.functions.invoke('analyze-resume-bulletproof', {
         body: {
           resumeText: state.resumeText,
           jobDescription: state.jobDescription,

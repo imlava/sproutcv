@@ -47,8 +47,8 @@ export class AIService {
     await this.checkRateLimit(userId);
 
     try {
-      // Call the enhanced analyze-resume edge function
-      const { data, error } = await supabase.functions.invoke('analyze-resume', {
+      // Call the enhanced analyze-resume edge function (BULLETPROOF VERSION)
+      const { data, error } = await supabase.functions.invoke('analyze-resume-bulletproof', {
         body: {
           resumeText,
           jobDescription,

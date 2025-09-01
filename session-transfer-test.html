@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔄 SproutCV Session Transfer Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; border-left: 4px solid #f44336; }
+        .success { background: #e8f5e8; border-left: 4px solid #4caf50; }
+        .warning { background: #fff3e0; border-left: 4px solid #ff9800; }
+        .info { background: #e3f2fd; border-left: 4px solid #2196f3; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; }
+        .status { font-weight: bold; margin: 10px 0; }
+        .section { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        textarea { width: 100%; height: 100px; margin: 5px 0; }
+        .code { background: #f8f8f8; padding: 10px; border-radius: 5px; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔄 SproutCV Session Transfer Test</h1>
+    
+    <div class="status" id="status">Ready to transfer session</div>
+    
+    <div class="section">
+        <h3>📋 Instructions:</h3>
+        <div class="info">
+            <strong>Step 1:</strong> Open your main SproutCV app in another tab<br>
+            <strong>Step 2:</strong> Make sure you're signed in there<br>
+            <strong>Step 3:</strong> Come back to this tab<br>
+            <strong>Step 4:</strong> Click "Transfer Session" below<br>
+            <strong>Step 5:</strong> Test the payment function
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>🔄 Step 1: Transfer Session</h3>
+        <button onclick="transferSession()">Transfer Session from Main App</button>
+        <button onclick="checkCurrentSession()">Check Current Session</button>
+    </div>
+    
+    <div class="section">
+        <h3>🧪 Step 2: Test Functions</h3>
+        <button onclick="testNuclearDebug()">Test Nuclear Debug</button>
+        <button onclick="testBulletproofPayment()">Test Bulletproof Payment</button>
+        <button onclick="testOriginalPayment()">Test Original Payment</button>
+    </div>
+    
+    <div class="section">
+        <h3>🛠️ Manual Session Input (if transfer fails):</h3>
+        <p>If automatic transfer fails, get your session token from the main app console:</p>
+        <div class="code">
+            1. Open main SproutCV app<br>
+            2. Open browser console (F12)<br>
+            3. Type: localStorage.getItem('sb-yucdpvnmcuokemhqpnvz-auth-token')<br>
+            4. Copy the result and paste below:
+        </div>
+        <textarea id="manualToken" placeholder="Paste session token here..."></textarea>
+        <button onclick="setManualSession()">Set Manual Session</button>
+    </div>
+    
+    <div id="sessionResult"></div>
+    <div id="testResults"></div>
+
+    <script>
+        const supabaseUrl = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const supabaseKey = '***REMOVED***';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        function updateStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.color = isError ? '#f44336' : '#4caf50';
+        }
+
+        async function transferSession() {
+            updateStatus('Transferring session from main app...');
+            
+            try {
+                // Try to get session from localStorage (Supabase default storage)
+                const authKey = `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`;
+                const storedAuth = localStorage.getItem(authKey);
+                
+                if (storedAuth) {
+                    const authData = JSON.parse(storedAuth);
+                    
+                    if (authData && authData.access_token) {
+                        // Set the session manually
+                        await supabase.auth.setSession({
+                            access_token: authData.access_token,
+                            refresh_token: authData.refresh_token
+                        });
+                        
+                        updateStatus('Session transferred successfully!');
+                        await checkCurrentSession();
+                        return;
+                    }
+                }
+                
+                // Fallback: try to get current session (might work if same domain)
+                const { data: sessionData, error } = await supabase.auth.getSession();
+                
+                if (sessionData.session) {
+                    updateStatus('Existing session found!');
+                    await checkCurrentSession();
+                } else {
+                    updateStatus('No session found - please use manual method', true);
+                    document.getElementById('sessionResult').innerHTML = `
+                        <div class="result warning">
+                            <strong>⚠️ Automatic Transfer Failed</strong><br>
+                            Please use the manual session input method below.
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Session transfer error:', error);
+                updateStatus('Session transfer failed: ' + error.message, true);
+                document.getElementById('sessionResult').innerHTML = `
+                    <div class="result error">
+                        <strong>❌ Session Transfer Failed</strong><br>
+                        <strong>Error:</strong> ${error.message}<br>
+                        Please use the manual session input method.
+                    </div>
+                `;
+            }
+        }
+
+        async function setManualSession() {
+            const manualToken = document.getElementById('manualToken').value.trim();
+            
+            if (!manualToken) {
+                updateStatus('Please enter a session token', true);
+                return;
+            }
+            
+            updateStatus('Setting manual session...');
+            
+            try {
+                let authData;
+                
+                // Try to parse as JSON first (full auth object)
+                try {
+                    authData = JSON.parse(manualToken);
+                } catch {
+                    // If not JSON, assume it's just the access token
+                    authData = { access_token: manualToken };
+                }
+                
+                if (authData.access_token) {
+                    await supabase.auth.setSession({
+                        access_token: authData.access_token,
+                        refresh_token: authData.refresh_token || null
+                    });
+                    
+                    updateStatus('Manual session set successfully!');
+                    await checkCurrentSession();
+                } else {
+                    throw new Error('Invalid token format');
+                }
+                
+            } catch (error) {
+                console.error('Manual session error:', error);
+                updateStatus('Failed to set manual session: ' + error.message, true);
+            }
+        }
+
+        async function checkCurrentSession() {
+            updateStatus('Checking current session...');
+            
+            try {
+                const { data: sessionData, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                let sessionHtml = '<h3>📋 Current Session Status:</h3>';
+                
+                if (!sessionData.session) {
+                    sessionHtml += `<div class="result error">
+                        <strong>❌ No Active Session</strong><br>
+                        Please transfer session from main app or use manual input.
+                    </div>`;
+                    updateStatus('No active session found', true);
+                } else {
+                    const session = sessionData.session;
+                    const token = session.access_token;
+                    
+                    // Decode JWT for analysis
+                    let jwtInfo = {};
+                    try {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        jwtInfo = {
+                            userId: payload.sub,
+                            email: payload.email,
+                            role: payload.role,
+                            issuer: payload.iss,
+                            expiry: new Date(payload.exp * 1000).toLocaleString(),
+                            isExpired: payload.exp < (Date.now() / 1000),
+                            isUserToken: !!payload.sub && payload.role === 'authenticated'
+                        };
+                    } catch (e) {
+                        jwtInfo.error = 'Failed to decode JWT: ' + e.message;
+                    }
+                    
+                    const isValid = jwtInfo.isUserToken && !jwtInfo.isExpired;
+                    
+                    sessionHtml += `<div class="result ${isValid ? 'success' : 'warning'}">
+                        <strong>${isValid ? '✅' : '⚠️'} Session Analysis</strong><br>
+                        <strong>User ID:</strong> ${session.user?.id || 'N/A'}<br>
+                        <strong>Email:</strong> ${session.user?.email || 'N/A'}<br>
+                        <strong>Token Role:</strong> ${jwtInfo.role || 'Unknown'}<br>
+                        <strong>Is User Token:</strong> ${jwtInfo.isUserToken ? 'YES' : 'NO'}<br>
+                        <strong>Is Expired:</strong> ${jwtInfo.isExpired ? 'YES' : 'NO'}<br>
+                        <strong>Ready for Payment:</strong> ${isValid ? 'YES' : 'NO'}<br>
+                        <br>
+                        <strong>Token Preview:</strong> ${token.substring(0, 50)}...<br>
+                    </div>`;
+                    
+                    updateStatus(isValid ? 'Valid user session ready!' : 'Session found but may have issues');
+                }
+                
+                document.getElementById('sessionResult').innerHTML = sessionHtml;
+                
+            } catch (error) {
+                console.error('Session check error:', error);
+                updateStatus('Session check failed: ' + error.message, true);
+            }
+        }
+
+        async function testNuclearDebug() {
+            updateStatus('Testing nuclear debug...');
+            await runTest('nuclear-debug', {}, 'Nuclear Debug');
+        }
+
+        async function testBulletproofPayment() {
+            updateStatus('Testing bulletproof payment...');
+            await runTest('create-payment-bulletproof', {
+                credits: 5,
+                amount: 500,
+                planType: 'starter',
+                test_mode: true
+            }, 'Bulletproof Payment');
+        }
+
+        async function testOriginalPayment() {
+            updateStatus('Testing original payment...');
+            await runTest('create-payment', {
+                credits: 5,
+                amount: 500,
+                planType: 'starter',
+                test_mode: true
+            }, 'Original Payment');
+        }
+
+        async function runTest(functionName, body, testName) {
+            try {
+                const { data, error } = await supabase.functions.invoke(functionName, { body });
+                
+                let resultHtml = `<h4>🧪 ${testName} Test:</h4>`;
+                
+                if (error) {
+                    resultHtml += `<div class="result error">
+                        <strong>❌ ${testName} Failed</strong><br>
+                        <strong>Error:</strong> ${error.message}<br>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    </div>`;
+                    updateStatus(`${testName} test failed!`, true);
+                } else {
+                    resultHtml += `<div class="result success">
+                        <strong>✅ ${testName} SUCCESS!</strong><br>
+                        <strong>Response:</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                    updateStatus(`${testName} test successful!`);
+                }
+                
+                document.getElementById('testResults').innerHTML += resultHtml;
+                
+            } catch (error) {
+                console.error(`${testName} test error:`, error);
+                updateStatus(`${testName} test exception: ${error.message}`, true);
+                document.getElementById('testResults').innerHTML += `
+                    <h4>🧪 ${testName} Test:</h4>
+                    <div class="result error">
+                        <strong>❌ ${testName} Exception</strong><br>
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-check session on load
+        window.onload = () => {
+            checkCurrentSession();
+        };
+    </script>
+</body>
+</html>

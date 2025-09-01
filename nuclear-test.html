@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SproutCV Nuclear Debug Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; border-left: 4px solid #f44336; }
+        .success { background: #e8f5e8; border-left: 4px solid #4caf50; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+        button { padding: 10px 20px; margin: 10px 5px; cursor: pointer; }
+        .status { font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🔬 SproutCV Nuclear Authentication Debug</h1>
+    
+    <div class="status" id="status">Ready to test</div>
+    
+    <button onclick="checkSession()">1. Check Current Session</button>
+    <button onclick="testNuclearDebug()">2. Test Nuclear Debug Function</button>
+    <button onclick="testPaymentFunction()">3. Test Payment Function</button>
+    
+    <div id="sessionResult"></div>
+    <div id="debugResult"></div>
+    <div id="paymentResult"></div>
+
+    <script>
+        const supabaseUrl = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const supabaseKey = '***REMOVED***';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        function updateStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.color = isError ? '#f44336' : '#4caf50';
+        }
+
+        async function checkSession() {
+            console.log('=== CHECKING SESSION ===');
+            updateStatus('Checking session...');
+            
+            try {
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                console.log('Session data:', sessionData);
+                console.log('Session error:', sessionError);
+                
+                let sessionHtml = '<h3>📋 Current Session Status:</h3>';
+                
+                if (sessionError) {
+                    sessionHtml += `<div class="result error">
+                        <strong>Session Error:</strong> ${sessionError.message}
+                    </div>`;
+                    updateStatus('Session error!', true);
+                } else if (!sessionData.session) {
+                    sessionHtml += `<div class="result error">
+                        <strong>No Active Session</strong><br>
+                        Please sign in to the main app first, then return to this page.
+                    </div>`;
+                    updateStatus('No active session - please sign in first', true);
+                } else {
+                    const session = sessionData.session;
+                    const token = session.access_token;
+                    
+                    // Decode JWT for analysis
+                    let jwtInfo = {};
+                    try {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        jwtInfo = {
+                            userId: payload.sub,
+                            email: payload.email,
+                            role: payload.role,
+                            issuer: payload.iss,
+                            expiry: new Date(payload.exp * 1000).toLocaleString(),
+                            issuedAt: new Date(payload.iat * 1000).toLocaleString(),
+                            isExpired: payload.exp < (Date.now() / 1000)
+                        };
+                    } catch (e) {
+                        jwtInfo.error = 'Failed to decode JWT: ' + e.message;
+                    }
+                    
+                    sessionHtml += `<div class="result success">
+                        <strong>✅ Active Session Found</strong><br>
+                        <strong>User ID:</strong> ${session.user.id}<br>
+                        <strong>Email:</strong> ${session.user.email}<br>
+                        <strong>Token Length:</strong> ${token.length} characters<br>
+                        <strong>Token Start:</strong> ${token.substring(0, 30)}...<br>
+                        <br>
+                        <strong>JWT Analysis:</strong><br>
+                        <pre>${JSON.stringify(jwtInfo, null, 2)}</pre>
+                    </div>`;
+                    updateStatus('Session active and ready!');
+                }
+                
+                document.getElementById('sessionResult').innerHTML = sessionHtml;
+                
+            } catch (error) {
+                console.error('Session check error:', error);
+                document.getElementById('sessionResult').innerHTML = `
+                    <div class="result error">
+                        <strong>Session Check Failed:</strong> ${error.message}
+                    </div>
+                `;
+                updateStatus('Session check failed!', true);
+            }
+        }
+
+        async function testNuclearDebug() {
+            console.log('=== TESTING NUCLEAR DEBUG ===');
+            updateStatus('Running nuclear debug...');
+            
+            try {
+                const { data, error } = await supabase.functions.invoke('nuclear-debug', {
+                    body: { test: 'nuclear-debug' }
+                });
+                
+                console.log('Nuclear debug result:', { data, error });
+                
+                let debugHtml = '<h3>🔬 Nuclear Debug Results:</h3>';
+                
+                if (error) {
+                    debugHtml += `<div class="result error">
+                        <strong>Debug Function Error:</strong> ${error.message}<br>
+                        <strong>Full Error:</strong><br>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    </div>`;
+                    updateStatus('Nuclear debug failed!', true);
+                } else {
+                    debugHtml += `<div class="result success">
+                        <strong>✅ Nuclear Debug Successful</strong><br>
+                        <strong>Authentication Success:</strong> ${data.success ? 'YES' : 'NO'}<br>
+                        <strong>Successful Methods:</strong> ${data.authentication?.successfulMethods || 0}<br>
+                        <strong>Recommendation:</strong> ${data.authentication?.recommendation || 'None'}<br>
+                        <br>
+                        <strong>Full Debug Data:</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                    updateStatus('Nuclear debug completed successfully!');
+                }
+                
+                document.getElementById('debugResult').innerHTML = debugHtml;
+                
+            } catch (error) {
+                console.error('Nuclear debug error:', error);
+                document.getElementById('debugResult').innerHTML = `
+                    <div class="result error">
+                        <strong>Nuclear Debug Exception:</strong> ${error.message}
+                    </div>
+                `;
+                updateStatus('Nuclear debug exception!', true);
+            }
+        }
+
+        async function testPaymentFunction() {
+            console.log('=== TESTING PAYMENT FUNCTION ===');
+            updateStatus('Testing payment function...');
+            
+            try {
+                const { data, error } = await supabase.functions.invoke('create-payment', {
+                    body: { 
+                        credits: 5,
+                        amount: 500,
+                        planType: 'starter',
+                        test_mode: true 
+                    }
+                });
+                
+                console.log('Payment test result:', { data, error });
+                
+                let paymentHtml = '<h3>💳 Payment Function Test:</h3>';
+                
+                if (error) {
+                    paymentHtml += `<div class="result error">
+                        <strong>Payment Function Error:</strong> ${error.message}<br>
+                        <strong>Full Error:</strong><br>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    </div>`;
+                    updateStatus('Payment test failed!', true);
+                } else {
+                    paymentHtml += `<div class="result success">
+                        <strong>✅ Payment Function Successful</strong><br>
+                        <strong>Payment ID:</strong> ${data.paymentId || 'N/A'}<br>
+                        <strong>Amount:</strong> ${data.amount || 'N/A'}<br>
+                        <strong>Credits:</strong> ${data.credits || 'N/A'}<br>
+                        <br>
+                        <strong>Full Response:</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                    updateStatus('Payment test successful!');
+                }
+                
+                document.getElementById('paymentResult').innerHTML = paymentHtml;
+                
+            } catch (error) {
+                console.error('Payment test error:', error);
+                document.getElementById('paymentResult').innerHTML = `
+                    <div class="result error">
+                        <strong>Payment Test Exception:</strong> ${error.message}
+                    </div>
+                `;
+                updateStatus('Payment test exception!', true);
+            }
+        }
+
+        // Auto-check session on load
+        window.onload = () => {
+            checkSession();
+        };
+    </script>
+</body>
+</html>
