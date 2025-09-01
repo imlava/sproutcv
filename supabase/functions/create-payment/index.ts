@@ -14,7 +14,7 @@ const getDomain = () => {
   return 'https://sproutcv.app'; // Production default
 };
 
-// Product management configuration
+// Bulletproof product catalog
 const PRODUCT_CATALOG = {
   resume_credits: {
     plans: {
@@ -33,63 +33,104 @@ serve(async (req) => {
   }
 
   try {
-    console.log("=== DODO PAYMENT CREATION START ===");
+    console.log("=== BULLETPROOF DODO PAYMENT CREATION START ===");
     
-    const { credits, amount, planType, test_mode } = await req.json();
+    // STEP 1: Parse request with comprehensive error handling
+    let body;
+    try {
+      const rawBody = await req.text();
+      console.log("✓ Raw body received, length:", rawBody?.length || 0);
+      
+      if (!rawBody?.trim()) {
+        return createErrorResponse("Empty request body", "EMPTY_BODY", 400);
+      }
+      
+      body = JSON.parse(rawBody);
+      console.log("✓ JSON parsed successfully");
+    } catch (parseError) {
+      console.error("✗ Parse error:", parseError);
+      return createErrorResponse("Invalid JSON format", "INVALID_JSON", 400);
+    }
 
-    // Enhanced input validation
+    const { credits, amount, planType, test_mode } = body;
+
+    // STEP 2: Enhanced input validation
     if (!credits || !amount) {
-      throw new Error("Missing required fields: credits or amount");
+      console.error("✗ Missing required fields:", { credits: !!credits, amount: !!amount });
+      return createErrorResponse("Missing required fields: credits or amount", "MISSING_FIELDS", 400);
     }
 
     if (credits <= 0 || amount <= 0) {
-      throw new Error("Invalid values: credits and amount must be positive");
+      console.error("✗ Invalid values:", { credits, amount });
+      return createErrorResponse("Invalid values: credits and amount must be positive", "INVALID_VALUES", 400);
     }
 
-    // Validate against product catalog
+    console.log("✓ Input validation passed:", { credits, amount, planType });
+
+    // STEP 3: Validate against product catalog
     const validPlan = Object.values(PRODUCT_CATALOG.resume_credits.plans)
       .find(plan => plan.credits === credits && plan.price === amount);
     
     if (!validPlan) {
-      console.warn("Plan validation failed - proceeding with custom amount", { credits, amount });
+      console.warn("⚠️ Plan validation failed - proceeding with custom amount", { credits, amount });
+    } else {
+      console.log("✓ Plan validated:", validPlan);
     }
 
-    // Environment validation
+    // STEP 4: Environment validation with detailed checking
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const dodoApiKey = Deno.env.get("DODO_PAYMENTS_API_KEY");
     
     if (!supabaseUrl || !serviceKey || !dodoApiKey) {
-      console.error("Missing environment variables:", {
+      console.error("✗ Missing environment variables:", {
         supabaseUrl: !!supabaseUrl,
         serviceKey: !!serviceKey,
         dodoApiKey: !!dodoApiKey
       });
-      throw new Error("Server configuration error - missing environment variables");
+      return createErrorResponse("Server configuration error - missing environment variables", "CONFIG_ERROR", 500);
+    }
+    
+    console.log("✓ Environment variables validated");
+
+    // STEP 5: Initialize Supabase with error handling
+    let supabaseAdmin;
+    try {
+      supabaseAdmin = createClient(supabaseUrl, serviceKey);
+      console.log("✓ Supabase client initialized");
+    } catch (clientError) {
+      console.error("✗ Supabase client error:", clientError);
+      return createErrorResponse("Database connection failed", "DB_ERROR", 500);
     }
 
-    // Initialize Supabase client
-    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-
-    // Enhanced authentication
+    // STEP 6: Enhanced authentication with comprehensive validation
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      throw new Error("Invalid authorization header format");
+      console.error("✗ Invalid authorization header format");
+      return createErrorResponse("Invalid authorization header format", "AUTH_INVALID", 401);
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (userError || !userData.user) {
-      console.error("Authentication error:", userError);
-      throw new Error("User authentication failed");
+    console.log("✓ Token extracted");
+
+    let user;
+    try {
+      const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(token);
+      
+      if (userError || !userData.user) {
+        console.error("✗ Authentication failed:", userError);
+        throw new Error(userError?.message || 'User authentication failed');
+      }
+
+      user = userData.user;
+      console.log("✓ User authenticated:", user.id);
+    } catch (authError) {
+      console.error("✗ Authentication error:", authError);
+      return createErrorResponse("User authentication failed", "AUTH_FAILED", 401);
     }
 
-    const user = userData.user;
-    console.log("✓ User authenticated:", user.id);
-
-    // Get or create user profile with enhanced error handling
-    let profile: { full_name: string | null; email: string | null } | null = null;
+    // STEP 7: Get or create user profile with enhanced error handling
+    let profile = null;
     try {
       const { data: profileData, error: profileError } = await supabaseAdmin
         .from("profiles")
@@ -98,7 +139,7 @@ serve(async (req) => {
         .maybeSingle();
 
       if (profileError) {
-        console.warn("Profile fetch error:", profileError);
+        console.warn("⚠️ Profile fetch error:", profileError);
       }
 
       if (!profileData) {
@@ -114,41 +155,41 @@ serve(async (req) => {
           .single();
 
         if (createError) {
-          console.error("Failed to create profile:", createError);
+          console.error("✗ Failed to create profile:", createError);
           // Continue with user data as fallback
         } else {
           profile = newProfile;
+          console.log("✓ Profile created");
         }
       } else {
         profile = profileData;
+        console.log("✓ Profile loaded");
       }
     } catch (profileException) {
-      console.error("Profile handling exception:", profileException);
+      console.error("⚠️ Profile handling exception:", profileException);
       // Continue with user data as fallback
     }
 
-    console.log("✓ Profile processed");
-
-    // Enhanced Dodo Payments API integration
+    // STEP 8: Enhanced Dodo Payments API integration
     const domain = getDomain();
     const dodoBaseUrl = test_mode 
       ? "https://api.sandbox.dodopayments.com" 
       : "https://api.dodopayments.com";
 
-    console.log("Using Dodo API:", { baseUrl: dodoBaseUrl, testMode: !!test_mode });
+    console.log("✓ Dodo API configuration:", { baseUrl: dodoBaseUrl, testMode: !!test_mode, domain });
 
-    // Enhanced payment data with product management
+    // STEP 9: Prepare enhanced payment data
     const paymentData = {
       amount: amount, // Amount in cents
       currency: PRODUCT_CATALOG.resume_credits.currency,
-      product_id: "resume_credits", // Product ID for Dodo
+      product_id: "resume_credits",
       quantity: 1,
       
       // Enhanced customer data
       customer: {
         email: profile?.email || user.email,
         name: profile?.full_name || user.email?.split('@')[0] || "Customer",
-        id: user.id // Include user ID for reference
+        id: user.id
       },
       
       // Enhanced metadata for tracking
@@ -199,7 +240,7 @@ serve(async (req) => {
     console.log("✓ Payment data prepared");
     console.log("Payment payload:", JSON.stringify(paymentData, null, 2));
 
-    // Enhanced API call with retry logic
+    // STEP 10: Enhanced API call with bulletproof retry logic
     const makeApiCall = async (retries = 3) => {
       for (let attempt = 1; attempt <= retries; attempt++) {
         try {
@@ -211,10 +252,12 @@ serve(async (req) => {
               "Authorization": `Bearer ${dodoApiKey}`,
               "Content-Type": "application/json",
               "Accept": "application/json",
-              "User-Agent": "SproutCV/1.0"
+              "User-Agent": "SproutCV/2.0"
             },
             body: JSON.stringify(paymentData)
           });
+
+          console.log("✓ API response received:", response.status, response.statusText);
 
           if (!response.ok) {
             const errorText = await response.text();
@@ -226,7 +269,7 @@ serve(async (req) => {
               errorData = { message: errorText };
             }
 
-            console.error("Dodo API error:", {
+            console.error("✗ Dodo API error:", {
               status: response.status,
               statusText: response.statusText,
               headers: Object.fromEntries(response.headers.entries()),
@@ -234,8 +277,8 @@ serve(async (req) => {
               attempt
             });
 
+            // Retry on server errors
             if (response.status >= 500 && attempt < retries) {
-              // Retry on server errors
               const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
               console.log(`Retrying in ${delay}ms...`);
               await new Promise(resolve => setTimeout(resolve, delay));
@@ -250,14 +293,14 @@ serve(async (req) => {
           return payment;
 
         } catch (error) {
-          console.error(`Attempt ${attempt} failed:`, error);
+          console.error(`✗ Attempt ${attempt} failed:`, error);
           
           if (attempt === retries) {
             throw error;
           }
           
+          // Network error - retry
           if (error.name === "TypeError" && attempt < retries) {
-            // Network error - retry
             const delay = Math.pow(2, attempt) * 1000;
             console.log(`Network error, retrying in ${delay}ms...`);
             await new Promise(resolve => setTimeout(resolve, delay));
@@ -269,68 +312,87 @@ serve(async (req) => {
       }
     };
 
-    const payment = await makeApiCall();
+    let payment;
+    try {
+      payment = await makeApiCall();
+    } catch (apiError) {
+      console.error("✗ All API attempts failed:", apiError);
+      return createErrorResponse("Payment creation failed", "API_ERROR", 500, apiError.message);
+    }
 
-    // Enhanced payment response processing
+    // STEP 11: Enhanced payment response processing
     const paymentId = payment.payment_id || payment.id || payment.checkout_session_id || payment.session_id;
     const paymentUrl = payment.payment_url || payment.url || payment.checkout_url || payment.redirect_url;
 
     if (!paymentId || !paymentUrl) {
-      console.error("Invalid Dodo response:", payment);
-      throw new Error("Invalid response from Dodo Payments - missing payment ID or URL");
+      console.error("✗ Invalid Dodo response:", payment);
+      return createErrorResponse("Invalid response from Dodo Payments - missing payment ID or URL", "INVALID_RESPONSE", 500);
     }
 
-    console.log("Payment created:", { paymentId, hasUrl: !!paymentUrl });
+    console.log("✓ Payment created:", { paymentId, hasUrl: !!paymentUrl });
 
-    // Enhanced database record with comprehensive data
-    const { data: paymentRecord, error: paymentError } = await supabaseAdmin
-      .from("payments")
-      .insert({
-        user_id: user.id,
-        // Dual field population for compatibility
-        stripe_session_id: paymentId, // Legacy compatibility
-        payment_provider_id: paymentId, // Primary reference
-        amount: amount,
-        credits_purchased: credits,
-        status: "pending",
-        payment_method: "dodo_payments",
-        expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
-        payment_data: {
-          ...payment,
-          plan_type: planType,
-          created_via: "api",
-          api_version: "v1",
-          environment: test_mode ? "test" : "production"
-        }
-      })
-      .select()
-      .single();
-
-    if (paymentError) {
-      console.error("Database error:", paymentError);
-      throw new Error("Failed to create payment record");
-    }
-
-    console.log("✓ Payment record saved:", paymentRecord.id);
-
-    // Log security event
-    await supabaseAdmin
-      .from("security_events")
-      .insert({
-        user_id: user.id,
-        event_type: "payment_initiated",
-        metadata: {
-          payment_id: paymentId,
+    // STEP 12: Enhanced database record with comprehensive data
+    let paymentRecord;
+    try {
+      const { data: saveData, error: paymentError } = await supabaseAdmin
+        .from("payments")
+        .insert({
+          user_id: user.id,
+          // Dual field population for compatibility
+          stripe_session_id: paymentId, // Legacy compatibility
+          payment_provider_id: paymentId, // Primary reference
           amount: amount,
-          credits: credits,
+          credits_purchased: credits,
+          status: "pending",
           payment_method: "dodo_payments",
-          plan_type: planType
-        }
-      });
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
+          payment_data: {
+            ...payment,
+            plan_type: planType,
+            created_via: "api",
+            api_version: "v2",
+            environment: test_mode ? "test" : "production"
+          }
+        })
+        .select()
+        .single();
+
+      if (paymentError) {
+        console.error("✗ Database error:", paymentError);
+        throw paymentError;
+      }
+
+      paymentRecord = saveData;
+      console.log("✓ Payment record saved:", paymentRecord.id);
+    } catch (dbError) {
+      console.error("✗ Failed to create payment record:", dbError);
+      return createErrorResponse("Failed to create payment record", "DB_SAVE_ERROR", 500, dbError.message);
+    }
+
+    // STEP 13: Log security event (non-blocking)
+    try {
+      await supabaseAdmin
+        .from("security_events")
+        .insert({
+          user_id: user.id,
+          event_type: "payment_initiated",
+          metadata: {
+            payment_id: paymentId,
+            amount: amount,
+            credits: credits,
+            payment_method: "dodo_payments",
+            plan_type: planType
+          }
+        });
+      console.log("✓ Security event logged");
+    } catch (secError) {
+      console.warn("⚠️ Failed to log security event:", secError);
+      // Don't fail the payment for logging issues
+    }
 
     console.log("=== PAYMENT CREATION SUCCESS ===");
 
-    // Enhanced response
+    // STEP 14: Enhanced response
     return new Response(JSON.stringify({
       success: true,
       paymentId: paymentId,
@@ -341,27 +403,44 @@ serve(async (req) => {
       paymentMethod: "dodo_payments",
       expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       recordId: paymentRecord.id,
-      environment: test_mode ? "test" : "production"
+      environment: test_mode ? "test" : "production",
+      timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
   } catch (error) {
-    console.error("=== PAYMENT CREATION ERROR ===", error);
+    console.error("=== CATASTROPHIC PAYMENT ERROR ===", error);
     
-    return new Response(JSON.stringify({ 
-      error: "Payment creation failed",
-      message: error.message,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return createErrorResponse(
+      "Payment creation failed", 
+      "CATASTROPHIC_ERROR", 
+      500, 
+      error.message
+    );
   }
 });
 
-// Product management API endpoints (could be separate function)
+// Bulletproof error response creator
+function createErrorResponse(message: string, code: string, status: number, details?: string) {
+  console.error(`✗ Error ${status}: ${code} - ${message}`);
+  return new Response(
+    JSON.stringify({ 
+      error: message,
+      code,
+      details,
+      timestamp: new Date().toISOString(),
+      success: false
+    }),
+    {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status,
+    }
+  );
+}
+
+// Product management utility functions
 export async function getProductCatalog() {
   return PRODUCT_CATALOG;
 }
