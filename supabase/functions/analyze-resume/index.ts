@@ -111,31 +111,51 @@ serve(async (req) => {
   }
 });
 
-// Enhanced AI Analysis function
+// Enhanced AI Analysis function with Gemini fallback
 async function performEnhancedResumeAnalysis(resumeText: string, jobDescription: string, jobTitle?: string) {
   const resume = resumeText.toLowerCase();
   const jobDesc = jobDescription.toLowerCase();
 
-  // Initialize OpenAI
-  const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
+  let semanticSimilarity = 0.5; // Default fallback value
+  
+  try {
+    // Try OpenAI first
+    console.log("Attempting OpenAI analysis...");
+    const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
-  // Get embeddings for semantic matching
-  const [resumeEmbedding, jobEmbedding] = await Promise.all([
-    openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: resumeText
-    }),
-    openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: jobDescription
-    })
-  ]);
+    // Get embeddings for semantic matching
+    const [resumeEmbedding, jobEmbedding] = await Promise.all([
+      openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: resumeText
+      }),
+      openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: jobDescription
+      })
+    ]);
 
-  // Calculate semantic similarity
-  const semanticSimilarity = calculateCosineSimilarity(
-    resumeEmbedding.data[0].embedding,
-    jobEmbedding.data[0].embedding
-  );
+    // Calculate semantic similarity
+    semanticSimilarity = calculateCosineSimilarity(
+      resumeEmbedding.data[0].embedding,
+      jobEmbedding.data[0].embedding
+    );
+    
+    console.log("OpenAI analysis successful");
+  } catch (openaiError) {
+    console.error("OpenAI failed, falling back to Gemini:", openaiError);
+    
+    try {
+      // Fallback to Gemini for semantic analysis
+      semanticSimilarity = await getGeminiSemanticSimilarity(resumeText, jobDescription);
+      console.log("Gemini fallback successful");
+    } catch (geminiError) {
+      console.error("Both OpenAI and Gemini failed:", geminiError);
+      // Use rule-based similarity as final fallback
+      semanticSimilarity = calculateRuleBasedSimilarity(resume, jobDesc);
+      console.log("Using rule-based similarity fallback");
+    }
+  }
 
   // Extract comprehensive keywords and skills with semantic context
   const { jobKeywords, resumeKeywords, technicalSkills, softSkills } = await extractComprehensiveKeywords(
@@ -621,4 +641,66 @@ function generateEnhancedSuggestions(resume: string, jobDesc: string, matchingKe
   }
   
   return suggestions;
+}
+
+// Gemini AI fallback function
+async function getGeminiSemanticSimilarity(resumeText: string, jobDescription: string): Promise<number> {
+  const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+  
+  if (!geminiApiKey) {
+    throw new Error("Gemini API key not configured");
+  }
+  
+  const prompt = `Analyze the semantic similarity between this resume and job description on a scale of 0.0 to 1.0, where 1.0 means perfect match.
+
+Resume:
+${resumeText.substring(0, 2000)}
+
+Job Description:
+${jobDescription.substring(0, 2000)}
+
+Respond with only a decimal number between 0.0 and 1.0 representing the semantic similarity. Consider skills overlap, experience relevance, and industry alignment.`;
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 50,
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "0.5";
+  
+  // Extract decimal number from response
+  const similarity = parseFloat(responseText.match(/\d+\.?\d*/)?.[0] || "0.5");
+  return Math.min(Math.max(similarity, 0), 1); // Clamp between 0 and 1
+}
+
+// Rule-based similarity as final fallback
+function calculateRuleBasedSimilarity(resume: string, jobDesc: string): number {
+  const resumeWords = new Set(resume.toLowerCase().split(/\W+/).filter(w => w.length > 3));
+  const jobWords = new Set(jobDesc.toLowerCase().split(/\W+/).filter(w => w.length > 3));
+  
+  const intersection = new Set([...resumeWords].filter(word => jobWords.has(word)));
+  const union = new Set([...resumeWords, ...jobWords]);
+  
+  // Jaccard similarity with minimum threshold
+  const similarity = intersection.size / union.size;
+  return Math.max(similarity, 0.1); // Minimum 0.1 similarity
 }
