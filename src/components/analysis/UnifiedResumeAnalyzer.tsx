@@ -51,7 +51,6 @@ interface AnalysisState {
 const UnifiedResumeAnalyzer: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const validator = ResumeMatchValidator.getInstance();
 
   const [state, setState] = useState<AnalysisState>({
     step: 'upload',
@@ -122,8 +121,9 @@ const UnifiedResumeAnalyzer: React.FC = () => {
     }
   };
 
+  // Simplified validation method
   const handleValidation = async () => {
-    if (!state.resumeText || !state.jobDescription) {
+    if (!state.resumeText?.trim() || !state.jobDescription?.trim()) {
       toast({
         title: "Missing Information",
         description: "Please upload a resume and provide a job description.",
@@ -144,42 +144,89 @@ const UnifiedResumeAnalyzer: React.FC = () => {
     updateState({ processing: true, step: 'validation' });
     
     try {
-      await updateProgress(20, 'Extracting resume content...');
-      await updateProgress(40, 'Analyzing job requirements...');
-      await updateProgress(60, 'Running validation checks...');
+      await updateProgress(20, 'Preparing validation...');
       
-      const validationResult = await validator.validateMatch(
-        state.resumeText, 
-        state.jobDescription, 
-        user.id
-      );
+      // Simple validation checks instead of complex analysis
+      const hasEmail = state.resumeText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+      const hasKeywords = state.jobDescription.toLowerCase().split(/\s+/)
+        .some(word => word.length > 3 && state.resumeText.toLowerCase().includes(word));
       
+      await updateProgress(60, 'Checking compatibility...');
+      
+      const warnings: Warning[] = [];
+      
+      // Only show warnings for serious issues
+      if (!hasEmail) {
+        warnings.push({
+          id: 'no_email',
+          type: 'ats_incompatible',
+          severity: 'HIGH',
+          title: 'Missing Contact Information',
+          description: 'No email address found in resume',
+          explanation: 'ATS systems require contact information to process applications',
+          importance: 'High - Essential for job applications',
+          actions: [
+            { id: 'add_email', label: 'Add Email', type: 'primary' },
+            { id: 'dismiss', label: 'Dismiss', type: 'destructive' }
+          ],
+          solutions: ['Add your email address to the resume header'],
+          examples: [{
+            before: 'John Smith\nSoftware Engineer',
+            after: 'John Smith\njohn.smith@email.com\nSoftware Engineer'
+          }],
+          dismissible: true,
+          criticalityScore: 0.9
+        });
+      }
+
+      // Check for obvious formatting issues
+      if (state.resumeText.includes('│') || state.resumeText.includes('─')) {
+        warnings.push({
+          id: 'formatting_issues',
+          type: 'ats_incompatible',
+          severity: 'MEDIUM',
+          title: 'Formatting Issues Detected',
+          description: 'Complex table formatting may cause ATS parsing problems',
+          explanation: 'Simple text formatting works better with ATS systems',
+          importance: 'Medium - May affect initial screening',
+          actions: [
+            { id: 'fix_format', label: 'Fix Formatting', type: 'primary' },
+            { id: 'dismiss', label: 'Dismiss', type: 'destructive' }
+          ],
+          solutions: ['Use simple bullet points instead of tables', 'Remove complex formatting'],
+          examples: [],
+          dismissible: true,
+          criticalityScore: 0.6
+        });
+      }
+
       await updateProgress(80, 'Processing results...');
       
-      if (validationResult.hasSignificantMismatch) {
+      if (warnings.length > 0) {
         updateState({ 
-          validationResult,
-          warnings: validationResult.warnings,
+          warnings,
           processing: false,
+          step: 'validation',
           progress: 100,
           currentStep: 'Validation complete - issues found'
         });
         
         toast({
           title: "Resume Issues Detected",
-          description: `Found ${validationResult.warnings.length} significant issues that should be addressed.`,
+          description: `Found ${warnings.length} issues that should be addressed.`,
           variant: "destructive",
         });
       } else {
-        // Proceed directly to analysis if no issues
+        // Proceed to analysis if no serious issues
         await handleAnalysis();
       }
+      
     } catch (error) {
       console.error('Validation error:', error);
-      updateState({ processing: false });
+      updateState({ processing: false, step: 'job' });
       toast({
         title: "Validation Failed",
-        description: error instanceof Error ? error.message : "Validation failed",
+        description: "Please try again or proceed with analysis",
         variant: "destructive",
       });
     }
@@ -524,14 +571,11 @@ const UnifiedResumeAnalyzer: React.FC = () => {
           </div>
           <h2 className="text-3xl font-bold text-foreground mb-3">Resume Issues Detected</h2>
           <p className="text-lg text-muted-foreground mb-4">
-            Our AI has identified significant gaps that could impact your application success
+            We've identified some issues that could impact your application success
           </p>
           <div className="flex items-center justify-center gap-4 text-sm">
             <Badge variant="destructive" className="text-base px-4 py-2">
               {state.warnings.length} Issues Found
-            </Badge>
-            <Badge variant="outline" className="text-base px-4 py-2">
-              Confidence: {Math.round((state.validationResult?.confidence || 0) * 100)}%
             </Badge>
           </div>
         </div>
@@ -568,7 +612,7 @@ const UnifiedResumeAnalyzer: React.FC = () => {
         <Alert className="mt-6 bg-primary/5 border-primary/20">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-sm">
-            <strong>Recommendation:</strong> Addressing these issues can significantly improve your chances of getting interviews. 
+            <strong>Recommendation:</strong> Addressing these issues can improve your chances of getting interviews. 
             However, you can proceed with the analysis to see detailed insights and get specific improvement suggestions.
           </AlertDescription>
         </Alert>
