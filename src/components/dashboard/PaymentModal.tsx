@@ -58,7 +58,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
 
       // Create payment with Dodo Payments (FINAL FIXED VERSION)
       console.log('Creating payment...');
-      const { data, error } = await supabase.functions.invoke('create-payment-fixed-final', {
+      const { data, error } = await supabase.functions.invoke('create-payment-dynamic', {
         body: { 
           credits,
           amount: finalAmount,
