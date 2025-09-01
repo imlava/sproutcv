@@ -20,6 +20,10 @@ import { usePersistentState } from '@/hooks/usePersistentState';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ResumeMatchValidator } from '@/services/validation/ResumeMatchValidator';
+import { Warning, ValidationResult } from '@/types/validation';
+import { WarningDisplay } from '@/components/analysis/WarningDisplay';
+import ContextualHelp from '@/components/help/ContextualHelp';
 
 // Real AI-powered resume analysis system
 class RealResumeAnalyzer {
