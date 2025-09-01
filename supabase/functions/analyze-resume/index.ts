@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { Configuration, OpenAIApi } from "https://esm.sh/openai@4.28.0";
+import OpenAI from "https://deno.land/x/openai@v4.58.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +14,11 @@ serve(async (req) => {
   }
 
   try {
-    const { resume_text, job_description, job_title, company_name } = await req.json();
+    const body = await req.json();
+    const resume_text = body.resumeText ?? body.resume_text;
+    const job_description = body.jobDescription ?? body.job_description;
+    const job_title = body.jobTitle ?? body.job_title;
+    const company_name = body.companyName ?? body.company_name;
 
     if (!resume_text || !job_description) {
       throw new Error("Missing resume text or job description");
@@ -113,26 +117,24 @@ async function performEnhancedResumeAnalysis(resumeText: string, jobDescription:
   const jobDesc = jobDescription.toLowerCase();
 
   // Initialize OpenAI
-  const openai = new OpenAIApi(new Configuration({
-    apiKey: Deno.env.get("OPENAI_API_KEY")
-  }));
+  const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
 
   // Get embeddings for semantic matching
   const [resumeEmbedding, jobEmbedding] = await Promise.all([
-    openai.createEmbedding({
-      model: "text-embedding-ada-002",
+    openai.embeddings.create({
+      model: "text-embedding-3-small",
       input: resumeText
     }),
-    openai.createEmbedding({
-      model: "text-embedding-ada-002",
+    openai.embeddings.create({
+      model: "text-embedding-3-small",
       input: jobDescription
     })
   ]);
 
   // Calculate semantic similarity
   const semanticSimilarity = calculateCosineSimilarity(
-    resumeEmbedding.data.data[0].embedding,
-    jobEmbedding.data.data[0].embedding
+    resumeEmbedding.data[0].embedding,
+    jobEmbedding.data[0].embedding
   );
 
   // Extract comprehensive keywords and skills with semantic context
@@ -151,7 +153,7 @@ async function performEnhancedResumeAnalysis(resumeText: string, jobDescription:
   // Enhanced calculations
   const skillsAlignment = calculateEnhancedSkillsAlignment(resume, jobDesc, technicalSkills, softSkills);
   const atsCompatibility = calculateATSCompatibility(resumeText);
-  const experienceRelevance = calculateEnhancedExperienceRelevance(resume, jobDesc, jobTitle);
+  const experienceRelevance = calculateEnhancedExperienceRelevance(resume, jobDesc, jobTitle, semanticSimilarity);
   
   // Experience mismatch detection
   const experienceMismatch = detectExperienceMismatch(resume, jobDesc, jobTitle);

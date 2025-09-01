@@ -51,7 +51,7 @@ interface AnalysisState {
 const UnifiedResumeAnalyzer: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const validator = new ResumeMatchValidator();
+  const validator = ResumeMatchValidator.getInstance();
 
   const [state, setState] = useState<AnalysisState>({
     step: 'upload',

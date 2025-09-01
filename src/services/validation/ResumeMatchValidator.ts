@@ -8,6 +8,7 @@ import {
   AchievementsAnalysisResult,
   IndustryAlignmentResult,
   ATSCompatibilityResult,
+  ATSIssue,
   ValidationError,
   SemanticAnalysisError,
   SemanticMatch,
@@ -213,41 +214,34 @@ export class ResumeMatchValidator {
     // Enhanced semantic matching
     const semanticMatches = await this.findSemanticMatches(
       resumeKeywords,
-      jobKeywords,
-      importantTerms
+      jobKeywords
     );
     
     // Calculate scores with context
-    const matchScore = this.calculateContextualMatchScore(
-      semanticMatches,
+    const matchScore = this.calculateKeywordMatchScore(
       jobKeywords,
-      resumeKeywords,
-      importantTerms
+      semanticMatches
     );
     
     const missingKeywords = this.identifyMissingKeywords(
       jobKeywords,
       resumeKeywords,
-      semanticMatches,
-      importantTerms
+      semanticMatches
     );
     
     const criticalKeywords = this.identifyCriticalKeywords(
       jobKeywords,
-      semanticMatches,
-      importantTerms
+      semanticMatches
     );
     
-    const keywordDensity = this.calculateEnhancedKeywordDensity(
+    const keywordDensity = this.calculateKeywordDensity(
       resumeText,
-      jobKeywords,
-      importantTerms
+      jobKeywords
     );
     
-    const contextualRelevance = await this.calculateContextualRelevance(
+    const contextualRelevance = this.calculateContextualRelevance(
       resumeText,
-      jobDescription,
-      importantTerms
+      jobDescription
     );
 
     return {
@@ -257,7 +251,7 @@ export class ResumeMatchValidator {
       semanticMatches,
       keywordDensity,
       contextualRelevance,
-      importantTerms: Array.from(importantTerms)
+      
     };
   }
 
@@ -604,7 +598,7 @@ export class ResumeMatchValidator {
   }
 
   private async analyzeATSCompatibility(resumeText: string): Promise<ATSCompatibilityResult> {
-    const issues: string[] = [];
+    const issues: ATSIssue[] = [];
     let formatScore = 100;
     let contentScore = 100;
     
@@ -636,7 +630,7 @@ export class ResumeMatchValidator {
     formattingChecks.forEach(({ check, penalty, issue }) => {
       if (check(resumeText)) {
         formatScore -= penalty;
-        issues.push(issue);
+        issues.push({ type: 'format', severity: 'MEDIUM', description: issue, solution: 'Convert complex formatting to simple text.' });
       }
     });
 
@@ -654,7 +648,7 @@ export class ResumeMatchValidator {
 
     if (missingSections.length > 0) {
       contentScore -= (missingSections.length * 10);
-      issues.push(`Missing standard sections: ${missingSections.map(s => s.name).join(', ')}`);
+      issues.push({ type: 'content', severity: 'MEDIUM', description: `Missing standard sections: ${missingSections.map(s => s.name).join(', ')}`, solution: 'Add missing sections with clear headings.' });
     }
 
     // Check contact information format
@@ -676,7 +670,7 @@ export class ResumeMatchValidator {
     contactChecks.forEach(({ pattern, penalty, issue }) => {
       if (!pattern.test(resumeText)) {
         contentScore -= penalty;
-        issues.push(issue);
+        issues.push({ type: 'content', severity: 'LOW', description: issue, solution: 'Ensure email and phone are present and correctly formatted.' });
       }
     });
 
@@ -684,34 +678,35 @@ export class ResumeMatchValidator {
     const dateCheck = resumeText.match(/(?:19|20)\d{2}(?:\s*[-–]\s*(?:present|current|now|\d{4})?)?/gi);
     if (!dateCheck) {
       contentScore -= 10;
-      issues.push('Dates not found or in incorrect format');
+      issues.push({ type: 'content', severity: 'LOW', description: 'Dates not found or in incorrect format', solution: 'Use clear date ranges like 2021–2024 or 2021-2024.' });
     }
 
     // Check bullet point consistency
     const bulletPoints = resumeText.match(/[•\-\*]\s+/g);
     if (!bulletPoints || bulletPoints.length < 3) {
       contentScore -= 5;
-      issues.push('Limited or inconsistent use of bullet points');
+      issues.push({ type: 'content', severity: 'LOW', description: 'Limited or inconsistent use of bullet points', solution: 'Use consistent bullet points to list achievements and responsibilities.' });
     }
 
     // Generate recommendations based on issues
     const recommendations = issues.map(issue => {
+      const desc = issue.description;
       switch (true) {
-        case issue.includes('Tables'):
+        case desc.includes('Tables'):
           return 'Convert tables to bullet points or simple text format';
-        case issue.includes('spacing'):
+        case desc.includes('spacing'):
           return 'Use consistent single spacing and standard margins';
-        case issue.includes('characters'):
+        case desc.includes('characters'):
           return 'Replace special characters with standard ASCII alternatives';
-        case issue.includes('sections'):
+        case desc.includes('sections'):
           return 'Add all standard resume sections with clear headings';
-        case issue.includes('bullet points'):
+        case desc.includes('bullet points'):
           return 'Use consistent bullet points to list achievements and responsibilities';
-        case issue.includes('Email'):
+        case desc.includes('Email'):
           return 'Add a properly formatted email address';
-        case issue.includes('Phone'):
+        case desc.includes('Phone'):
           return 'Add a properly formatted phone number';
-        case issue.includes('Dates'):
+        case desc.includes('Dates'):
           return 'Use clear date ranges in YYYY-YYYY format';
         default:
           return 'Review and fix formatting issues for better ATS compatibility';
