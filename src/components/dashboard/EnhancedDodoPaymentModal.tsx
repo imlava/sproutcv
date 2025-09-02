@@ -311,7 +311,7 @@ const EnhancedDodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onC
 
           {/* Coupon System */}
           <div className="mb-6">
-            <CouponSystem onDiscountApplied={setDiscountPercent} />
+            <CouponSystem onCouponApplied={setDiscountPercent} />
           </div>
 
           {/* Payment Plans */}

@@ -286,14 +286,28 @@ const EnhancedPaymentsPage = () => {
     
     try {
       const { data, error } = await supabase
-        .from('payment_transactions')
+        .from('payments')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
 
       if (error) throw error;
-      setPaymentHistory(data || []);
+      
+      // Transform data to match PaymentRecord interface
+      const transformedData = (data || []).map(payment => ({
+        id: payment.id,
+        payment_provider_id: payment.payment_provider_id || '',
+        amount: payment.amount,
+        credits: payment.credits_purchased,
+        status: payment.status,
+        created_at: payment.created_at,
+        metadata: payment.payment_data || {},
+        payment_provider: payment.payment_method || 'stripe',
+        user_id: payment.user_id
+      }));
+      
+      setPaymentHistory(transformedData);
     } catch (error) {
       console.error('Error loading payment history:', error);
     }
@@ -311,7 +325,21 @@ const EnhancedPaymentsPage = () => {
         .limit(20);
 
       if (error) throw error;
-      setCreditHistory(data || []);
+      
+      // Transform data to match CreditTransaction interface
+      const transformedData = (data || []).map(record => ({
+        id: record.id,
+        user_id: record.user_id,
+        credits_before: record.balance_after - record.credits_amount,
+        credits_after: record.balance_after,
+        credits_changed: record.credits_amount,
+        transaction_type: record.transaction_type,
+        description: record.description || '',
+        created_at: record.created_at,
+        related_payment_id: record.related_payment_id
+      }));
+      
+      setCreditHistory(transformedData);
     } catch (error) {
       console.error('Error loading credit history:', error);
     } finally {
@@ -324,7 +352,7 @@ const EnhancedPaymentsPage = () => {
     
     try {
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('credits')
         .eq('id', user.id)
         .single();
