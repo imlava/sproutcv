@@ -227,35 +227,108 @@ export class GeminiAIService {
     return result.competitiveAnalysis;
   }
 
-  // Real-time feedback methods
+  // Real-time feedback methods with actual AI analysis
   async getInstantFeedback(resumeText: string, section: 'skills' | 'experience' | 'summary'): Promise<{
     score: number;
     feedback: string;
     suggestions: string[];
   }> {
-    // Quick analysis for real-time feedback
     try {
-      const prompt = this.createInstantFeedbackPrompt(resumeText, section);
-      
-      // For demo purposes, return mock data
-      // In production, this would call a lightweight Gemini endpoint
+      // Call the real-time feedback edge function
+      const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
+        body: {
+          resumeText,
+          jobDescription: '', // Minimal for quick analysis
+          analysisType: 'quick',
+          includeInteractive: false,
+          includeCoverLetter: false,
+          sectionFocus: section
+        }
+      });
+
+      if (error || !data?.success) {
+        throw new Error(data?.error || 'Real-time feedback failed');
+      }
+
+      // Extract section-specific score from analysis
+      const analysis = data.data;
+      let sectionScore = 75;
+      let sectionFeedback = `Your ${section} section is being analyzed...`;
+      let sectionSuggestions = ['Continue editing for enhanced feedback'];
+
+      switch (section) {
+        case 'skills':
+          sectionScore = analysis.detailedAnalysis?.skillsAlignment || 75;
+          sectionFeedback = `Skills alignment shows ${sectionScore >= 80 ? 'excellent' : sectionScore >= 60 ? 'good' : 'needs improvement'} technical competencies.`;
+          break;
+        case 'experience':
+          sectionScore = analysis.detailedAnalysis?.experienceRelevance || 75;
+          sectionFeedback = `Experience relevance demonstrates ${sectionScore >= 80 ? 'strong' : sectionScore >= 60 ? 'adequate' : 'limited'} professional progression.`;
+          break;
+        case 'summary':
+          sectionScore = analysis.overallScore || 75;
+          sectionFeedback = `Professional summary shows ${sectionScore >= 80 ? 'compelling' : sectionScore >= 60 ? 'solid' : 'basic'} career positioning.`;
+          break;
+      }
+
+      // Extract relevant suggestions from recommendations
+      sectionSuggestions = analysis.actionableRecommendations
+        ?.slice(0, 3)
+        ?.map(rec => rec.action) || [
+        `Enhance ${section} with more specific details`,
+        'Include quantifiable achievements',
+        'Optimize keywords for better ATS compatibility'
+      ];
+
       return {
-        score: Math.floor(Math.random() * 30) + 70, // 70-100
-        feedback: `Your ${section} section shows good ${section === 'skills' ? 'technical competencies' : section === 'experience' ? 'professional progression' : 'career focus'}.`,
-        suggestions: [
-          `Consider adding more ${section === 'skills' ? 'industry-specific skills' : section === 'experience' ? 'quantified achievements' : 'compelling value propositions'}`,
-          `Optimize for ATS by including relevant keywords`,
-          `Strengthen impact statements with metrics`
-        ]
+        score: sectionScore,
+        feedback: sectionFeedback,
+        suggestions: sectionSuggestions
       };
+
     } catch (error) {
-      console.error('Instant feedback error:', error);
-      return {
-        score: 75,
-        feedback: 'Analysis in progress...',
-        suggestions: ['Continue editing for real-time feedback']
-      };
+      console.error('Real-time feedback error:', error);
+      // Fallback to intelligent scoring based on text analysis
+      return this.getFallbackSectionAnalysis(resumeText, section);
     }
+  }
+
+  private getFallbackSectionAnalysis(resumeText: string, section: string) {
+    const sectionText = this.extractSectionText(resumeText, section);
+    const wordCount = sectionText.split(/\s+/).length;
+    const hasQuantifiableResults = /\d+[%$k]|\d+\s*(years?|months?|percent|dollar|thousand|million)/.test(sectionText);
+    const hasActionVerbs = /(achieved|implemented|developed|managed|created|improved|optimized|delivered|led|designed)/i.test(sectionText);
+    
+    let score = 65; // Base score
+    if (wordCount > 20) score += 10;
+    if (hasQuantifiableResults) score += 15;
+    if (hasActionVerbs) score += 10;
+    
+    return {
+      score: Math.min(100, score),
+      feedback: `Your ${section} section ${score >= 80 ? 'demonstrates strong' : score >= 60 ? 'shows adequate' : 'needs enhanced'} professional content.`,
+      suggestions: [
+        !hasQuantifiableResults ? 'Add specific metrics and achievements' : 'Maintain quantifiable results',
+        !hasActionVerbs ? 'Use strong action verbs' : 'Continue using impactful language',
+        'Include more industry-specific keywords'
+      ].filter(Boolean)
+    };
+  }
+
+  private extractSectionText(resumeText: string, section: string): string {
+    const lines = resumeText.split('\n');
+    const sectionKeywords = {
+      skills: ['skill', 'technical', 'competenc', 'proficient'],
+      experience: ['experience', 'employment', 'work', 'position', 'role'],
+      summary: ['summary', 'objective', 'profile', 'overview']
+    };
+    
+    const keywords = sectionKeywords[section as keyof typeof sectionKeywords] || [];
+    const relevantLines = lines.filter(line => 
+      keywords.some(keyword => line.toLowerCase().includes(keyword))
+    );
+    
+    return relevantLines.length > 0 ? relevantLines.join('\n') : resumeText.substring(0, 500);
   }
 
   private generateCacheKey(request: InteractiveAnalysisRequest): string {
