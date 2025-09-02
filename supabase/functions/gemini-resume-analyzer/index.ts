@@ -8,7 +8,7 @@ const corsHeaders = {
 
 // Google Gemini API Configuration
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 interface AnalysisRequest {
   resumeText: string;
@@ -178,12 +178,12 @@ async function generateGeminiAnalysis(request: AnalysisRequest): Promise<Analysi
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: systemPrompt
-          }]
-        }],
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: systemPrompt
+            }]
+          }],
         generationConfig: {
           temperature: 0.3,
           topK: 40,
@@ -214,6 +214,14 @@ async function generateGeminiAnalysis(request: AnalysisRequest): Promise<Analysi
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Gemini API error:", errorText);
+      console.error("Request URL:", `${GEMINI_API_URL}?key=${GEMINI_API_KEY ? '[REDACTED]' : 'MISSING'}`);
+      console.error("Request body:", JSON.stringify({
+        contents: [{
+          parts: [{
+            text: systemPrompt.substring(0, 100) + "..."
+          }]
+        }]
+      }, null, 2));
       throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
     }
 
@@ -268,6 +276,9 @@ async function generateGeminiAnalysis(request: AnalysisRequest): Promise<Analysi
         if (retryAnalysisText) {
           return parseGeminiAnalysis(retryAnalysisText, request);
         }
+      } else {
+        const retryErrorText = await retryResponse.text();
+        console.error("Retry attempt failed:", retryErrorText);
       }
     } catch (retryError) {
       console.error("Retry also failed:", retryError);
