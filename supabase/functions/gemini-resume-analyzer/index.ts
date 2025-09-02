@@ -239,8 +239,42 @@ async function generateGeminiAnalysis(request: AnalysisRequest): Promise<Analysi
 
   } catch (error) {
     console.error("Gemini analysis error:", error);
-    // Return fallback analysis
-    return getFallbackAnalysis(request);
+    // Retry once with simplified prompt
+    try {
+      console.log("🔄 Retrying with simplified analysis prompt");
+      const retryResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: createSimplifiedPrompt(request)
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            topK: 20,
+            topP: 0.8,
+            maxOutputTokens: 4096,
+          }
+        })
+      });
+
+      if (retryResponse.ok) {
+        const retryGeminiResponse = await retryResponse.json();
+        const retryAnalysisText = retryGeminiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (retryAnalysisText) {
+          return parseGeminiAnalysis(retryAnalysisText, request);
+        }
+      }
+    } catch (retryError) {
+      console.error("Retry also failed:", retryError);
+    }
+    
+    // If both attempts fail, throw error instead of returning fallback
+    throw new Error(`AI analysis failed: ${error.message}. Please try again or contact support.`);
   }
 }
 
@@ -330,7 +364,15 @@ Create the most compelling, keyword-optimized resume that transforms this candid
 function createSystemPrompt(request: AnalysisRequest): string {
   const { resumeText, jobDescription, jobTitle = "Position", companyName = "Company", analysisType = "comprehensive" } = request;
   
-  const basePrompt = `You are an elite resume strategist and AI career consultant with expertise across all industries. You have helped thousands of candidates achieve 3x better application success rates. Analyze this resume with laser precision.
+  const basePrompt = `You are an elite resume strategist and AI career consultant with expertise across all industries. You have helped thousands of candidates achieve 3x better application success rates. 
+
+CRITICAL ANALYSIS REQUIREMENTS:
+- Conduct deep semantic analysis of both resume and job description
+- Use advanced keyword extraction and matching algorithms
+- Apply industry-specific scoring models and benchmarks
+- Analyze competitive positioning against market standards
+- Provide data-driven scores based on quantitative analysis
+- Generate actionable insights that guarantee measurable improvement
 
 RESUME CONTENT:
 ${resumeText}
@@ -342,13 +384,13 @@ TARGET POSITION: ${jobTitle}
 TARGET COMPANY: ${companyName}
 ANALYSIS TYPE: ${analysisType}
 
-CRITICAL INSTRUCTIONS:
-1. Be brutally honest but constructive in your analysis
-2. Provide specific, actionable recommendations that guarantee improvement
-3. Focus on what will make the biggest impact for application success
-4. Consider industry-specific best practices and current market trends
-5. Analyze from both human recruiter and ATS system perspectives
-6. Identify unique competitive advantages and standout factors
+ADVANCED ANALYSIS INSTRUCTIONS:
+1. KEYWORD ANALYSIS: Extract ALL relevant keywords from job description and measure semantic similarity with resume content
+2. SKILLS MAPPING: Create comprehensive skills matrix comparing required vs demonstrated capabilities
+3. EXPERIENCE ALIGNMENT: Calculate weighted relevance scores for each role based on job requirements
+4. ATS OPTIMIZATION: Analyze resume structure, formatting, and keyword density for ATS compatibility
+5. COMPETITIVE ANALYSIS: Benchmark against industry standards and provide market positioning insights
+6. QUANTIFIED RECOMMENDATIONS: Generate specific, measurable improvement suggestions with expected impact
 
 Return ONLY valid JSON in this exact format:
 
@@ -542,129 +584,42 @@ Return ONLY valid JSON in this format:
 
   } catch (error) {
     console.error("Cover letter generation error:", error);
-    
-    // Return fallback cover letter
-    return {
-      content: `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${request.jobTitle || 'position'} at ${request.companyName || 'your company'}.\n\nBest regards,\n[Your Name]`,
-      sections: {
-        opening: "Standard opening paragraph",
-        body: ["Generated based on resume analysis"],
-        closing: "Professional closing"
-      },
-      personalizations: ["Fallback content due to generation error"]
-    };
+    throw new Error(`Cover letter generation failed: ${error.message}. Please try again.`);
   }
 }
 
-function getFallbackAnalysis(request: AnalysisRequest): AnalysisResult {
-  console.log("📋 Generating enhanced fallback analysis");
+function createSimplifiedPrompt(request: AnalysisRequest): string {
+  const { resumeText, jobDescription, jobTitle = "Position", companyName = "Company" } = request;
   
-  // Extract basic metrics from resume text
-  const resumeLength = request.resumeText.length;
-  const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(request.resumeText);
-  const hasPhone = /(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(request.resumeText);
-  const hasQuantifiableResults = /\d+[%$k]|\d+\s*(years?|months?|percent|dollar|thousand|million)/.test(request.resumeText);
-  const hasActionVerbs = /(achieved|implemented|developed|managed|created|improved|optimized|delivered|led|designed)/gi.test(request.resumeText);
-  
-  // Calculate intelligent scores based on content
-  const baseScore = Math.min(85, Math.max(45, Math.floor(resumeLength / 50) + (hasEmail ? 10 : 0) + (hasPhone ? 5 : 0)));
-  const keywordScore = baseScore + (hasQuantifiableResults ? 10 : -5);
-  const skillsScore = baseScore + (hasActionVerbs ? 15 : -10);
-  const atsScore = baseScore + (hasEmail && hasPhone ? 15 : -20);
-  
-  return {
-    overallScore: baseScore,
-    detailedAnalysis: {
-      keywordMatch: Math.min(100, keywordScore),
-      skillsAlignment: Math.min(100, skillsScore),
-      experienceRelevance: Math.min(100, baseScore + 5),
-      atsCompatibility: Math.min(100, atsScore),
-      formatOptimization: Math.min(100, baseScore - 5)
-    },
-    interactiveInsights: {
-      strengthsAnalysis: [
-        {
-          category: "Professional Content",
-          score: baseScore,
-          details: hasActionVerbs ? "Resume demonstrates strong professional language with action verbs" : "Resume contains basic professional content",
-          examples: hasQuantifiableResults ? ["Quantifiable achievements present"] : ["Professional experience documented"]
-        },
-        ...(hasEmail && hasPhone ? [{
-          category: "Contact Information",
-          score: 95,
-          details: "Complete contact information provided for easy recruiter access",
-          examples: ["Email and phone number included"]
-        }] : [])
-      ],
-      improvementAreas: [
-        ...(!hasEmail ? [{
-          priority: "high" as const,
-          category: "Critical Missing Information", 
-          issue: "No email address found in resume",
-          solution: "Add professional email address to resume header immediately",
-          impact: "Essential for any job application - without email, 100% rejection rate"
-        }] : []),
-        ...(!hasQuantifiableResults ? [{
-          priority: "high" as const,
-          category: "Achievement Quantification",
-          issue: "No quantifiable achievements or metrics found",
-          solution: "Add specific numbers, percentages, and measurable results to each role",
-          impact: "Quantified achievements increase interview callbacks by 40%"
-        }] : []),
-        ...(!hasActionVerbs ? [{
-          priority: "medium" as const,
-          category: "Language Optimization",
-          issue: "Limited use of strong action verbs throughout resume",
-          solution: "Replace passive language with powerful action verbs (achieved, implemented, optimized)",
-          impact: "Strong action verbs improve ATS parsing and recruiter engagement"
-        }] : [])
-      ],
-      missingKeywords: request.analysisType === 'ats_focus' ? 
-        ["Industry-specific terms from job description", "Technical skills", "Relevant certifications"] :
-        ["Professional keywords require full analysis"],
-      suggeredKeywords: request.analysisType === 'comprehensive' ? 
-        ["Leadership", "Problem-solving", "Results-driven", "Cross-functional", "Strategic"] :
-        ["Suggested keywords require comprehensive analysis"]
-    },
-    actionableRecommendations: [
-      {
-        action: "Add quantifiable achievements immediately",
-        description: "Transform each bullet point to include specific numbers, percentages, or measurable outcomes",
-        expectedImpact: "40% increase in interview callback rate",
-        difficulty: "easy" as const,
-        timeEstimate: "45 minutes"
-      },
-      {
-        action: "Optimize for ATS compatibility", 
-        description: "Use simple formatting, standard section headers, and include relevant keywords from job description",
-        expectedImpact: "60% better ATS parsing success rate",
-        difficulty: "medium" as const,
-        timeEstimate: "30 minutes"
-      },
-      {
-        action: "Enhance professional summary",
-        description: "Create compelling 3-4 line summary highlighting your unique value proposition and key achievements",
-        expectedImpact: "25% improvement in recruiter engagement",
-        difficulty: "medium" as const,
-        timeEstimate: "20 minutes"
-      }
-    ],
-    competitiveAnalysis: {
-      marketPosition: `Based on initial analysis, your resume shows ${baseScore >= 70 ? 'solid professional foundation' : 'potential for significant improvement'}. ${hasQuantifiableResults ? 'Quantified achievements give you competitive advantage.' : 'Adding metrics would dramatically improve market competitiveness.'} Current positioning suggests ${baseScore >= 75 ? 'above-average' : 'below-average'} competitiveness for target roles.`,
-      standoutFactors: [
-        ...(hasQuantifiableResults ? ["Quantified professional achievements"] : []),
-        ...(hasActionVerbs ? ["Strong professional language"] : []),
-        ...(hasEmail && hasPhone ? ["Complete contact information"] : []),
-        "Professional work experience documented",
-        ...(resumeLength > 1000 ? ["Comprehensive professional background"] : [])
-      ].filter(Boolean),
-      competitivenessScore: Math.min(100, baseScore + (hasQuantifiableResults ? 15 : -10))
-    },
-    confidenceScore: 75,
-    processingVersion: "enhanced-fallback-v2.0",
-    timestamp: new Date().toISOString()
-  };
-}
+  return `Analyze this resume against the job requirements and return ONLY valid JSON:
+
+RESUME: ${resumeText.substring(0, 2000)}
+JOB: ${jobDescription.substring(0, 1500)}
+POSITION: ${jobTitle}
+
+{
+  "overallScore": [number 0-100],
+  "detailedAnalysis": {
+    "keywordMatch": [number 0-100],
+    "skillsAlignment": [number 0-100], 
+    "experienceRelevance": [number 0-100],
+    "atsCompatibility": [number 0-100],
+    "formatOptimization": [number 0-100]
+  },
+  "interactiveInsights": {
+    "strengthsAnalysis": [{"category": "string", "score": [0-100], "details": "string", "examples": ["string"]}],
+    "improvementAreas": [{"priority": "high|medium|low", "category": "string", "issue": "string", "solution": "string", "impact": "string"}],
+    "missingKeywords": ["string"],
+    "suggeredKeywords": ["string"]
+  },
+  "actionableRecommendations": [{"action": "string", "description": "string", "expectedImpact": "string", "difficulty": "easy|medium|hard", "timeEstimate": "string"}],
+  "competitiveAnalysis": {
+    "marketPosition": "string",
+    "standoutFactors": ["string"],
+    "competitivenessScore": [0-100]
+  },
+  "confidenceScore": [85-99]
+}`;
 
 async function saveAnalysisToDatabase(supabase: any, analysis: AnalysisResult, userId: string, request: AnalysisRequest) {
   try {

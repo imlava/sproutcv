@@ -5,19 +5,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Google Gemini API Configuration
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
 
-interface FeedbackRequest {
+interface RealtimeFeedbackRequest {
   resumeText: string;
   section: 'skills' | 'experience' | 'summary';
-  jobDescription?: string;
+  analysisType?: string;
 }
 
-interface FeedbackResponse {
+interface SectionFeedback {
   score: number;
   feedback: string;
   suggestions: string[];
+  sectionAnalysis: {
+    keywordDensity: number;
+    technicalDepth: number;
+    quantifiableResults: number;
+    professionalLanguage: number;
+  };
 }
 
 serve(async (req) => {
@@ -26,61 +33,60 @@ serve(async (req) => {
   }
 
   try {
-    console.log("⚡ REAL-TIME FEEDBACK START");
+    console.log("🧠 GEMINI REALTIME FEEDBACK START");
     
-    const body: FeedbackRequest = await req.json();
+    const body: RealtimeFeedbackRequest = await req.json();
     
     if (!body.resumeText?.trim()) {
       throw new Error("Resume text is required");
     }
-    
+    if (!body.section) {
+      throw new Error("Section is required");
+    }
     if (!GEMINI_API_KEY) {
-      // Fallback to intelligent analysis without API
-      console.log("📋 Using fallback analysis");
-      return new Response(JSON.stringify({
-        success: true,
-        data: generateFallbackFeedback(body)
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      });
+      throw new Error("Google Gemini API key not configured. Please configure API key for real-time feedback.");
     }
 
-    // Generate quick feedback using Gemini Flash
-    const feedback = await generateQuickFeedback(body);
+    console.log(`🎯 Analyzing ${body.section} section in real-time`);
 
-    console.log("✅ Real-time feedback completed");
+    // Generate section-specific feedback using Gemini
+    const feedback = await generateSectionFeedback(body);
+
+    console.log("✅ Real-time feedback completed successfully");
 
     return new Response(JSON.stringify({
       success: true,
-      data: feedback
+      feedback,
+      timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
 
   } catch (error) {
-    console.error("❌ Feedback generation failed:", error);
-    
-    // Always return fallback on error
-    const body: FeedbackRequest = await req.json().catch(() => ({ resumeText: '', section: 'skills' as const }));
+    console.error("❌ Real-time feedback failed:", error);
     
     return new Response(JSON.stringify({
-      success: true,
-      data: generateFallbackFeedback(body)
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+      status: 500,
     });
   }
 });
 
-async function generateQuickFeedback(request: FeedbackRequest): Promise<FeedbackResponse> {
-  const { resumeText, section, jobDescription = '' } = request;
+async function generateSectionFeedback(request: RealtimeFeedbackRequest): Promise<SectionFeedback> {
+  const { resumeText, section } = request;
   
-  const prompt = createSectionPrompt(resumeText, section, jobDescription);
+  // Extract section-specific content
+  const sectionContent = extractSectionContent(resumeText, section);
+  
+  const prompt = createSectionPrompt(sectionContent, section);
   
   try {
+    // Call Gemini API for real-time analysis
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
@@ -93,209 +99,149 @@ async function generateQuickFeedback(request: FeedbackRequest): Promise<Feedback
           }]
         }],
         generationConfig: {
-          temperature: 0.2,
+          temperature: 0.3,
           topK: 20,
           topP: 0.8,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,
         }
       })
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Gemini API error:", errorText);
       throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const geminiResponse = await response.json();
-    const feedbackText = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+    const analysisText = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
     
-    if (!feedbackText) {
-      throw new Error("No feedback received from Gemini");
+    if (!analysisText) {
+      throw new Error("No analysis content received from Gemini");
     }
 
-    return parseFeedbackResponse(feedbackText, request);
+    // Parse structured feedback from Gemini response
+    return parseSectionFeedback(analysisText, section);
 
   } catch (error) {
-    console.error("Gemini feedback error:", error);
-    return generateFallbackFeedback(request);
+    console.error("Section feedback generation error:", error);
+    throw error;
   }
 }
 
-function createSectionPrompt(resumeText: string, section: string, jobDescription: string): string {
-  const sectionText = extractSectionText(resumeText, section);
+function extractSectionContent(resumeText: string, section: string): string {
+  const lines = resumeText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
   
-  return `Analyze this ${section} section from a resume and provide quick feedback. Be specific and actionable.
+  const sectionKeywords = {
+    skills: ['skill', 'technical', 'competenc', 'proficient', 'technolog', 'programming', 'software', 'tools'],
+    experience: ['experience', 'employment', 'work', 'position', 'role', 'job', 'career', 'professional'],
+    summary: ['summary', 'objective', 'profile', 'overview', 'about', 'introduction']
+  };
+  
+  const keywords = sectionKeywords[section] || [];
+  
+  // Find lines that likely belong to this section
+  const relevantLines = [];
+  let inSection = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].toLowerCase();
+    
+    // Check if this line is a section header
+    const isHeader = keywords.some(keyword => 
+      line.includes(keyword) && line.length < 50
+    );
+    
+    if (isHeader) {
+      inSection = true;
+      continue;
+    }
+    
+    // Stop if we hit another section
+    if (inSection && line.match(/^(education|experience|skills|summary|objective|contact)/i) && 
+        !keywords.some(k => line.includes(k))) {
+      break;
+    }
+    
+    if (inSection) {
+      relevantLines.push(lines[i]);
+    }
+  }
+  
+  // If no specific section found, use first 500 chars as fallback
+  return relevantLines.length > 0 ? relevantLines.join('\n') : resumeText.substring(0, 500);
+}
+
+function createSectionPrompt(sectionContent: string, section: string): string {
+  const sectionInstructions = {
+    skills: {
+      focus: "technical competencies, proficiencies, and skill progression",
+      criteria: "skill relevance, technical depth, industry alignment, and skill progression demonstration"
+    },
+    experience: {
+      focus: "professional experience, achievements, and career progression", 
+      criteria: "role relevance, achievement quantification, responsibility scope, and career growth"
+    },
+    summary: {
+      focus: "professional positioning, value proposition, and career narrative",
+      criteria: "clarity of value proposition, professional branding, achievement highlights, and career focus"
+    }
+  };
+
+  const instruction = sectionInstructions[section];
+
+  return `You are an expert resume analyst. Analyze this ${section} section content and provide detailed, real-time feedback.
 
 SECTION CONTENT:
-${sectionText}
+${sectionContent}
 
-${jobDescription ? `JOB CONTEXT: ${jobDescription.substring(0, 500)}` : ''}
+ANALYSIS FOCUS: ${instruction.focus}
+SCORING CRITERIA: ${instruction.criteria}
 
-Provide a JSON response with:
+Provide real-time feedback in EXACTLY this JSON format:
+
 {
-  "score": [0-100 integer],
-  "feedback": "Brief assessment of the ${section} section",
-  "suggestions": ["Specific actionable suggestion 1", "Specific actionable suggestion 2", "Specific actionable suggestion 3"]
-}
-
-Focus on:
-- ${section === 'skills' ? 'Technical and soft skills relevance, missing key skills, skills presentation' : ''}
-- ${section === 'experience' ? 'Quantifiable achievements, impact statements, career progression' : ''}
-- ${section === 'summary' ? 'Value proposition clarity, keywords, professional positioning' : ''}
-- ATS optimization and keyword usage
-- Professional presentation and formatting
-
-Be critical but constructive. Provide specific, actionable suggestions.`;
-}
-
-function extractSectionText(resumeText: string, section: string): string {
-  const lines = resumeText.split('\n');
-  const sectionKeywords = {
-    skills: ['skill', 'technical', 'competenc', 'proficient', 'technologies', 'programming', 'software'],
-    experience: ['experience', 'employment', 'work', 'position', 'role', 'company', 'achievements'],
-    summary: ['summary', 'objective', 'profile', 'overview', 'about']
-  };
-  
-  const keywords = sectionKeywords[section as keyof typeof sectionKeywords] || [];
-  
-  // Find section headers
-  const sectionStartIdx = lines.findIndex(line => 
-    keywords.some(keyword => line.toLowerCase().includes(keyword)) &&
-    (line.trim().length < 50 || /^[A-Z\s]+$/.test(line.trim()))
-  );
-  
-  if (sectionStartIdx === -1) {
-    // If no section header found, return relevant content based on patterns
-    const relevantLines = lines.filter(line => {
-      if (section === 'skills') {
-        return /\b(javascript|python|java|react|node|sql|aws|docker|kubernetes|agile|git)\b/i.test(line) ||
-               /\b(programming|development|technical|software|engineering)\b/i.test(line);
-      } else if (section === 'experience') {
-        return /\b(company|corporation|inc|ltd|years?|months?|managed|developed|implemented|achieved)\b/i.test(line) ||
-               /\d+.*(?:years?|months?|%|\$|million|thousand)/.test(line);
-      } else if (section === 'summary') {
-        return line.length > 30 && line.length < 200 && 
-               /\b(professional|experienced|skilled|expertise|passionate|driven)\b/i.test(line);
-      }
-      return false;
-    });
-    
-    return relevantLines.length > 0 ? relevantLines.join('\n') : resumeText.substring(0, 800);
+  "score": [0-100 integer based on professional quality and impact],
+  "feedback": "Specific, actionable feedback about current content quality and effectiveness",
+  "suggestions": [
+    "Specific improvement suggestion 1",
+    "Specific improvement suggestion 2", 
+    "Specific improvement suggestion 3"
+  ],
+  "sectionAnalysis": {
+    "keywordDensity": [0-100 - professional terminology usage],
+    "technicalDepth": [0-100 - specificity and technical detail level],
+    "quantifiableResults": [0-100 - measurable achievements and metrics],
+    "professionalLanguage": [0-100 - action verbs and professional tone]
   }
-  
-  // Find next section or end
-  const nextSectionIdx = lines.findIndex((line, idx) => 
-    idx > sectionStartIdx + 1 &&
-    /^[A-Z\s]{2,}$/.test(line.trim()) &&
-    line.trim().length < 30
-  );
-  
-  const endIdx = nextSectionIdx === -1 ? lines.length : nextSectionIdx;
-  const sectionLines = lines.slice(sectionStartIdx, endIdx);
-  
-  return sectionLines.join('\n');
 }
 
-function parseFeedbackResponse(feedbackText: string, request: FeedbackRequest): FeedbackResponse {
+Be specific, actionable, and focus on improvements that will have immediate impact.`;
+}
+
+function parseSectionFeedback(analysisText: string, section: string): SectionFeedback {
   try {
     // Extract JSON from response
-    const jsonMatch = feedbackText.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return {
-        score: Math.max(0, Math.min(100, parsed.score || 75)),
-        feedback: parsed.feedback || `Your ${request.section} section is being analyzed...`,
-        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 3) : [
-          `Improve ${request.section} section content`,
-          'Add more specific details',
-          'Include relevant keywords'
-        ]
-      };
+    const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No JSON found in analysis response");
     }
-    
-    throw new Error("No valid JSON in response");
-  } catch (error) {
-    console.error("Parse error:", error);
-    return generateFallbackFeedback(request);
-  }
-}
 
-function generateFallbackFeedback(request: FeedbackRequest): FeedbackResponse {
-  const { resumeText, section } = request;
-  const sectionText = extractSectionText(resumeText, section);
-  
-  // Intelligent analysis based on content
-  const wordCount = sectionText.split(/\s+/).filter(w => w.length > 0).length;
-  const hasQuantifiableResults = /\d+[%$k]|\d+\s*(years?|months?|percent|dollar|thousand|million)/.test(sectionText);
-  const hasActionVerbs = /(achieved|implemented|developed|managed|created|improved|optimized|delivered|led|designed|built|launched|increased|reduced|streamlined)/gi.test(sectionText);
-  const hasTechnicalTerms = /(javascript|python|react|node|sql|aws|api|database|framework|agile|scrum)/gi.test(sectionText);
-  
-  let score = 60; // Base score
-  
-  // Scoring logic
-  if (wordCount > 50) score += 10;
-  if (wordCount > 100) score += 5;
-  if (hasQuantifiableResults) score += 15;
-  if (hasActionVerbs) score += 10;
-  if (hasTechnicalTerms && (section === 'skills' || section === 'experience')) score += 10;
-  if (section === 'summary' && wordCount > 20 && wordCount < 150) score += 10;
-  
-  // Penalties
-  if (wordCount < 20) score -= 15;
-  if (!hasActionVerbs && section !== 'skills') score -= 10;
-  
-  score = Math.max(25, Math.min(95, score));
-  
-  const getSectionFeedback = () => {
-    switch (section) {
-      case 'skills':
-        return `Skills section ${score >= 80 ? 'demonstrates strong technical capabilities' : score >= 60 ? 'shows adequate skill coverage' : 'needs significant enhancement'}. ${hasTechnicalTerms ? 'Good use of technical terminology.' : 'Consider adding more specific technical skills.'} ${wordCount < 30 ? 'Expand with more relevant skills.' : ''}`;
-      
-      case 'experience':
-        return `Experience section ${score >= 80 ? 'effectively showcases professional impact' : score >= 60 ? 'presents solid work history' : 'requires substantial improvement'}. ${hasQuantifiableResults ? 'Excellent use of metrics and achievements.' : 'Missing quantifiable results that demonstrate impact.'} ${hasActionVerbs ? 'Strong action-oriented language.' : 'Needs more dynamic action verbs.'}`;
-      
-      case 'summary':
-        return `Professional summary ${score >= 80 ? 'creates compelling professional narrative' : score >= 60 ? 'provides adequate professional overview' : 'needs significant strengthening'}. ${wordCount > 100 ? 'Consider condensing for better impact.' : wordCount < 40 ? 'Expand to better showcase your value proposition.' : 'Good length for professional summary.'}`;
-      
-      default:
-        return `Section analysis complete with score of ${score}/100.`;
-    }
-  };
-  
-  const getSuggestions = () => {
-    const suggestions = [];
+    const feedbackData = JSON.parse(jsonMatch[0]);
     
-    if (!hasQuantifiableResults && section !== 'summary') {
-      suggestions.push("Add specific numbers, percentages, and measurable results");
-    }
-    
-    if (!hasActionVerbs && section === 'experience') {
-      suggestions.push("Use strong action verbs like 'achieved', 'implemented', 'optimized'");
-    }
-    
-    if (section === 'skills' && !hasTechnicalTerms) {
-      suggestions.push("Include specific technical skills and tools relevant to your field");
-    }
-    
-    if (wordCount < 30) {
-      suggestions.push("Expand section with more detailed and relevant content");
-    }
-    
-    if (section === 'summary' && wordCount > 120) {
-      suggestions.push("Condense summary to 3-4 impactful sentences for better readability");
-    }
-    
-    suggestions.push("Optimize keywords for ATS compatibility");
-    
-    if (suggestions.length < 3) {
-      suggestions.push("Review job description and align content with requirements");
-    }
-    
-    return suggestions.slice(0, 3);
-  };
-  
-  return {
-    score,
-    feedback: getSectionFeedback(),
-    suggestions: getSuggestions()
-  };
+    return {
+      score: Math.max(0, Math.min(100, feedbackData.score || 0)),
+      feedback: feedbackData.feedback || `AI analysis completed for ${section} section`,
+      suggestions: Array.isArray(feedbackData.suggestions) ? feedbackData.suggestions : [`Improve ${section} section content`],
+      sectionAnalysis: {
+        keywordDensity: Math.max(0, Math.min(100, feedbackData.sectionAnalysis?.keywordDensity || 0)),
+        technicalDepth: Math.max(0, Math.min(100, feedbackData.sectionAnalysis?.technicalDepth || 0)),
+        quantifiableResults: Math.max(0, Math.min(100, feedbackData.sectionAnalysis?.quantifiableResults || 0)),
+        professionalLanguage: Math.max(0, Math.min(100, feedbackData.sectionAnalysis?.professionalLanguage || 0))
+      }
+    };
+  } catch (error) {
+    console.error("Error parsing section feedback:", error);
+    throw new Error(`Failed to parse ${section} section feedback`);
+  }
 }

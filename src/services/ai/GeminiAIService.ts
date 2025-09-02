@@ -271,15 +271,12 @@ export class GeminiAIService {
     suggestions: string[];
   }> {
     try {
-      // Call the real-time feedback edge function
-      const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
+      // Call dedicated real-time feedback edge function
+      const { data, error } = await supabase.functions.invoke('gemini-realtime-feedback', {
         body: {
           resumeText,
-          jobDescription: '', // Minimal for quick analysis
-          analysisType: 'quick',
-          includeInteractive: false,
-          includeCoverLetter: false,
-          sectionFocus: section
+          section,
+          analysisType: 'section_focus'
         }
       });
 
@@ -287,70 +284,14 @@ export class GeminiAIService {
         throw new Error(data?.error || 'Real-time feedback failed');
       }
 
-      // Extract section-specific score from analysis
-      const analysis = data.data;
-      let sectionScore = 75;
-      let sectionFeedback = `Your ${section} section is being analyzed...`;
-      let sectionSuggestions = ['Continue editing for enhanced feedback'];
-
-      switch (section) {
-        case 'skills':
-          sectionScore = analysis.detailedAnalysis?.skillsAlignment || 75;
-          sectionFeedback = `Skills alignment shows ${sectionScore >= 80 ? 'excellent' : sectionScore >= 60 ? 'good' : 'needs improvement'} technical competencies.`;
-          break;
-        case 'experience':
-          sectionScore = analysis.detailedAnalysis?.experienceRelevance || 75;
-          sectionFeedback = `Experience relevance demonstrates ${sectionScore >= 80 ? 'strong' : sectionScore >= 60 ? 'adequate' : 'limited'} professional progression.`;
-          break;
-        case 'summary':
-          sectionScore = analysis.overallScore || 75;
-          sectionFeedback = `Professional summary shows ${sectionScore >= 80 ? 'compelling' : sectionScore >= 60 ? 'solid' : 'basic'} career positioning.`;
-          break;
-      }
-
-      // Extract relevant suggestions from recommendations
-      sectionSuggestions = analysis.actionableRecommendations
-        ?.slice(0, 3)
-        ?.map(rec => rec.action) || [
-        `Enhance ${section} with more specific details`,
-        'Include quantifiable achievements',
-        'Optimize keywords for better ATS compatibility'
-      ];
-
-      return {
-        score: sectionScore,
-        feedback: sectionFeedback,
-        suggestions: sectionSuggestions
-      };
+      return data.feedback;
 
     } catch (error) {
       console.error('Real-time feedback error:', error);
-      // Fallback to intelligent scoring based on text analysis
-      return this.getFallbackSectionAnalysis(resumeText, section);
+      throw new Error(`AI feedback temporarily unavailable for ${section} section. Please try again.`);
     }
   }
 
-  private getFallbackSectionAnalysis(resumeText: string, section: string) {
-    const sectionText = this.extractSectionText(resumeText, section);
-    const wordCount = sectionText.split(/\s+/).length;
-    const hasQuantifiableResults = /\d+[%$k]|\d+\s*(years?|months?|percent|dollar|thousand|million)/.test(sectionText);
-    const hasActionVerbs = /(achieved|implemented|developed|managed|created|improved|optimized|delivered|led|designed)/i.test(sectionText);
-    
-    let score = 65; // Base score
-    if (wordCount > 20) score += 10;
-    if (hasQuantifiableResults) score += 15;
-    if (hasActionVerbs) score += 10;
-    
-    return {
-      score: Math.min(100, score),
-      feedback: `Your ${section} section ${score >= 80 ? 'demonstrates strong' : score >= 60 ? 'shows adequate' : 'needs enhanced'} professional content.`,
-      suggestions: [
-        !hasQuantifiableResults ? 'Add specific metrics and achievements' : 'Maintain quantifiable results',
-        !hasActionVerbs ? 'Use strong action verbs' : 'Continue using impactful language',
-        'Include more industry-specific keywords'
-      ].filter(Boolean)
-    };
-  }
 
   private extractSectionText(resumeText: string, section: string): string {
     const lines = resumeText.split('\n');
@@ -395,15 +336,32 @@ Focus on the ${section} and provide:
 Keep response concise for real-time feedback.`;
   }
 
-  // Utility methods for interactive features
+  // AI-powered utility methods for interactive features
   async explainScore(
     score: number, 
     category: string, 
     resumeText: string, 
     jobDescription: string
   ): Promise<string> {
-    // Generate detailed explanation for why a score was given
-    return `Your ${category} score of ${score}/100 is based on the alignment between your resume content and the job requirements. This score considers keyword matching, skill relevance, and experience depth.`;
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
+        body: {
+          resumeText: resumeText.substring(0, 1000),
+          jobDescription: jobDescription.substring(0, 800),
+          analysisType: 'quick',
+          explainScore: { score, category }
+        }
+      });
+
+      if (error || !data?.success) {
+        throw new Error('Score explanation failed');
+      }
+
+      return data.explanation || `Your ${category} score of ${score}/100 reflects the AI analysis of content alignment, keyword relevance, and competitive positioning.`;
+    } catch (error) {
+      console.error('Score explanation error:', error);
+      throw new Error(`Unable to explain ${category} score. Please try again.`);
+    }
   }
 
   async suggestImprovements(
@@ -411,13 +369,25 @@ Keep response concise for real-time feedback.`;
     resumeText: string, 
     jobDescription: string
   ): Promise<string[]> {
-    // Generate specific improvement suggestions
-    return [
-      `Add more ${category}-related keywords from the job description`,
-      `Quantify your achievements with specific metrics`,
-      `Include industry-specific terminology`,
-      `Optimize formatting for ATS compatibility`
-    ];
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
+        body: {
+          resumeText: resumeText.substring(0, 1000),
+          jobDescription: jobDescription.substring(0, 800),
+          analysisType: 'quick',
+          generateSuggestions: { category }
+        }
+      });
+
+      if (error || !data?.success) {
+        throw new Error('Suggestion generation failed');
+      }
+
+      return data.suggestions || [`Enhance ${category} with AI-generated recommendations`];
+    } catch (error) {
+      console.error('Suggestion generation error:', error);
+      throw new Error(`Unable to generate ${category} suggestions. Please try again.`);
+    }
   }
 
   // Batch processing for multiple job applications
