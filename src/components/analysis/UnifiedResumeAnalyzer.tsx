@@ -239,20 +239,16 @@ const UnifiedResumeAnalyzer: React.FC = () => {
       await updateProgress(20, 'Preparing analysis...');
       await updateProgress(40, 'Running AI analysis...');
       
-      const { data, error } = await supabase.functions.invoke('analyze-resume-fixed-final', {
+      const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
         body: {
           resumeText: state.resumeText,
           jobDescription: state.jobDescription,
           jobTitle: state.jobTitle,
           companyName: state.companyName,
           userId: user?.id,
-          metadata: {
-            fileSize: state.resumeFile?.size || 0,
-            fileType: state.resumeFile?.type || 'text/plain',
-            processingTime: 0,
-            apiCalls: 1,
-            cacheHit: false
-          }
+          analysisType: 'comprehensive',
+          includeInteractive: true,
+          includeCoverLetter: false
         }
       });
 
@@ -261,14 +257,14 @@ const UnifiedResumeAnalyzer: React.FC = () => {
         throw new Error(error.message || 'Analysis failed');
       }
 
-      if (!data) {
-        throw new Error('No analysis results returned');
+      if (!data?.success) {
+        throw new Error(data?.error || 'No analysis results returned');
       }
 
       await updateProgress(90, 'Finalizing results...');
       
       updateState({ 
-        analysisResult: data,
+        analysisResult: data.data,
         step: 'results',
         processing: false,
         progress: 100,

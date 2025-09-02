@@ -32,6 +32,7 @@ const Header = () => {
   const navigationItems = [
     { label: 'Features', action: () => scrollToSection('features') },
     { label: 'How It Works', action: () => handleNavigation('/how-it-works') },
+    { label: 'AI Analyzer', action: () => handleNavigation('/ai-analyzer') },
     { label: 'Pricing', action: () => scrollToSection('pricing') },
     { label: 'About', action: () => scrollToSection('about') }
   ];

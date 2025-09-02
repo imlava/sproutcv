@@ -47,12 +47,15 @@ export class AIService {
     await this.checkRateLimit(userId);
 
     try {
-      // Call the enhanced analyze-resume edge function (FIXED FINAL VERSION)
-      const { data, error } = await supabase.functions.invoke('analyze-resume-fixed-final', {
+      // Call the enhanced Gemini-powered analyze-resume function
+      const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
         body: {
           resumeText,
           jobDescription,
           userId,
+          analysisType: 'comprehensive',
+          includeInteractive: true,
+          includeCoverLetter: false,
           metadata: {
             ...metadata,
             cacheKey,
@@ -65,8 +68,11 @@ export class AIService {
         throw new AIAnalysisError('Edge function error', error);
       }
 
+      // Handle Gemini response format
+      const geminiData = data?.success ? data.data : data;
+      
       const analysis: AnalysisResult = {
-        ...data,
+        ...geminiData,
         processingTime: Date.now() - startTime,
         timestamp: new Date().toISOString()
       };
