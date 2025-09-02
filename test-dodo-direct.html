@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Dodo API Direct Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .test-button {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .test-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            min-height: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .results.success {
+            border-left: 5px solid #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .results.error {
+            border-left: 5px solid #f44336;
+            background: rgba(244, 67, 54, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Dodo API Direct Test</h1>
+        <p style="text-align: center; opacity: 0.8;">Direct Dodo API testing to diagnose payment issues</p>
+        
+        <div class="test-section">
+            <h3>🎯 Test Scenarios</h3>
+            <button class="test-button" onclick="testDodoApiDirect()">
+                🚀 Test Direct Dodo API Call
+            </button>
+            <button class="test-button" onclick="testDodoAuth()">
+                🔐 Test Dodo Authentication
+            </button>
+            <button class="test-button" onclick="testDodoProducts()">
+                📦 Test Product Validation
+            </button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Results</h3>
+            <div id="results" class="results">
+                Click a test button to run diagnostics...
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔍 Debug Info</h3>
+            <div id="debug" class="results">
+                Debug information will appear here...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const ANON_KEY = '***REMOVED***';
+        
+        function disableButtons() {
+            document.querySelectorAll('.test-button').forEach(btn => {
+                btn.disabled = true;
+            });
+        }
+        
+        function enableButtons() {
+            document.querySelectorAll('.test-button').forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+        
+        async function testDodoApiDirect() {
+            disableButtons();
+            const results = document.getElementById('results');
+            const debug = document.getElementById('debug');
+            
+            results.textContent = '🔄 Making direct Dodo API call...';
+            debug.textContent = '📡 Preparing debug information...';
+            
+            try {
+                console.log('🎯 Testing direct Dodo API call...');
+                
+                const testPayload = {
+                    credits: 5,
+                    amount: 500,
+                    planType: 'starter',
+                    test_mode: true
+                };
+                
+                debug.textContent = `📤 Sending payload:\n${JSON.stringify(testPayload, null, 2)}`;
+                
+                const startTime = Date.now();
+                
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/create-payment-dynamic`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(testPayload)
+                });
+                
+                const responseTime = Date.now() - startTime;
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                let output = `🔍 DODO API TEST RESULTS\n`;
+                output += `⏱️ Response Time: ${responseTime}ms\n`;
+                output += `📊 Status: ${response.status} ${response.statusText}\n\n`;
+                
+                output += `🎯 API CALL STATUS:\n`;
+                output += `  • Success: ${data.success ? '✅' : '❌'}\n`;
+                output += `  • Environment: ${data.environment}\n`;
+                output += `  • Version: ${data.version}\n\n`;
+                
+                if (data.fallback) {
+                    output += `⚠️ FALLBACK MODE DETECTED:\n`;
+                    output += `  • Reason: ${data.reason}\n`;
+                    output += `  • This means the Dodo API call failed\n\n`;
+                    
+                    // Extract the actual API error
+                    if (data.reason.includes('Dodo API error:')) {
+                        const apiError = data.reason.split('Dodo API error: ')[1];
+                        output += `🚨 ACTUAL DODO ERROR:\n`;
+                        output += `  • "${apiError}"\n\n`;
+                        
+                        // Provide specific solutions
+                        if (apiError.includes('Unknown error')) {
+                            output += `💡 LIKELY CAUSES:\n`;
+                            output += `  • Invalid API key format\n`;
+                            output += `  • Wrong Dodo API endpoint\n`;
+                            output += `  • Missing required fields in payload\n`;
+                            output += `  • API key doesn't have checkout permissions\n`;
+                            output += `  • Network/SSL issues\n\n`;
+                        }
+                    }
+                    
+                    results.className = 'results error';
+                } else {
+                    output += `✅ REAL DODO PAYMENT CREATED:\n`;
+                    output += `  • Payment ID: ${data.paymentId}\n`;
+                    output += `  • Payment URL: ${data.url}\n`;
+                    output += `  • Product: ${data.productUsed}\n\n`;
+                    
+                    results.className = 'results success';
+                }
+                
+                // Debug information
+                if (data._debug) {
+                    debug.textContent += `\n\n🐛 DEBUG INFORMATION:\n`;
+                    debug.textContent += `📦 Dodo Response Fields: ${Object.keys(data._debug.dodoResponse || {}).join(', ')}\n`;
+                    debug.textContent += `🆔 ID Fields Found: ${data._debug.fieldMapping?.paymentId?.join(', ') || 'none'}\n`;
+                    debug.textContent += `🔗 URL Fields Found: ${data._debug.fieldMapping?.url?.join(', ') || 'none'}\n`;
+                    debug.textContent += `\n📄 Raw Dodo Response:\n${JSON.stringify(data._debug.dodoResponse, null, 2)}`;
+                }
+                
+                results.textContent = output;
+                
+            } catch (error) {
+                console.error('💥 Test failed:', error);
+                results.textContent = `❌ TEST FAILED\n🚨 Error: ${error.message}\n\n💡 This could indicate:\n  • Network connectivity issues\n  • Edge Function deployment problems\n  • CORS configuration issues`;
+                results.className = 'results error';
+                
+                debug.textContent = `💥 Error Details:\n${error.stack}`;
+            }
+            
+            enableButtons();
+        }
+        
+        async function testDodoAuth() {
+            disableButtons();
+            const results = document.getElementById('results');
+            
+            results.textContent = '🔐 Testing Dodo API authentication...';
+            
+            try {
+                // This would normally be a separate diagnostic function
+                // For now, let's test with a minimal payload
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/verify-dodo-config`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ test: true })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                results.textContent = `🔐 AUTH TEST RESULTS:\n${JSON.stringify(data, null, 2)}`;
+                results.className = data.success ? 'results success' : 'results error';
+                
+            } catch (error) {
+                results.textContent = `❌ AUTH TEST FAILED\n🚨 Error: ${error.message}`;
+                results.className = 'results error';
+            }
+            
+            enableButtons();
+        }
+        
+        async function testDodoProducts() {
+            disableButtons();
+            const results = document.getElementById('results');
+            
+            results.textContent = '📦 Testing Dodo product validation...\n\nThis would test if our product IDs are valid in Dodo dashboard.';
+            
+            // This is a placeholder - would need a dedicated diagnostic function
+            setTimeout(() => {
+                results.textContent += `\n\n💡 TO CHECK MANUALLY:\n`;
+                results.textContent += `1. Log into Dodo Payments dashboard\n`;
+                results.textContent += `2. Verify these product IDs exist:\n`;
+                results.textContent += `   • pdt_fWgsoRlk70A4sv8yMgYHW (Starter - 5 credits)\n`;
+                results.textContent += `   • pdt_2QojZZpaRel2V3mH08q4w (Pro - 15 credits)\n`;
+                results.textContent += `   • pdt_BXqUmVPdTy2ot7dE36j1c (Premium - 30 credits)\n`;
+                results.textContent += `3. Check API key has "checkout" permissions\n`;
+                results.textContent += `4. Verify test mode settings`;
+                
+                enableButtons();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

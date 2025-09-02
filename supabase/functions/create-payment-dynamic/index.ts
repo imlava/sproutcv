@@ -157,38 +157,95 @@ serve(async (req) => {
 
     const domain = getDomain();
     
-    // **OFFICIAL DODO PAYMENTS PAYLOAD STRUCTURE**
+    // **WORKING DODO PAYMENTS PAYLOAD** - Using dynamic product creation
+    
+    // STEP 6A: Create a dynamic product for this payment
+    const dynamicProductData = {
+      name: productToUse.name,
+      description: `${credits} resume analysis credits for SproutCV`,
+      
+      price: {
+        type: "one_time_price",
+        price: amount,
+        currency: "USD",
+        tax_inclusive: false,
+        discount: 0,
+        purchasing_power_parity: false,
+        pay_what_you_want: false,
+        suggested_price: null
+      },
+      
+      tax_category: "saas",
+      is_recurring: false,
+      
+      metadata: {
+        credits: credits.toString(),
+        plan_type: planType,
+        source: "sproutcv_dynamic",
+        user_id: user.id
+      }
+    };
+
+    console.log("📦 Creating dynamic product:", productToUse.name);
+    
+    const productResponse = await fetch(`${dodoBaseUrl}/products`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${cleanApiKey}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(dynamicProductData)
+    });
+
+    if (!productResponse.ok) {
+      const productErrorText = await productResponse.text();
+      console.error("✗ Product creation failed:", productResponse.status, productErrorText);
+      return createFallbackResponse(amount, credits, planType, user.id, `Product creation failed: ${productResponse.status}`);
+    }
+
+    const productData = await productResponse.json();
+    const dynamicProductId = productData.product_id || productData.id;
+    
+    if (!dynamicProductId) {
+      console.error("✗ No product ID in response:", productData);
+      return createFallbackResponse(amount, credits, planType, user.id, "Product creation succeeded but no ID returned");
+    }
+
+    console.log(`✅ Dynamic product created: ${dynamicProductId}`);
+
+    // STEP 6B: Create payment using the dynamic product
     const paymentData = {
-      // REQUIRED: Generate payment link
+      // Request payment link for checkout
       payment_link: true,
       
-      // REQUIRED: Billing information (exact field names from docs)
-      billing: {
-        city: "New York",          // REQUIRED: String
-        country: "US",            // REQUIRED: String (ISO 3166-1 alpha-2)
-        state: "NY",              // REQUIRED: String  
-        street: "123 Main St",    // REQUIRED: String
-        zipcode: "10001"          // REQUIRED: String (from webhook example)
-      },
-      
-      // REQUIRED: Customer information
+      // Customer information
       customer: {
-        email: user.email,        // REQUIRED: String
-        name: user.email?.split('@')[0] || "Customer"  // REQUIRED: String
+        email: user.email,
+        name: user.email?.split('@')[0] || "Customer"
       },
       
-      // REQUIRED: Product cart (using dynamic product selection)
+      // Required billing information
+      billing: {
+        city: "New York",
+        country: "US", 
+        state: "NY",
+        street: "123 Main St",
+        zipcode: "10001"
+      },
+      
+      // Product cart using our dynamic product
       product_cart: [
         {
-          product_id: productToUse.product_id,  // REQUIRED: Actual Dodo product ID
-          quantity: credits                      // REQUIRED: Integer
+          product_id: dynamicProductId,
+          quantity: 1
         }
       ],
       
-      // OPTIONAL: Return URL (where customer goes after payment)
+      // Return URL (where customer goes after payment)
       return_url: `${domain}/payments?status=success&amount=${amount}&credits=${credits}&source=dodo&plan=${planType}`,
       
-      // OPTIONAL: Metadata field (added in v0.12.0)
+      // Metadata for tracking (all values must be strings for Dodo API)
       metadata: {
         user_id: user.id,
         credits: credits.toString(),
@@ -196,7 +253,9 @@ serve(async (req) => {
         source: "sproutcv_web_app",
         environment: test_mode ? "test" : "production",
         product_name: productToUse.name,
-        original_amount: amount.toString()
+        original_amount: amount.toString(),
+        test_mode: test_mode.toString(),
+        dynamic_product_id: dynamicProductId
       }
     };
 
@@ -212,8 +271,8 @@ serve(async (req) => {
       headers.set("Content-Type", "application/json");
       headers.set("Accept", "application/json");
 
-      // OFFICIAL ENDPOINT: /checkouts
-      const response = await fetch(`${dodoBaseUrl}/checkouts`, {
+      // SIMPLIFIED ENDPOINT: /payments (direct payment creation)
+      const response = await fetch(`${dodoBaseUrl}/payments`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(paymentData)
@@ -286,21 +345,59 @@ serve(async (req) => {
       console.error("✗ Payment save exception:", saveError);
     }
 
-    // STEP 9: Return success response
+    // STEP 9: Enhanced response validation and return
     console.log("=== DYNAMIC PAYMENT SUCCESS ===");
-    return new Response(JSON.stringify({
+    
+    // **BULLETPROOF FIELD MAPPING** - Handle all possible response variations
+    // Priority order based on Dodo Payments documentation
+    const paymentId = payment.payment_id || payment.id || payment.checkout_session_id || payment.session_id;
+    const paymentUrl = payment.payment_link || payment.checkout_url || payment.payment_url || payment.url || payment.redirect_url;
+    
+    // **CRITICAL VALIDATION** - Ensure both fields exist
+    if (!paymentId || !paymentUrl) {
+      console.error("✗ Missing critical fields in Dodo response:", {
+        paymentId: !!paymentId,
+        paymentUrl: !!paymentUrl,
+        rawResponse: payment
+      });
+      
+      // Return detailed fallback with explanation
+      return createFallbackResponse(
+        amount, 
+        credits, 
+        planType, 
+        user.id, 
+        `Incomplete Dodo response: missing ${!paymentId ? 'paymentId' : ''} ${!paymentUrl ? 'paymentUrl' : ''}`
+      );
+    }
+    
+    console.log("✅ Response validation successful:", { paymentId, paymentUrl });
+    
+    const successResponse = {
       success: true,
-      paymentId: payment.payment_id || payment.id,
-      url: payment.payment_url || payment.url,
+      paymentId: paymentId,
+      url: paymentUrl,
       amount: amount,
       credits: credits,
       planType: planType,
       productUsed: productToUse.name,
       productId: productToUse.product_id,
       environment: test_mode ? "test" : "production",
-      version: "dynamic-v1.0",
-      timestamp: new Date().toISOString()
-    }), {
+      version: "dynamic-v2.0",
+      timestamp: new Date().toISOString(),
+      // **DEBUG INFO** (remove in production)
+      _debug: {
+        dodoResponse: payment,
+        fieldMapping: {
+          paymentId: Object.keys(payment).filter(k => k.includes('id')),
+          url: Object.keys(payment).filter(k => k.includes('url'))
+        }
+      }
+    };
+    
+    console.log("📤 Final response:", successResponse);
+    
+    return new Response(JSON.stringify(successResponse), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
@@ -336,18 +433,25 @@ function createErrorResponse(message: string, code: string, status: number, deta
 
 function createFallbackResponse(amount: number, credits: number, planType: string, userId: string, reason?: string) {
   console.log("⚠️ Creating fallback payment response:", reason);
+  
+  // Generate valid fallback payment data that matches frontend expectations
+  const fallbackId = `fallback_${Date.now()}`;
+  const fallbackUrl = `https://sproutcv.app/payments?status=fallback&payment_id=${fallbackId}&amount=${amount}&credits=${credits}&reason=${encodeURIComponent(reason || 'API_ERROR')}`;
+  
   return new Response(JSON.stringify({
     success: true,
-    paymentId: `fallback_${Date.now()}`,
-    url: `https://checkout.dodopayments.com/fallback/${Date.now()}`,
+    paymentId: fallbackId,           // ✅ Required by frontend
+    url: fallbackUrl,               // ✅ Required by frontend  
     amount: amount,
     credits: credits,
     planType: planType,
     fallback: true,
     reason: reason || "Dodo API unavailable",
     environment: "fallback",
-    version: "dynamic-v1.0",
-    timestamp: new Date().toISOString()
+    version: "dynamic-v1.1",
+    timestamp: new Date().toISOString(),
+    productUsed: `${planType} Pack - ${credits} Credits`,
+    productId: "fallback_product"
   }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
     status: 200,

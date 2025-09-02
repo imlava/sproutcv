@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Payment Response Debug Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 1.2em;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .test-button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .test-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            min-height: 100px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .results.success {
+            border-left: 5px solid #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .results.error {
+            border-left: 5px solid #f44336;
+            background: rgba(244, 67, 54, 0.1);
+        }
+        
+        .field-check {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .field-name {
+            font-weight: bold;
+            min-width: 120px;
+        }
+        
+        .field-status {
+            margin-left: 10px;
+            font-size: 1.2em;
+        }
+        
+        .field-value {
+            margin-left: 10px;
+            opacity: 0.8;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Payment Response Debug</h1>
+        <p class="subtitle">Debug payment response fields to fix frontend validation</p>
+        
+        <div class="test-section">
+            <h3>🎯 Quick Tests</h3>
+            <button class="test-button" onclick="testPayment(5, 500, 'starter')">
+                Test Starter Pack (5 credits)
+            </button>
+            <button class="test-button" onclick="testPayment(15, 1500, 'pro')">
+                Test Pro Pack (15 credits)
+            </button>
+            <button class="test-button" onclick="testPayment(30, 2500, 'premium')">
+                Test Premium Pack (30 credits)
+            </button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Response Analysis</h3>
+            <div id="analysis" class="results">
+                Click a test button to see detailed response analysis...
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Field Validation</h3>
+            <div id="validation" class="results">
+                Waiting for test results...
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📄 Raw Response</h3>
+            <div id="raw" class="results">
+                Raw JSON response will appear here...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const ANON_KEY = '***REMOVED***';
+        
+        function disableButtons() {
+            document.querySelectorAll('.test-button').forEach(btn => {
+                btn.disabled = true;
+                btn.textContent = btn.textContent.replace('Test', 'Testing...');
+            });
+        }
+        
+        function enableButtons() {
+            document.querySelectorAll('.test-button').forEach(btn => {
+                btn.disabled = false;
+                btn.textContent = btn.textContent.replace('Testing...', 'Test');
+            });
+        }
+        
+        async function testPayment(credits, amount, planType) {
+            disableButtons();
+            
+            // Clear previous results
+            document.getElementById('analysis').textContent = '🔄 Making API call...';
+            document.getElementById('validation').textContent = '⏳ Analyzing response...';
+            document.getElementById('raw').textContent = '📡 Fetching data...';
+            
+            try {
+                console.log(`🎯 Testing payment: ${credits} credits, $${amount/100}, ${planType}`);
+                
+                const startTime = Date.now();
+                
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/create-payment-dynamic`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        credits: credits,
+                        amount: amount,
+                        planType: planType,
+                        test_mode: true
+                    })
+                });
+                
+                const responseTime = Date.now() - startTime;
+                
+                console.log(`✅ Response received in ${responseTime}ms`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('📦 Response data:', data);
+                
+                // **DETAILED ANALYSIS**
+                analyzeResponse(data, responseTime);
+                
+                // **FRONTEND VALIDATION CHECK**
+                validateForFrontend(data);
+                
+                // **RAW RESPONSE**
+                showRawResponse(data);
+                
+            } catch (error) {
+                console.error('💥 Test failed:', error);
+                
+                document.getElementById('analysis').textContent = `❌ TEST FAILED\n🚨 Error: ${error.message}`;
+                document.getElementById('analysis').className = 'results error';
+                
+                document.getElementById('validation').textContent = `❌ VALIDATION FAILED\nCannot validate due to error`;
+                document.getElementById('validation').className = 'results error';
+                
+                document.getElementById('raw').textContent = `Error: ${error.message}`;
+                document.getElementById('raw').className = 'results error';
+            }
+            
+            enableButtons();
+        }
+        
+        function analyzeResponse(data, responseTime) {
+            const analysis = document.getElementById('analysis');
+            let output = `🔍 RESPONSE ANALYSIS\n`;
+            output += `⏱️ Response Time: ${responseTime}ms\n`;
+            output += `✅ Status: ${data.success ? 'SUCCESS' : 'FAILED'}\n`;
+            output += `🔢 Version: ${data.version || 'unknown'}\n`;
+            output += `🌍 Environment: ${data.environment || 'unknown'}\n\n`;
+            
+            // **CRITICAL FIELDS CHECK**
+            output += `🎯 CRITICAL FIELDS:\n`;
+            output += `  • paymentId: ${data.paymentId ? '✅ Present' : '❌ Missing'}\n`;
+            output += `  • url: ${data.url ? '✅ Present' : '❌ Missing'}\n`;
+            output += `  • success: ${data.success ? '✅ True' : '❌ False'}\n\n`;
+            
+            // **PAYMENT DETAILS**
+            output += `💰 PAYMENT DETAILS:\n`;
+            output += `  • Amount: $${(data.amount/100).toFixed(2)}\n`;
+            output += `  • Credits: ${data.credits}\n`;
+            output += `  • Plan: ${data.planType}\n`;
+            output += `  • Product: ${data.productUsed || 'unknown'}\n`;
+            output += `  • Product ID: ${data.productId || 'unknown'}\n\n`;
+            
+            // **DEBUG INFO**
+            if (data._debug) {
+                output += `🐛 DEBUG INFO:\n`;
+                output += `  • Dodo Response Keys: ${Object.keys(data._debug.dodoResponse || {}).join(', ')}\n`;
+                output += `  • ID Fields Found: ${data._debug.fieldMapping?.paymentId?.join(', ') || 'none'}\n`;
+                output += `  • URL Fields Found: ${data._debug.fieldMapping?.url?.join(', ') || 'none'}\n\n`;
+            }
+            
+            // **FALLBACK CHECK**
+            if (data.fallback) {
+                output += `⚠️ FALLBACK MODE:\n`;
+                output += `  • Reason: ${data.reason}\n`;
+                output += `  • Fallback URL: ${data.url}\n`;
+            }
+            
+            analysis.textContent = output;
+            analysis.className = data.success ? 'results success' : 'results error';
+        }
+        
+        function validateForFrontend(data) {
+            const validation = document.getElementById('validation');
+            let output = `🧪 FRONTEND VALIDATION\n\n`;
+            
+            // **EXACT FRONTEND CHECK** (from DodoPaymentModal.tsx line 96)
+            const hasUrl = data?.url;
+            const hasPaymentId = data?.paymentId;
+            const frontendValid = hasUrl && hasPaymentId;
+            
+            output += `📋 Frontend Requirements (DodoPaymentModal.tsx:96):\n`;
+            output += `  if (data?.url && data?.paymentId) {\n\n`;
+            
+            output += `🔍 Field Checks:\n`;
+            output += `  • data?.url: ${hasUrl ? '✅ PASS' : '❌ FAIL'}\n`;
+            output += `  • data?.paymentId: ${hasPaymentId ? '✅ PASS' : '❌ FAIL'}\n`;
+            output += `  • Combined Check: ${frontendValid ? '✅ PASS' : '❌ FAIL'}\n\n`;
+            
+            output += `📊 Field Values:\n`;
+            output += `  • url = "${data.url || 'undefined'}"\n`;
+            output += `  • paymentId = "${data.paymentId || 'undefined'}"\n\n`;
+            
+            if (frontendValid) {
+                output += `🎉 RESULT: Frontend validation will PASS\n`;
+                output += `✅ Payment modal will open: ${data.url}\n`;
+            } else {
+                output += `❌ RESULT: Frontend validation will FAIL\n`;
+                output += `🚨 Error thrown: "Invalid payment response - missing URL or payment ID"\n`;
+            }
+            
+            validation.textContent = output;
+            validation.className = frontendValid ? 'results success' : 'results error';
+        }
+        
+        function showRawResponse(data) {
+            const raw = document.getElementById('raw');
+            raw.textContent = JSON.stringify(data, null, 2);
+            raw.className = 'results';
+        }
+    </script>
+</body>
+</html>

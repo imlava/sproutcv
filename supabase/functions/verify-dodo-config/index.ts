@@ -25,8 +25,8 @@ serve(async (req) => {
 
     console.log("Testing Dodo Payments configuration...");
 
-    // Test API connectivity
-    const response = await fetch("https://api.dodopayments.com/v1/products", {
+    // Test API connectivity - Use the same endpoint as our working functions
+    const response = await fetch("https://live.dodopayments.com/products", {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${dodoApiKey}`,
@@ -50,7 +50,7 @@ serve(async (req) => {
     const secrets = {
       "5_credits": Deno.env.get("DODO_PRODUCT_ID_5_CREDITS"),
       "15_credits": Deno.env.get("DODO_PRODUCT_ID_15_CREDITS"), 
-      "30_credits": Dodo.env.get("DODO_PRODUCT_ID_30_CREDITS")
+      "30_credits": Deno.env.get("DODO_PRODUCT_ID_30_CREDITS")
     };
 
     return new Response(JSON.stringify({
