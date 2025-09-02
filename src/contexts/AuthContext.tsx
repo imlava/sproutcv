@@ -65,6 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.id);
@@ -72,8 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Clear any existing timeout
+          if (timeoutId) clearTimeout(timeoutId);
           // Fetch profile after a short delay to ensure database is ready
-          setTimeout(() => {
+          timeoutId = setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 100);
         } else {
@@ -97,7 +101,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, captchaToken?: string, referralCode?: string) => {

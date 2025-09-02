@@ -112,7 +112,7 @@ export const AuthFormLayout: React.FC<AuthFormLayoutProps> = ({ title, descripti
                 <Button 
                   variant="link" 
                   className="text-gray-600 hover:text-green-600 p-0 h-auto"
-                  onClick={() => navigate('https://sproutcv.app/#pricing')}
+                  onClick={() => window.open('https://sproutcv.app/#pricing', '_blank')}
                 >
                   Pricing
                 </Button>

@@ -17,6 +17,7 @@ import ReferralPage from "./pages/ReferralPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/toaster";
@@ -25,31 +26,39 @@ function App() {
   console.log('App component rendered');
   
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<EnhancedAuthPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/analyze" element={<AnalyzePage />} />
-          <Route path="/how-it-works" element={<HowItWorksPage />} />
-          <Route path="/demo" element={<DemoPage />} />
-          <Route path="/contact" element={<ContactUs />} />
-          <Route path="/help" element={<HelpCenter />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/referrals" element={<ReferralPage />} />
-          <Route path="/analysis/:id" element={<AnalysisDetailPage />} />
-          <Route path="/payments" element={<PaymentsPage />} />
-          <Route path="/ai-analyzer" element={<Navigate to="/analyze" replace />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-      <Toaster />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<EnhancedAuthPage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/analyze" element={<AnalyzePage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
+            <Route path="/demo" element={<DemoPage />} />
+            <Route path="/contact" element={<ContactUs />} />
+            <Route path="/help" element={<HelpCenter />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/referrals" element={<ReferralPage />} />
+            <Route path="/analysis/:id" element={<AnalysisDetailPage />} />
+            <Route path="/payments" element={<PaymentsPage />} />
+            <Route path="/ai-analyzer" element={<Navigate to="/analyze" replace />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+        <Toaster />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const rootElement = document.getElementById("root")!;
+
+// Prevent multiple root creation during development hot reloading
+if (!rootElement.hasAttribute('data-react-root')) {
+  rootElement.setAttribute('data-react-root', 'true');
+  createRoot(rootElement).render(<App />);
+}
