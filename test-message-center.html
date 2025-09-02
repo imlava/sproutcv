@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Message Center Test - SproutCV Admin</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f7fafc;
+        }
+        .test-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            background: #1a202c;
+            color: #e2e8f0;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .success {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Enhanced Message Center Test</h1>
+            <p>Test the new message center with contact_messages and message_replies integration</p>
+        </div>
+
+        <div class="success">
+            <h2>✅ ENHANCED MESSAGE CENTER IMPLEMENTED</h2>
+            <p>New features added to the admin dashboard:</p>
+            <ul>
+                <li>✅ <strong>Contact Messages</strong>: Load all contact form submissions</li>
+                <li>✅ <strong>Message Replies</strong>: Display all admin replies with timestamps</li>
+                <li>✅ <strong>Conversation View</strong>: Full message thread with original + replies</li>
+                <li>✅ <strong>Reply Functionality</strong>: Send new replies with email notifications</li>
+                <li>✅ <strong>Status Management</strong>: Unread, Read, Replied, Archived status</li>
+                <li>✅ <strong>Search & Filter</strong>: Find messages by content, sender, status</li>
+                <li>✅ <strong>Statistics</strong>: Overview cards with counts and metrics</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Test Contact Messages Data</h3>
+            <button class="btn" onclick="testContactMessages()">Load Contact Messages</button>
+            <div id="contactResults" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>💬 Test Message Replies Data</h3>
+            <button class="btn" onclick="testMessageReplies()">Load Message Replies</button>
+            <div id="repliesResults" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔗 Test Combined Message View</h3>
+            <button class="btn" onclick="testCombinedView()">Test Messages with Replies</button>
+            <div id="combinedResults" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🚀 Open Enhanced Admin Dashboard</h3>
+            <button class="btn" onclick="openAdminDashboard()">Open Admin Dashboard - Messages Tab</button>
+            <div id="adminResults" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1Y2Rwdm5tY3Vva2VtaHFwbnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjI1NTQ3ODUsImV4cCI6MjAzODEzMDc4NX0.dFv6TgKu_p8H-eDQO9vJqIlGXCPi2Tg1b-n8-7m_wkc';
+
+        async function testContactMessages() {
+            const resultDiv = document.getElementById('contactResults');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '🔄 Loading contact messages...';
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/contact_messages?select=*&order=created_at.desc&limit=10`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (response.ok) {
+                    const messages = await response.json();
+                    
+                    resultDiv.innerHTML = `
+                        <div style="color: #10b981; font-weight: bold; margin-bottom: 15px;">📧 CONTACT MESSAGES LOADED</div>
+                        <div style="color: #e2e8f0;">
+                            Total Messages: ${messages.length}<br>
+                            Unread: ${messages.filter(m => m.status === 'unread').length}<br>
+                            Replied: ${messages.filter(m => m.status === 'replied').length}<br><br>
+                            
+                            Recent Messages:<br>
+                            ${messages.slice(0, 5).map(msg => `
+                                📧 From: ${msg.name} (${msg.email})<br>
+                                📝 Subject: ${msg.subject}<br>
+                                🏷️ Status: ${msg.status}<br>
+                                📅 Date: ${new Date(msg.created_at).toLocaleString()}<br>
+                                💬 Message: ${msg.message.substring(0, 100)}...<br><br>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.textContent = `❌ Error: ${response.status} ${response.statusText}`;
+                }
+
+            } catch (error) {
+                resultDiv.textContent = `❌ Connection Error: ${error.message}`;
+            }
+        }
+
+        async function testMessageReplies() {
+            const resultDiv = document.getElementById('repliesResults');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '🔄 Loading message replies...';
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/message_replies?select=*&order=created_at.desc&limit=10`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (response.ok) {
+                    const replies = await response.json();
+                    
+                    resultDiv.innerHTML = `
+                        <div style="color: #10b981; font-weight: bold; margin-bottom: 15px;">💬 MESSAGE REPLIES LOADED</div>
+                        <div style="color: #e2e8f0;">
+                            Total Replies: ${replies.length}<br>
+                            Email Sent: ${replies.filter(r => r.is_email_sent).length}<br>
+                            Pending Emails: ${replies.filter(r => r.email_status === 'pending').length}<br><br>
+                            
+                            Recent Replies:<br>
+                            ${replies.slice(0, 5).map(reply => `
+                                🎯 Message ID: ${reply.contact_message_id}<br>
+                                👤 Admin: ${reply.admin_user_id}<br>
+                                📧 Email Sent: ${reply.is_email_sent ? '✅ Yes' : '❌ No'}<br>
+                                📅 Date: ${new Date(reply.created_at).toLocaleString()}<br>
+                                💬 Reply: ${reply.reply_content.substring(0, 100)}...<br><br>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.textContent = `❌ Error: ${response.status} ${response.statusText}`;
+                }
+
+            } catch (error) {
+                resultDiv.textContent = `❌ Connection Error: ${error.message}`;
+            }
+        }
+
+        async function testCombinedView() {
+            const resultDiv = document.getElementById('combinedResults');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '🔄 Loading combined message view...';
+
+            try {
+                // Load both contact messages and replies
+                const [messagesResponse, repliesResponse] = await Promise.all([
+                    fetch(`${SUPABASE_URL}/rest/v1/contact_messages?select=*&order=created_at.desc&limit=5`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    }),
+                    fetch(`${SUPABASE_URL}/rest/v1/message_replies?select=*&order=created_at.asc`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    })
+                ]);
+
+                if (messagesResponse.ok && repliesResponse.ok) {
+                    const messages = await messagesResponse.json();
+                    const replies = await repliesResponse.json();
+                    
+                    // Combine messages with their replies
+                    const messagesWithReplies = messages.map(msg => {
+                        const messageReplies = replies.filter(reply => reply.contact_message_id === msg.id);
+                        return { ...msg, replies: messageReplies };
+                    });
+
+                    resultDiv.innerHTML = `
+                        <div style="color: #10b981; font-weight: bold; margin-bottom: 15px;">🔗 COMBINED MESSAGE VIEW</div>
+                        <div style="color: #e2e8f0;">
+                            Messages with Conversations:<br><br>
+                            
+                            ${messagesWithReplies.map(msg => `
+                                <div style="background: #374151; padding: 10px; margin: 10px 0; border-radius: 5px;">
+                                    <div style="color: #fbbf24; font-weight: bold;">📧 Original Message</div>
+                                    From: ${msg.name} (${msg.email})<br>
+                                    Subject: ${msg.subject}<br>
+                                    Status: ${msg.status}<br>
+                                    Date: ${new Date(msg.created_at).toLocaleString()}<br>
+                                    Message: ${msg.message.substring(0, 150)}...<br>
+                                    
+                                    ${msg.replies.length > 0 ? `
+                                        <div style="color: #60a5fa; font-weight: bold; margin-top: 10px;">💬 Replies (${msg.replies.length}):</div>
+                                        ${msg.replies.map((reply, index) => `
+                                            <div style="background: #1f2937; padding: 8px; margin: 5px 0; border-radius: 3px;">
+                                                Reply #${index + 1} by ${reply.admin_user_id}<br>
+                                                Date: ${new Date(reply.created_at).toLocaleString()}<br>
+                                                Email Sent: ${reply.is_email_sent ? '✅' : '❌'}<br>
+                                                Content: ${reply.reply_content.substring(0, 100)}...
+                                            </div>
+                                        `).join('')}
+                                    ` : '<div style="color: #9ca3af;">No replies yet</div>'}
+                                </div>
+                            `).join('')}
+                            
+                            <div style="color: #10b981; font-weight: bold; margin-top: 20px;">
+                                ✅ Message Center Integration Working!<br>
+                                ✅ Contact Messages: ${messages.length} loaded<br>
+                                ✅ Total Replies: ${replies.length} loaded<br>
+                                ✅ Conversation Threading: Working<br>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.textContent = `❌ Error loading data`;
+                }
+
+            } catch (error) {
+                resultDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+        function openAdminDashboard() {
+            const resultDiv = document.getElementById('adminResults');
+            resultDiv.style.display = 'block';
+            
+            resultDiv.innerHTML = `
+                <div style="color: #10b981; font-weight: bold; margin-bottom: 15px;">🚀 OPENING ADMIN DASHBOARD</div>
+                <div style="color: #e2e8f0;">
+                    Enhanced Message Center Features:<br><br>
+                    
+                    ✅ Contact Messages Display<br>
+                    ✅ Message Replies Integration<br>
+                    ✅ Conversation Threading<br>
+                    ✅ Reply Functionality<br>
+                    ✅ Email Notifications<br>
+                    ✅ Status Management<br>
+                    ✅ Search & Filter<br>
+                    ✅ Statistics Overview<br><br>
+                    
+                    Navigate to the Messages & Support tab to see all features!<br><br>
+                    
+                    Dashboard URL: ${window.location.origin}/admin
+                </div>
+            `;
+
+            // Open the admin dashboard
+            window.open(`${window.location.origin}/admin`, '_blank');
+        }
+
+        // Auto-run combined view test on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testCombinedView();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

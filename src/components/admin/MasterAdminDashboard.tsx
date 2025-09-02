@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EnhancedUserManagement from './EnhancedUserManagement';
+import EnhancedMessageCenter from './EnhancedMessageCenter';
 import { 
   Users, 
   CreditCard, 
@@ -478,53 +479,7 @@ const MasterAdminDashboard = () => {
 
           {/* Messages Tab */}
           <TabsContent value="messages">
-            <Card>
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold">Support Messages</h3>
-                  <Button onClick={fetchDashboardData}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
-                </div>
-                
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>From</TableHead>
-                      <TableHead>Subject</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {messages.map((message) => (
-                      <TableRow key={message.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{message.name}</p>
-                            <p className="text-sm text-muted-foreground">{message.email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{message.subject}</TableCell>
-                        <TableCell>{getStatusBadge(message.status)}</TableCell>
-                        <TableCell>{new Date(message.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button 
-                            size="sm"
-                            onClick={() => setSelectedMessage(message)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View & Reply
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
+            <EnhancedMessageCenter />
           </TabsContent>
 
           {/* Payments Tab */}
