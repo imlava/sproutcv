@@ -620,6 +620,7 @@ POSITION: ${jobTitle}
   },
   "confidenceScore": [85-99]
 }`;
+}
 
 async function saveAnalysisToDatabase(supabase: any, analysis: AnalysisResult, userId: string, request: AnalysisRequest) {
   try {
