@@ -63,6 +63,7 @@ export interface GeminiAnalysisResult {
   };
   interactiveInsights: InteractiveInsights;
   coverLetter?: CoverLetter;
+  tailoredResume?: string;
   actionableRecommendations: ActionableRecommendation[];
   competitiveAnalysis: CompetitiveAnalysis;
   confidenceScore: number;
@@ -129,6 +130,42 @@ export class GeminiAIService {
 
     } catch (error) {
       console.error('❌ Gemini analysis error:', error);
+      throw error;
+    }
+  }
+
+  async generateTailoredResume(
+    resumeText: string, 
+    jobDescription: string, 
+    jobTitle?: string, 
+    companyName?: string,
+    userId?: string
+  ): Promise<string> {
+    console.log('🎯 Generating tailored resume with Gemini AI');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
+        body: {
+          resumeText,
+          jobDescription,
+          jobTitle,
+          companyName,
+          analysisType: 'comprehensive',
+          includeInteractive: false,
+          includeCoverLetter: false,
+          generateTailoredResume: true,
+          userId
+        }
+      });
+
+      if (error || !data?.success) {
+        throw new Error(data?.error || 'Tailored resume generation failed');
+      }
+
+      return data.data.tailoredResume;
+
+    } catch (error) {
+      console.error('❌ Tailored resume generation error:', error);
       throw error;
     }
   }

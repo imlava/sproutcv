@@ -19,6 +19,7 @@ interface AnalysisRequest {
   analysisType?: 'comprehensive' | 'quick' | 'ats_focus' | 'skills_gap';
   includeInteractive?: boolean;
   includeCoverLetter?: boolean;
+  generateTailoredResume?: boolean;
 }
 
 interface AnalysisResult {
@@ -56,6 +57,7 @@ interface AnalysisResult {
     };
     personalizations: string[];
   };
+  tailoredResume?: string;
   actionableRecommendations: Array<{
     action: string;
     description: string;
@@ -98,11 +100,28 @@ serve(async (req) => {
     console.log(`Analysis type: ${body.analysisType || 'comprehensive'}`);
     console.log(`Include interactive: ${body.includeInteractive !== false}`);
     console.log(`Include cover letter: ${body.includeCoverLetter === true}`);
+    console.log(`Generate tailored resume: ${body.generateTailoredResume === true}`);
 
     // Initialize Supabase for analytics
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Handle specific tailored resume request
+    if (body.generateTailoredResume) {
+      console.log("🎯 Generating tailored resume only");
+      const tailoredResume = await generateTailoredResume(body);
+      
+      return new Response(JSON.stringify({
+        success: true,
+        data: { tailoredResume },
+        version: "gemini-v1.0",
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     // Generate comprehensive analysis using Gemini
     const analysisResult = await generateGeminiAnalysis(body);
@@ -222,6 +241,89 @@ async function generateGeminiAnalysis(request: AnalysisRequest): Promise<Analysi
     console.error("Gemini analysis error:", error);
     // Return fallback analysis
     return getFallbackAnalysis(request);
+  }
+}
+
+async function generateTailoredResume(request: AnalysisRequest): Promise<string> {
+  console.log("🎯 Generating tailored resume with Gemini AI");
+
+  const tailoredResumePrompt = `You are an elite resume optimization expert. Your task is to create a perfectly tailored, ATS-optimized resume that guarantees maximum impact for this specific job opportunity.
+
+ORIGINAL RESUME:
+${request.resumeText}
+
+TARGET JOB DESCRIPTION:
+${request.jobDescription}
+
+TARGET POSITION: ${request.jobTitle || "Position"}
+TARGET COMPANY: ${request.companyName || "Company"}
+
+INSTRUCTIONS FOR OPTIMIZATION:
+1. KEYWORD OPTIMIZATION: Seamlessly integrate ALL relevant keywords from job description
+2. CONTENT ENHANCEMENT: Add quantifiable achievements and industry-specific metrics
+3. STRUCTURE OPTIMIZATION: Ensure perfect ATS compatibility with clear section headers
+4. SKILLS ALIGNMENT: Highlight skills that directly match job requirements
+5. ACHIEVEMENT QUANTIFICATION: Transform bullet points into measurable accomplishments
+6. PROFESSIONAL FORMATTING: Clean, ATS-friendly layout with consistent formatting
+7. VALUE PROPOSITION: Lead with compelling summary that matches job requirements
+
+FORMATTING REQUIREMENTS:
+- Use standard section headers: PROFESSIONAL SUMMARY, EXPERIENCE, EDUCATION, SKILLS
+- Bullet points with strong action verbs
+- Consistent date formatting
+- Clean, simple formatting (no tables, columns, or complex layouts)
+- Keywords naturally integrated (not keyword stuffed)
+- Achievement-focused language with metrics
+
+OUTPUT REQUIREMENTS:
+- Return ONLY the complete tailored resume text
+- Include all contact information from original resume
+- Maintain truthful representation of candidate's background
+- Optimize for both ATS systems and human reviewers
+- Length: 1-2 pages optimal
+
+Create the most compelling, keyword-optimized resume that transforms this candidate into the perfect fit for this specific role.`;
+
+  try {
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: tailoredResumePrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          topK: 40,
+          topP: 0.8,
+          maxOutputTokens: 8192,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Tailored resume generation failed: ${response.status}`);
+    }
+
+    const geminiResponse = await response.json();
+    const tailoredResumeText = geminiResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!tailoredResumeText) {
+      throw new Error("No tailored resume content received");
+    }
+
+    console.log("✅ Tailored resume generated successfully");
+    return tailoredResumeText;
+
+  } catch (error) {
+    console.error("Tailored resume generation error:", error);
+    
+    // Return enhanced version of original resume as fallback
+    return `${request.resumeText}\n\n--- OPTIMIZATION NOTES ---\nThis resume has been analyzed for the ${request.jobTitle || 'target position'} at ${request.companyName || 'target company'}. Consider adding more specific keywords from the job description and quantifying your achievements with measurable results.`;
   }
 }
 

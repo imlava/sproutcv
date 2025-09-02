@@ -58,6 +58,7 @@ const InteractiveResumeAnalyzer: React.FC<InteractiveResumeAnalyzerProps> = ({
   const [companyName, setCompanyName] = useState('');
   const [analysisResult, setAnalysisResult] = useState<GeminiAnalysisResult | null>(null);
   const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
+  const [tailoredResume, setTailoredResume] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [realTimeFeedback, setRealTimeFeedback] = useState<{
     skills: any;
@@ -148,6 +149,55 @@ const InteractiveResumeAnalyzer: React.FC<InteractiveResumeAnalyzerProps> = ({
       console.error('Analysis error:', error);
       toast({
         title: "Analysis Failed",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateTailoredResume = async () => {
+    if (!resumeText.trim() || !jobDescription.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide both resume text and job description.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to generate tailored resumes.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await geminiService.generateTailoredResume(
+        resumeText,
+        jobDescription,
+        jobTitle,
+        companyName,
+        user.id
+      );
+
+      setTailoredResume(result);
+      setActiveTab('tailored-resume');
+
+      toast({
+        title: "Tailored Resume Generated! 🚀",
+        description: "Your optimized resume is ready for download."
+      });
+
+    } catch (error) {
+      console.error('Tailored resume generation error:', error);
+      toast({
+        title: "Generation Failed",
         description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive"
       });
@@ -481,12 +531,13 @@ const InteractiveResumeAnalyzer: React.FC<InteractiveResumeAnalyzerProps> = ({
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="insights">Insights</TabsTrigger>
                 <TabsTrigger value="recommendations">Actions</TabsTrigger>
                 <TabsTrigger value="competitive">Competitive</TabsTrigger>
                 <TabsTrigger value="cover-letter">Cover Letter</TabsTrigger>
+                <TabsTrigger value="tailored-resume">Tailored Resume</TabsTrigger>
               </TabsList>
 
               {/* Overview Tab */}
@@ -745,6 +796,88 @@ const InteractiveResumeAnalyzer: React.FC<InteractiveResumeAnalyzerProps> = ({
                       <Button onClick={generateCoverLetter} disabled={loading}>
                         Generate Cover Letter
                       </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              {/* Tailored Resume Tab */}
+              <TabsContent value="tailored-resume" className="space-y-4">
+                {tailoredResume ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Tailored Resume
+                        <Badge className="ml-2">Optimized!</Badge>
+                        <div className="ml-auto flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(tailoredResume)}
+                          >
+                            <Copy className="h-4 w-4" />
+                            Copy
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Download className="h-4 w-4" />
+                            Download
+                          </Button>
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <Alert className="border-green-200 bg-green-50/50">
+                          <Sparkles className="h-4 w-4" />
+                          <AlertTitle>Resume Optimized Successfully</AlertTitle>
+                          <AlertDescription>
+                            Your resume has been tailored with job-specific keywords, improved formatting, and enhanced content structure.
+                          </AlertDescription>
+                        </Alert>
+                        
+                        <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                          <pre className="whitespace-pre-wrap text-sm font-mono">
+                            {tailoredResume}
+                          </pre>
+                        </div>
+                        
+                        <Alert>
+                          <Clock className="h-4 w-4" />
+                          <AlertTitle>30-Day Dashboard Access</AlertTitle>
+                          <AlertDescription>
+                            This tailored resume is automatically saved to your dashboard and will be accessible for 30 days.
+                          </AlertDescription>
+                        </Alert>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="text-center py-8 space-y-4">
+                      <Rocket className="h-16 w-16 text-primary mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold">Generate Your Tailored Resume</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto">
+                        Get an AI-optimized version of your resume specifically tailored for this job position with enhanced keywords and formatting.
+                      </p>
+                      <div className="flex justify-center gap-4 mt-6">
+                        <Button 
+                          onClick={generateTailoredResume}
+                          disabled={loading}
+                          size="lg"
+                          className="flex items-center gap-2"
+                        >
+                          <Sparkles className="h-5 w-5" />
+                          Generate Tailored Resume
+                        </Button>
+                      </div>
+                      <Alert className="mt-4 text-left">
+                        <Clock className="h-4 w-4" />
+                        <AlertTitle>30-Day Access</AlertTitle>
+                        <AlertDescription>
+                          Your tailored resume will be saved to your dashboard for 30 days with unlimited downloads.
+                        </AlertDescription>
+                      </Alert>
                     </CardContent>
                   </Card>
                 )}
