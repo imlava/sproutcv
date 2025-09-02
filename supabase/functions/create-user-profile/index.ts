@@ -165,27 +165,34 @@ serve(async (req) => {
         }
       });
 
-    // If user was referred, update the referral record
-    if (referrerUserId && referralCode) {
-      try {
-        const { error: referralError } = await supabaseClient
-          .from('referrals')
-          .update({
-            referred_id: userId,
-            is_signup_completed: true,
-            updated_at: new Date().toISOString()
-          })
-          .eq('referral_code', referralCode)
-          .eq('email_referred', email);
+    // Handle referral completion using the new robust function
+    try {
+      const { data: referralResult, error: referralError } = await supabaseClient
+        .rpc('complete_referral_signup', {
+          user_id: userId,
+          user_email: email,
+          referral_code: referralCode || null
+        });
 
-        if (referralError) {
-          console.error('Error updating referral record:', referralError);
-        } else {
-          console.log('Referral record updated successfully');
+      if (referralError) {
+        console.error('Error completing referral:', referralError);
+      } else {
+        console.log('Referral completion result:', referralResult);
+        
+        // If referral was completed, award credits
+        if (referralResult?.status === 'success') {
+          const { data: creditsResult, error: creditsError } = await supabaseClient
+            .rpc('award_referral_credits');
+          
+          if (creditsError) {
+            console.error('Error awarding referral credits:', creditsError);
+          } else {
+            console.log('Referral credits awarded:', creditsResult);
+          }
         }
-      } catch (refError) {
-        console.error('Exception updating referral:', refError);
       }
+    } catch (refError) {
+      console.error('Exception handling referral:', refError);
     }
 
     console.log('User profile created successfully:', userId);
