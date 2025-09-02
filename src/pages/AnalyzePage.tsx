@@ -14,10 +14,24 @@ const AnalyzePage = () => {
     }
   }, [user, loading, navigate]);
 
+  // Basic SEO for the analysis page
+  useEffect(() => {
+    document.title = 'AI Resume Analyzer | Tailor & Optimize';
+    const metaDesc = document.querySelector('meta[name="description"]') || document.createElement('meta');
+    metaDesc.setAttribute('name', 'description');
+    metaDesc.setAttribute('content', 'AI Resume Analyzer: real-time analysis, tailored resume, cover letter, and actionable improvements.');
+    document.head.appendChild(metaDesc);
+
+    const linkCanonical = document.querySelector('link[rel="canonical"]') || document.createElement('link');
+    linkCanonical.setAttribute('rel', 'canonical');
+    linkCanonical.setAttribute('href', window.location.origin + '/analyze');
+    document.head.appendChild(linkCanonical);
+  }, []);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-label="Loading" />
       </div>
     );
   }
@@ -28,7 +42,13 @@ const AnalyzePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-accent/5">
-      <UnifiedResumeAnalyzer />
+      <header className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-semibold tracking-tight">AI Resume Analyzer</h1>
+        <p className="text-muted-foreground mt-1">Analyze and tailor your resume for a specific role.</p>
+      </header>
+      <main className="container mx-auto px-4 pb-12">
+        <UnifiedResumeAnalyzer />
+      </main>
     </div>
   );
 };

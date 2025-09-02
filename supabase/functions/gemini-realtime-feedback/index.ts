@@ -7,7 +7,7 @@ const corsHeaders = {
 
 // Google Gemini API Configuration
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent";
+const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 interface RealtimeFeedbackRequest {
   resumeText: string;
@@ -65,10 +65,25 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("❌ Real-time feedback failed:", error);
+
+    // Handle quota/rate limit explicitly with 429 and Retry-After
+    const msg = String((error as any)?.message || "");
+    if (msg.startsWith("RESOURCE_EXHAUSTED:")) {
+      const retryAfter = msg.split(":")[1] || "60";
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Gemini quota exceeded. Please try again later.",
+        retryAfter,
+        timestamp: new Date().toISOString()
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": retryAfter },
+        status: 429,
+      });
+    }
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
+      error: (error as any)?.message || 'Unknown error',
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -110,6 +125,20 @@ async function generateSectionFeedback(request: RealtimeFeedbackRequest): Promis
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Gemini API error:", errorText);
+
+      // Handle quota exceeded (429) with explicit Retry-After
+      if (response.status === 429) {
+        try {
+          const errJson = JSON.parse(errorText);
+          const retryInfo = (errJson?.error?.details || []).find((d: any) => d['@type']?.includes('RetryInfo'));
+          const retryDelay = retryInfo?.retryDelay || '60s';
+          const seconds = /([0-9]+)s/.exec(retryDelay)?.[1] || '60';
+          throw new Error(`RESOURCE_EXHAUSTED:${seconds}`);
+        } catch (_) {
+          throw new Error('RESOURCE_EXHAUSTED:60');
+        }
+      }
+
       throw new Error(`Gemini API error: ${response.status}`);
     }
 

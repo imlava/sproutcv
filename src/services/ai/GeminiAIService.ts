@@ -311,7 +311,15 @@ export class GeminiAIService {
 
   private generateCacheKey(request: InteractiveAnalysisRequest): string {
     const key = `${request.resumeText.substring(0, 100)}_${request.jobDescription.substring(0, 100)}_${request.analysisType}`;
-    return btoa(key).replace(/[^a-zA-Z0-9]/g, '');
+    return this.toBase64Unicode(key).replace(/[^a-zA-Z0-9]/g, '');
+  }
+
+  // Safely base64-encode Unicode strings
+  private toBase64Unicode(str: string): string {
+    const utf8 = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+      String.fromCharCode(parseInt(p1, 16))
+    );
+    return btoa(utf8);
   }
 
   private cleanCache(): void {

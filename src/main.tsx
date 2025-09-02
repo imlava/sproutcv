@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import AnalyzePage from "./pages/AnalyzePage";
@@ -17,7 +17,7 @@ import ReferralPage from "./pages/ReferralPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
 import PaymentsPage from "./pages/PaymentsPage";
-import InteractiveAnalysisPage from "./pages/InteractiveAnalysisPage";
+
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/toaster";
 
@@ -43,7 +43,7 @@ function App() {
           <Route path="/referrals" element={<ReferralPage />} />
           <Route path="/analysis/:id" element={<AnalysisDetailPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
-          <Route path="/ai-analyzer" element={<InteractiveAnalysisPage />} />
+          <Route path="/ai-analyzer" element={<Navigate to="/analyze" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
