@@ -105,6 +105,7 @@ const EnhancedMessageCenter = () => {
         
         return {
           ...message,
+          status: message.status as "unread" | "read" | "replied" | "archived",
           replies: messageReplies,
           reply_count: messageReplies.length
         };

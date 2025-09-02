@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, Mail, User, Lock, CheckCircle, XCircle } from 'lucide-react';
 import { PasswordInput } from './PasswordInput';
 import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+import { EmailVerificationResend } from './EmailVerificationResend';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 
 interface SignUpFormProps {
@@ -21,6 +22,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [showResendVerification, setShowResendVerification] = useState(false);
   const captchaRef = useRef<HCaptcha>(null);
   
   const [formData, setFormData] = useState({
@@ -103,6 +105,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
         description: "Please check your email to verify your account and get started with 5 free credits.",
       });
       
+      setShowResendVerification(true);
       // Don't navigate immediately - let user verify email first
       // navigate('/dashboard');
     } catch (error: any) {
@@ -251,6 +254,18 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
           'Create account'
         )}
       </Button>
+      
+      {showResendVerification && (
+        <div className="space-y-3 pt-2">
+          <div className="text-center text-sm text-gray-600">
+            Need to verify your email?
+          </div>
+          <EmailVerificationResend 
+            email={formData.email}
+            showAsLink={false}
+          />
+        </div>
+      )}
       
       <div className="text-center pt-4">
         <p className="text-gray-600">

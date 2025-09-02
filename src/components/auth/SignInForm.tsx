@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Mail, Lock } from 'lucide-react';
 import { PasswordInput } from './PasswordInput';
+import { EmailVerificationResend } from './EmailVerificationResend';
 import HCaptcha from '@hcaptcha/react-hcaptcha';
 
 interface SignInFormProps {
@@ -21,6 +22,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [showEmailVerification, setShowEmailVerification] = useState(false);
   const captchaRef = useRef<HCaptcha>(null);
   
   const [formData, setFormData] = useState({
@@ -81,6 +83,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
         errorMessage = 'Invalid email or password. Please check your credentials.';
       } else if (error.message?.includes('Email not confirmed') || error.message?.includes('email_not_confirmed')) {
         errorMessage = 'Please verify your email address first. Check your inbox for the verification link.';
+        setShowEmailVerification(true);
       } else if (error.message?.includes('email link has expired')) {
         errorMessage = 'Your verification link has expired. Please request a new password reset.';
       } else if (error.message?.includes('Too many requests')) {
@@ -151,6 +154,18 @@ export const SignInForm: React.FC<SignInFormProps> = ({ onForgotPassword, onSwit
           }}
         />
       </div>
+      
+      {showEmailVerification && (
+        <div className="space-y-3 pt-2">
+          <div className="text-center text-sm text-gray-600">
+            Need to verify your email?
+          </div>
+          <EmailVerificationResend 
+            email={formData.email}
+            showAsLink={false}
+          />
+        </div>
+      )}
       
       <div className="text-right">
         <Button
