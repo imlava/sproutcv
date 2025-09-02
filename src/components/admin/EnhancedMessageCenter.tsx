@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { 
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ContactMessage {
   id: string;
@@ -57,6 +58,7 @@ interface MessageWithReplies extends ContactMessage {
 
 const EnhancedMessageCenter = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<MessageWithReplies[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<MessageWithReplies | null>(null);
@@ -178,71 +180,37 @@ const EnhancedMessageCenter = () => {
   };
 
   const sendReply = async () => {
-    if (!selectedMessage || !replyContent.trim()) return;
+    if (!selectedMessage || !replyContent.trim() || !user?.id) return;
 
     setSendingReply(true);
     try {
       console.log('🔄 Sending reply to message:', selectedMessage.id);
+      console.log('🔄 Admin user ID:', user.id);
 
-      // Insert reply into message_replies table
-      const { data: reply, error: replyError } = await supabase
-        .from('message_replies')
-        .insert({
-          contact_message_id: selectedMessage.id,
-          admin_user_id: 'admin', // In a real system, this would be the actual admin user ID
-          reply_content: replyContent,
-          is_email_sent: true,
-          email_status: 'pending',
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
+      // Use the admin-message-reply function which handles everything
+      const { data: result, error: replyError } = await supabase.functions.invoke('admin-message-reply', {
+        body: {
+          contactMessageId: selectedMessage.id,
+          replyContent: replyContent,
+          sendEmail: true
+        }
+      });
 
       if (replyError) {
         throw replyError;
       }
 
-      // Update contact message status
-      const { error: updateError } = await supabase
-        .from('contact_messages')
-        .update({
-          status: 'replied',
-          responded_by: 'admin',
-          responded_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedMessage.id);
-
-      if (updateError) {
-        console.warn('Could not update message status:', updateError);
-      }
-
-      // Try to send email via admin-message-reply function
-      try {
-        const { error: emailError } = await supabase.functions.invoke('admin-message-reply', {
-          body: {
-            contactMessageId: selectedMessage.id,
-            replyContent: replyContent,
-            sendEmail: true
-          }
-        });
-
-        if (emailError) {
-          console.warn('Email sending failed:', emailError);
-        } else {
-          console.log('✅ Email sent successfully');
-        }
-      } catch (emailErr) {
-        console.warn('Email function not available:', emailErr);
-      }
-
-      console.log('✅ Reply sent successfully');
+      console.log('✅ Reply sent successfully:', result);
       setReplyContent('');
       setShowMessageDialog(false);
       
+      const emailStatus = result?.emailResult?.error ? 
+        "Reply saved but email failed to send" : 
+        "Reply sent and email delivered successfully";
+      
       toast({
         title: "✅ Reply Sent",
-        description: "Your reply has been sent and the customer will be notified via email.",
+        description: emailStatus,
       });
 
       // Reload messages to show the new reply
@@ -454,6 +422,9 @@ const EnhancedMessageCenter = () => {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Message Details</DialogTitle>
+            <DialogDescription>
+              View the complete conversation and send replies to the customer.
+            </DialogDescription>
           </DialogHeader>
           
           {selectedMessage && (
