@@ -46,30 +46,57 @@ serve(async (req) => {
       }
     }
 
-    // Check if profile already exists (prevents duplicate key error)
+    // Check if profile already exists (the trigger may have created it)
     const { data: existingProfile } = await supabaseClient
       .from('profiles')
-      .select('id')
+      .select('*')
       .eq('id', userId)
       .single();
 
     if (existingProfile) {
-      console.log('Profile already exists for user:', userId);
-      // Update existing profile with referral info if needed
-      if (referrerUserId) {
+      console.log('Profile already exists for user:', userId, '- updating with additional info');
+      
+      // Update existing profile with enhanced info
+      const updateData: any = {};
+      
+      if (fullName && !existingProfile.full_name) {
+        updateData.full_name = fullName;
+      }
+      
+      if (!existingProfile.referral_code) {
+        updateData.referral_code = userReferralCode;
+      }
+      
+      if (referrerUserId && !existingProfile.referred_by) {
+        updateData.referred_by = referrerUserId;
+      }
+      
+      if (Object.keys(updateData).length > 0) {
         await supabaseClient
           .from('profiles')
-          .update({
-            referred_by: referrerUserId,
-            referral_code: userReferralCode
-          })
+          .update(updateData)
           .eq('id', userId);
       }
       
+      // Still need to handle roles, ledger, and referrals for existing profiles
+      // Check if user role exists
+      const { data: existingRole } = await supabaseClient
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+        
+      if (!existingRole) {
+        await supabaseClient
+          .from('user_roles')
+          .insert({ user_id: userId, role: 'user' });
+      }
+      
       return new Response(JSON.stringify({ 
-        message: "User profile already exists",
+        message: "User profile updated successfully",
         success: true,
-        referral_processed: !!referrerUserId
+        referral_processed: !!referrerUserId,
+        profile: existingProfile
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,

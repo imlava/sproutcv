@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup Verification - SproutCV</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f7fafc;
+        }
+        .test-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            background: #1a202c;
+            color: #e2e8f0;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .success {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Signup Issues Fixed - Verification Test</h1>
+            <p>Verify that all signup issues have been resolved</p>
+        </div>
+
+        <div class="success">
+            <h2>🛠️ FIXES APPLIED:</h2>
+            <ul>
+                <li>✅ <strong>Syntax Error Fixed</strong>: Added missing `isPasswordValid` variable in SignUpForm</li>
+                <li>✅ <strong>Duplicate Profile Creation Resolved</strong>: Updated trigger and Edge Function to use ON CONFLICT</li>
+                <li>✅ <strong>RLS Policies Enhanced</strong>: Added service role policies for Edge Functions</li>
+                <li>✅ <strong>Error Handling Improved</strong>: Better error messages and graceful fallbacks</li>
+                <li>✅ <strong>Profile Creation Resilient</strong>: Handles both trigger and function creation paths</li>
+                <li>✅ <strong>Migration Applied</strong>: Database schema updated to prevent conflicts</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test Signup Flow</h3>
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                <h4>Create Test User:</h4>
+                <input type="text" id="testName" placeholder="Full Name" value="Test User">
+                <input type="email" id="testEmail" placeholder="Email" value="">
+                <input type="password" id="testPassword" placeholder="Password" value="TestPassword123!">
+                <input type="text" id="testReferral" placeholder="Referral Code (optional)" value="">
+                <button class="btn" onclick="testCompleteSignupFlow()">🚀 Test Complete Signup Flow</button>
+            </div>
+            <div id="signupResults" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Test Edge Function</h3>
+            <button class="btn" onclick="testProfileCreationFunction()">Test Profile Creation Function</button>
+            <div id="functionResults" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🗄️ Test Database Access</h3>
+            <button class="btn" onclick="testDatabaseAccess()">Test Database Tables</button>
+            <div id="databaseResults" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 Open Live Signup</h3>
+            <button class="btn" onclick="openSignupPage()">Open Live Signup Page</button>
+            <div id="liveResults" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1Y2Rwdm5tY3Vva2VtaHFwbnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjI1NTQ3ODUsImV4cCI6MjAzODEzMDc4NX0.dFv6TgKu_p8H-eDQO9vJqIlGXCPi2Tg1b-n8-7m_wkc';
+
+        async function testCompleteSignupFlow() {
+            const resultDiv = document.getElementById('signupResults');
+            resultDiv.style.display = 'block';
+            
+            const name = document.getElementById('testName').value;
+            const email = document.getElementById('testEmail').value || `test+${Date.now()}@example.com`;
+            const password = document.getElementById('testPassword').value;
+            const referral = document.getElementById('testReferral').value;
+
+            let testResults = {
+                authSignup: null,
+                profileCreation: null,
+                welcomeEmail: null,
+                overall: null
+            };
+
+            try {
+                resultDiv.innerHTML = `
+                    <div style="color: #fbbf24; font-weight: bold; margin-bottom: 15px;">🧪 TESTING COMPLETE SIGNUP FLOW</div>
+                    <div style="color: #e2e8f0;">
+                        📝 Test Details:<br>
+                        - Name: ${name}<br>
+                        - Email: ${email}<br>
+                        - Password: ${password}<br>
+                        - Referral: ${referral || 'None'}<br><br>
+                        
+                        🔄 Step 1: Testing Auth Signup...<br>
+                    </div>
+                `;
+
+                // Step 1: Test Supabase Auth Signup
+                const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        data: { full_name: name }
+                    })
+                });
+
+                const authData = await authResponse.json();
+                testResults.authSignup = authResponse.ok;
+
+                resultDiv.innerHTML += `
+                    <div style="color: #e2e8f0;">
+                        📞 Step 1 Result: ${authResponse.status} ${authResponse.statusText}<br>
+                        ${authResponse.ok ? '✅ Auth signup successful!' : `❌ Auth signup failed: ${authData.error?.message || 'Unknown error'}`}<br><br>
+                        
+                        ${authResponse.ok ? '🔄 Step 2: Testing Profile Creation...<br>' : ''}
+                    </div>
+                `;
+
+                if (authResponse.ok && authData.user) {
+                    // Step 2: Test Profile Creation
+                    const profileResponse = await fetch(`${SUPABASE_URL}/functions/v1/create-user-profile`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: authData.user.id,
+                            email: email,
+                            fullName: name,
+                            referralCode: referral
+                        })
+                    });
+
+                    const profileData = await profileResponse.json();
+                    testResults.profileCreation = profileResponse.ok;
+
+                    resultDiv.innerHTML += `
+                        <div style="color: #e2e8f0;">
+                            📞 Step 2 Result: ${profileResponse.status} ${profileResponse.statusText}<br>
+                            ${profileResponse.ok ? '✅ Profile creation successful!' : `❌ Profile creation failed: ${profileData.error || 'Unknown error'}`}<br><br>
+                            
+                            🔄 Step 3: Testing Welcome Email...<br>
+                        </div>
+                    `;
+
+                    // Step 3: Test Welcome Email
+                    try {
+                        const emailResponse = await fetch(`${SUPABASE_URL}/functions/v1/welcome-email`, {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                userId: authData.user.id,
+                                email: email,
+                                fullName: name
+                            })
+                        });
+
+                        testResults.welcomeEmail = emailResponse.ok;
+
+                        resultDiv.innerHTML += `
+                            <div style="color: #e2e8f0;">
+                                📞 Step 3 Result: ${emailResponse.status} ${emailResponse.statusText}<br>
+                                ${emailResponse.ok ? '✅ Welcome email successful!' : `⚠️ Welcome email had issues (non-critical)`}<br><br>
+                            </div>
+                        `;
+                    } catch (emailError) {
+                        testResults.welcomeEmail = false;
+                        resultDiv.innerHTML += `
+                            <div style="color: #e2e8f0;">
+                                📞 Step 3 Result: Email function error (non-critical)<br><br>
+                            </div>
+                        `;
+                    }
+
+                    // Step 4: Verify Profile Data
+                    try {
+                        const verifyResponse = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${authData.user.id}&select=*`, {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                            }
+                        });
+
+                        const verifyData = await verifyResponse.json();
+
+                        resultDiv.innerHTML += `
+                            <div style="color: #e2e8f0;">
+                                🔍 Profile Verification:<br>
+                                ${verifyResponse.ok && verifyData.length > 0 ? 
+                                    `✅ Profile exists in database<br>- Email: ${verifyData[0].email}<br>- Name: ${verifyData[0].full_name}<br>- Credits: ${verifyData[0].credits}<br>` :
+                                    '❌ Profile not found in database'
+                                }<br>
+                            </div>
+                        `;
+                    } catch (verifyError) {
+                        resultDiv.innerHTML += `
+                            <div style="color: #e2e8f0;">
+                                🔍 Profile Verification: Error checking profile<br><br>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Overall Result
+                testResults.overall = testResults.authSignup && testResults.profileCreation;
+
+                resultDiv.innerHTML += `
+                    <div style="color: ${testResults.overall ? '#10b981' : '#f87171'}; font-weight: bold; margin-top: 20px;">
+                        ${testResults.overall ? 
+                            '🎉 SIGNUP FLOW COMPLETED SUCCESSFULLY!' : 
+                            '❌ SIGNUP FLOW STILL HAS ISSUES'
+                        }<br><br>
+                        
+                        Summary:<br>
+                        ${testResults.authSignup ? '✅' : '❌'} Auth Signup<br>
+                        ${testResults.profileCreation ? '✅' : '❌'} Profile Creation<br>
+                        ${testResults.welcomeEmail ? '✅' : '⚠️'} Welcome Email (optional)<br>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="color: #f87171;">
+                        ❌ Test Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testProfileCreationFunction() {
+            const resultDiv = document.getElementById('functionResults');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '🔄 Testing profile creation function...';
+
+            try {
+                const testUserId = crypto.randomUUID();
+                const testEmail = `test+${Date.now()}@example.com`;
+
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/create-user-profile`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: testUserId,
+                        email: testEmail,
+                        fullName: 'Test User Function',
+                        referralCode: ''
+                    })
+                });
+
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <div style="color: #10b981; font-weight: bold; margin-bottom: 15px;">🔧 PROFILE CREATION FUNCTION TEST</div>
+                    <div style="color: #e2e8f0;">
+                        📞 Function Call:<br>
+                        - Test User ID: ${testUserId}<br>
+                        - Test Email: ${testEmail}<br><br>
+                        
+                        📞 Response:<br>
+                        - Status: ${response.status} ${response.statusText}<br>
+                        - Success: ${data.success || false}<br>
+                        - Message: ${data.message || 'No message'}<br>
+                        - Error: ${data.error || 'None'}<br><br>
+                        
+                        ${response.ok ? 
+                            '<div style="color: #10b981;">✅ Function is working correctly!</div>' : 
+                            '<div style="color: #f87171;">❌ Function has issues</div>'
+                        }
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.textContent = `❌ Function Test Error: ${error.message}`;
+            }
+        }
+
+        async function testDatabaseAccess() {
+            const resultDiv = document.getElementById('databaseResults');
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '🔄 Testing database access...';
+
+            try {
+                const tables = ['profiles', 'user_roles', 'credits_ledger', 'security_events'];
+                const results = {};
+
+                for (const table of tables) {
+                    try {
+                        const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&limit=1`, {
+                            headers: {
+                                'apikey': SUPABASE_ANON_KEY,
+                                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                            }
+                        });
+                        
+                        results[table] = {
+                            accessible: response.ok,
+                            status: response.status,
+                            statusText: response.statusText
+                        };
+                    } catch (err) {
+                        results[table] = {
+                            accessible: false,
+                            error: err.message
+                        };
+                    }
+                }
+
+                resultDiv.innerHTML = `
+                    <div style="color: #10b981; font-weight: bold; margin-bottom: 15px;">🗄️ DATABASE ACCESS TEST</div>
+                    <div style="color: #e2e8f0;">
+                        ${Object.entries(results).map(([table, result]) => `
+                            ${result.accessible ? '✅' : '❌'} ${table}: ${result.accessible ? 'Accessible' : `Error ${result.status || 'N/A'}`}<br>
+                        `).join('')}
+                        <br>
+                        ${Object.values(results).every(r => r.accessible) ? 
+                            '<div style="color: #10b981;">✅ All database tables accessible!</div>' : 
+                            '<div style="color: #f87171;">❌ Some tables have access issues</div>'
+                        }
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.textContent = `❌ Database Test Error: ${error.message}`;
+            }
+        }
+
+        function openSignupPage() {
+            const resultDiv = document.getElementById('liveResults');
+            resultDiv.style.display = 'block';
+            
+            resultDiv.innerHTML = `
+                <div style="color: #10b981; font-weight: bold; margin-bottom: 15px;">🌐 OPENING LIVE SIGNUP</div>
+                <div style="color: #e2e8f0;">
+                    🔧 Fixes Applied:<br>
+                    ✅ Syntax errors fixed<br>
+                    ✅ Duplicate profile creation resolved<br>
+                    ✅ Database conflicts handled<br>
+                    ✅ Error handling improved<br>
+                    ✅ RLS policies updated<br><br>
+                    
+                    🚀 Ready to test live signup!<br><br>
+                    
+                    Opening: ${window.location.origin}/auth
+                </div>
+            `;
+
+            // Open the signup page
+            window.open(`${window.location.origin}/auth`, '_blank');
+        }
+
+        // Auto-run database test on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testDatabaseAccess();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

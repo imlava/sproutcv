@@ -135,7 +135,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               referralCode: referralCode
             }
           });
-          console.log('User profile creation response:', response);
+          
+          if (response.error) {
+            console.warn('Profile creation had issues:', response.error);
+            // Check if it's just a duplicate issue
+            if (!response.error.message?.includes('already exists')) {
+              console.error('Profile creation failed:', response.error);
+            }
+          } else {
+            console.log('User profile creation successful:', response.data);
+          }
         } catch (profileError) {
           console.error('Failed to create user profile:', profileError);
           // Don't throw error here as signup was successful
