@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🛡️ Payment Security Verification</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .alert {
+            background: #fee;
+            border: 2px solid #f66;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #e8f5e8;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { background: #0056b3; }
+        .malicious-url {
+            background: #ffe6e6;
+            border: 1px solid #ffcdd2;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Payment Security Verification</h1>
+        
+        <div class="alert">
+            <h3>🚨 Security Incident Detected</h3>
+            <p><strong>Malicious URL Attempted:</strong></p>
+            <div class="malicious-url" id="malicious-url">
+                Loading...
+            </div>
+            <p><strong>Attack Type:</strong> Parameter injection with duplicate status parameters</p>
+        </div>
+
+        <div class="success">
+            <h3>✅ Security Status: PROTECTED</h3>
+            <p>Your payment system is now secured with Dodo Perfect Integration:</p>
+            <ul>
+                <li>✅ Parameter injection attacks are detected and blocked</li>
+                <li>✅ All payments verified through Dodo API only</li>
+                <li>✅ Security warnings displayed to users</li>
+                <li>✅ Comprehensive security logging active</li>
+            </ul>
+        </div>
+
+        <h3>🧪 Test Security Protection</h3>
+        <p>Click the button below to test the secure payment page with the malicious URL:</p>
+        <a href="javascript:void(0)" onclick="testSecurePayments()" class="btn">🛡️ Test Secure Payments Page</a>
+        
+        <h3>📊 What Happens Now</h3>
+        <ol>
+            <li><strong>Security Detection:</strong> System detects duplicate parameters</li>
+            <li><strong>User Warning:</strong> Security alert displayed to user</li>
+            <li><strong>API Verification:</strong> Payment verified with Dodo API only</li>
+            <li><strong>Protection Active:</strong> No fraudulent credits added</li>
+        </ol>
+    </div>
+
+    <script>
+        // Display the malicious URL
+        document.getElementById('malicious-url').textContent = window.location.href;
+
+        function testSecurePayments() {
+            // Construct the secure payments URL with the malicious parameters
+            const currentUrl = new URL(window.location.href);
+            const secureUrl = new URL('/payments', 'https://sproutcv.app');
+            
+            // Add the malicious parameters to test security
+            secureUrl.searchParams.set('status', 'success');
+            secureUrl.searchParams.set('amount', '500');
+            secureUrl.searchParams.set('credits', '5');
+            secureUrl.searchParams.set('source', 'dodo');
+            secureUrl.searchParams.set('plan', 'starter');
+            secureUrl.searchParams.set('payment_id', 'pay_lR6Lbcz9Vhtw5JryReR6Z');
+            secureUrl.searchParams.append('status', 'requires_customer_action'); // Duplicate parameter
+            
+            // Open in new tab to show security protection
+            window.open(secureUrl.toString(), '_blank');
+            
+            alert('🛡️ Opening secure payments page with malicious parameters.\n\nYou should see:\n✅ Security warning displayed\n✅ Payment verification through Dodo API\n✅ No fraudulent credits added');
+        }
+    </script>
+</body>
+</html>

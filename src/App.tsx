@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import AdminPage from "./pages/AdminPage";
 import SecuritySettingsPage from "./pages/SecuritySettingsPage";
+import PaymentsPagePerfect from "./pages/PaymentsPagePerfect";
 
 const App = () => {
   // Create QueryClient inside component to ensure proper React context
@@ -50,6 +51,7 @@ const App = () => {
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/security" element={<SecuritySettingsPage />} />
+              <Route path="/payments" element={<PaymentsPagePerfect />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
