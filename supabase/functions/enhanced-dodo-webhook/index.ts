@@ -158,7 +158,7 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
   
   try {
     // Multiple fallback strategies for finding payment
-    let payment = null;
+    let payment: any = null;
     
     // Strategy 1: Direct lookup by provider ID
     const { data: directPayment } = await supabase
@@ -174,26 +174,59 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
     } else {
       console.log("⚠️ Payment not found by provider ID, trying fuzzy lookup...");
       
-      // Strategy 2: Fuzzy lookup by amount and recent timestamp
+      // Strategy 2: Fuzzy lookup by amount and recent timestamp (narrower window)
       const { data: fuzzyPayment } = await supabase
         .from("payments")
         .select("*")
         .eq("amount", payload.amount)
         .eq("status", "pending")
-        .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Last hour
+        .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString()) // Last 10 minutes only
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
       
       if (fuzzyPayment) {
-        payment = fuzzyPayment;
-        console.log(`✅ Found payment by fuzzy lookup: ${payment.id}`);
+        console.log(`🔍 Potential fuzzy match found: ${fuzzyPayment.id}, validating...`);
         
-        // Update with correct provider ID
-        await supabase
-          .from("payments")
-          .update({ payment_provider_id: payload.payment_id })
-          .eq("id", fuzzyPayment.id);
+        // Additional validation: check customer email alignment
+        const { data: userProfile } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", fuzzyPayment.user_id)
+          .single();
+        
+        if (!userProfile) {
+          console.log(`❌ User profile not found for payment ${fuzzyPayment.id}`);
+          // payment remains null
+        } else if (userProfile.email !== payload.customer.email) {
+          console.log(`❌ Email mismatch: payment user ${userProfile.email} ≠ webhook customer ${payload.customer.email}`);
+          // payment remains null
+        } else {
+          // Additional metadata validation if available
+          let metadataValid = true;
+          
+          if (payload.metadata.user_id && fuzzyPayment.user_id !== payload.metadata.user_id) {
+            console.log(`❌ User ID mismatch: payment ${fuzzyPayment.user_id} ≠ webhook ${payload.metadata.user_id}`);
+            metadataValid = false;
+          }
+          
+          if (payload.metadata.customer_id && fuzzyPayment.metadata?.customer_id && 
+              fuzzyPayment.metadata.customer_id !== payload.metadata.customer_id) {
+            console.log(`❌ Customer ID mismatch: payment ${fuzzyPayment.metadata.customer_id} ≠ webhook ${payload.metadata.customer_id}`);
+            metadataValid = false;
+          }
+          
+          if (metadataValid) {
+            payment = fuzzyPayment;
+            console.log(`✅ Fuzzy match validated: ${payment.id} (email: ${userProfile.email})`);
+            
+            // Update with correct provider ID
+            await supabase
+              .from("payments")
+              .update({ payment_provider_id: payload.payment_id })
+              .eq("id", fuzzyPayment.id);
+          }
+        }
       }
     }
     

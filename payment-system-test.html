@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment System Test & Diagnostic</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Optional config file - create this with your Supabase credentials -->
+    <script src="./config.js" onerror="console.log('config.js not found, will try other config methods')"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -151,11 +153,49 @@
     </div>
 
     <script>
-        // Configuration
-        const SUPABASE_URL = 'https://obfogfgkhltjfwqhxvjd.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZm9nZmdraGx0amZ3cWh4dmpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjI1OTY1OTksImV4cCI6MjAzODE3MjU5OX0.g7jP4-5QwB7LW5KUqFYJyZ7QVi1WF0_AhCj8j7rCPHE';
+        // Configuration - Load from external config
+        let SUPABASE_URL, SUPABASE_ANON_KEY;
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Try to load configuration from external config file
+        function loadConfig() {
+            return new Promise((resolve, reject) => {
+                // Check if config is available from window.SUPABASE_CONFIG (loaded from config.js)
+                if (window.SUPABASE_CONFIG) {
+                    SUPABASE_URL = window.SUPABASE_CONFIG.url;
+                    SUPABASE_ANON_KEY = window.SUPABASE_CONFIG.anonKey;
+                    resolve();
+                    return;
+                }
+                
+                // Fallback: try to fetch from config endpoint
+                fetch('./config.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Config file not found');
+                        }
+                        return response.json();
+                    })
+                    .then(config => {
+                        SUPABASE_URL = config.supabase.url;
+                        SUPABASE_ANON_KEY = config.supabase.anonKey;
+                        resolve();
+                    })
+                    .catch(error => {
+                        // Last fallback: prompt user for configuration
+                        console.warn('No config file found, prompting for credentials');
+                        SUPABASE_URL = prompt('Enter Supabase URL:') || '';
+                        SUPABASE_ANON_KEY = prompt('Enter Supabase Anon Key:') || '';
+                        
+                        if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+                            reject(new Error('Supabase configuration required'));
+                        } else {
+                            resolve();
+                        }
+                    });
+            });
+        }
+        
+        let supabase;
 
         function log(message, type = 'info') {
             const timestamp = new Date().toLocaleTimeString();
@@ -385,9 +425,32 @@
         }
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            log('🚀 Payment System Test Tool initialized');
-            updateStatus('Ready - Click "Run Full Diagnostic" to start', 'info');
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                updateStatus('Loading configuration...', 'info');
+                await loadConfig();
+                
+                // Initialize Supabase client with loaded config
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                log('🚀 Payment System Test Tool initialized');
+                updateStatus('Ready - Click "Run Full Diagnostic" to start', 'info');
+            } catch (error) {
+                updateStatus(`Configuration failed: ${error.message}`, 'error');
+                log(`❌ Failed to load configuration: ${error.message}`, 'error');
+                
+                // Show configuration help
+                const helpMessage = `
+                    <div class="status error">
+                        <strong>Configuration Required</strong><br>
+                        Please create one of the following:<br>
+                        1. <code>config.js</code> file with: <code>window.SUPABASE_CONFIG = {url: '...', anonKey: '...'};</code><br>
+                        2. <code>config.json</code> file with: <code>{"supabase": {"url": "...", "anonKey": "..."}}</code><br>
+                        3. Or enter credentials when prompted
+                    </div>
+                `;
+                document.getElementById('systemStatus').innerHTML = helpMessage;
+            }
         });
     </script>
 </body>

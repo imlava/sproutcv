@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,21 +27,34 @@ const UserDashboard = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [pendingPayment, setPendingPayment] = useState<string | null>(null);
-  const [creditsPollingInterval, setCreditsPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Use refs to avoid stale closure issues with timers
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchAnalyses();
-    setupPaymentMonitoring();
-  }, []);
+    const cleanupPaymentMonitoring = setupPaymentMonitoring();
+    
+    return () => {
+      // Cleanup subscription when component unmounts or effect re-runs
+      if (cleanupPaymentMonitoring) {
+        cleanupPaymentMonitoring();
+      }
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     return () => {
-      // Cleanup polling interval on unmount
-      if (creditsPollingInterval) {
-        clearInterval(creditsPollingInterval);
+      // Cleanup polling timers on unmount
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
       }
     };
-  }, [creditsPollingInterval]);
+  }, []);
 
   const fetchAnalyses = async () => {
     if (!user) {
@@ -123,6 +136,12 @@ const UserDashboard = () => {
       }
     }
 
+    // Early return if no user ID available
+    if (!user?.id) {
+      console.log('No user ID available, skipping subscription setup');
+      return () => {}; // Return empty cleanup function
+    }
+
     // Set up real-time subscription for profile changes
     const subscription = supabase
       .channel('profile-changes')
@@ -131,7 +150,7 @@ const UserDashboard = () => {
           event: 'UPDATE', 
           schema: 'public', 
           table: 'profiles',
-          filter: `id=eq.${user?.id}`
+          filter: `id=eq.${user.id}`
         }, 
         (payload) => {
           console.log('🔄 Profile updated:', payload.new);
@@ -141,11 +160,54 @@ const UserDashboard = () => {
       )
       .subscribe();
 
+    // Return cleanup function to unsubscribe
     return () => subscription.unsubscribe();
   };
 
   const startPaymentPolling = (paymentId: string, expectedCredits: number) => {
     console.log(`🔄 Starting payment polling for: ${paymentId}`);
+    
+    // Polling configuration
+    const maxFailures = 5;
+    const baseDelay = 3000; // 3 seconds
+    const maxDelay = 30000; // 30 seconds max
+    const maxPollingTime = 5 * 60 * 1000; // 5 minutes
+    
+    let failureCount = 0;
+    let currentDelay = baseDelay;
+    let pollStartTime = Date.now();
+    
+    // Helper function to clean up all timers and reset state
+    const cleanupPolling = () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+        pollingTimeoutRef.current = null;
+      }
+      setPendingPayment(null);
+      localStorage.removeItem('pending_payment');
+    };
+    
+    const scheduleNextPoll = (delay: number) => {
+      pollingTimeoutRef.current = setTimeout(() => {
+        // Check if we've exceeded max polling time
+        if (Date.now() - pollStartTime > maxPollingTime) {
+          cleanupPolling();
+          toast({
+            variant: "destructive",
+            title: "⏰ Polling Timeout",
+            description: "Payment status check timed out. Please check your account manually.",
+            duration: 7000,
+          });
+          return;
+        }
+        
+        pollPayment();
+      }, delay);
+    };
     
     const pollPayment = async () => {
       try {
@@ -155,20 +217,20 @@ const UserDashboard = () => {
 
         if (error) {
           console.error('❌ Payment status check error:', error);
+          // Treat API errors as failures for backoff logic
+          handlePollingFailure(new Error(`API Error: ${error.message || 'Unknown error'}`));
           return;
         }
 
+        // Success! Reset failure tracking
+        failureCount = 0;
+        currentDelay = baseDelay;
+        
         console.log(`📊 Payment status:`, data);
 
         if (data?.status === 'completed') {
           // Payment completed successfully
-          localStorage.removeItem('pending_payment');
-          setPendingPayment(null);
-          
-          if (creditsPollingInterval) {
-            clearInterval(creditsPollingInterval);
-            setCreditsPollingInterval(null);
-          }
+          cleanupPolling();
 
           // Refresh profile to get updated credits
           await refreshProfile();
@@ -180,13 +242,7 @@ const UserDashboard = () => {
           });
         } else if (data?.status === 'failed' || data?.status === 'expired') {
           // Payment failed or expired
-          localStorage.removeItem('pending_payment');
-          setPendingPayment(null);
-          
-          if (creditsPollingInterval) {
-            clearInterval(creditsPollingInterval);
-            setCreditsPollingInterval(null);
-          }
+          cleanupPolling();
 
           toast({
             variant: "destructive",
@@ -194,27 +250,42 @@ const UserDashboard = () => {
             description: `Your payment ${data.status}. Please try again.`,
             duration: 5000,
           });
+        } else {
+          // Payment still pending, schedule next poll with normal delay
+          scheduleNextPoll(currentDelay);
         }
       } catch (error) {
-        console.error('Payment polling error:', error);
+        console.error('Payment polling network error:', error);
+        handlePollingFailure(error as Error);
       }
     };
-
-    // Poll every 3 seconds for up to 5 minutes
-    const interval = setInterval(pollPayment, 3000);
-    setCreditsPollingInterval(interval);
-
-    // Stop polling after 5 minutes
-    setTimeout(() => {
-      if (creditsPollingInterval) {
-        clearInterval(creditsPollingInterval);
-        setCreditsPollingInterval(null);
-        setPendingPayment(null);
-        localStorage.removeItem('pending_payment');
+    
+    const handlePollingFailure = (error: Error) => {
+      failureCount++;
+      console.error(`❌ Polling failure ${failureCount}/${maxFailures}:`, error.message);
+      
+      if (failureCount >= maxFailures) {
+        cleanupPolling();
+        toast({
+          variant: "destructive",
+          title: "🚫 Payment Check Failed",
+          description: "Unable to check payment status after multiple attempts. Please refresh the page or check manually.",
+          duration: 10000,
+        });
+        return;
       }
-    }, 5 * 60 * 1000);
+      
+      // Implement exponential backoff: double the delay up to maxDelay
+      currentDelay = Math.min(currentDelay * 2, maxDelay);
+      console.log(`⏳ Retrying in ${currentDelay / 1000}s (attempt ${failureCount + 1}/${maxFailures})`);
+      
+      scheduleNextPoll(currentDelay);
+    };
 
-    // Initial check
+    // Clean up any existing timers before starting new ones
+    cleanupPolling();
+
+    // Start with initial poll
     pollPayment();
   };
 

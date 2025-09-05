@@ -58,7 +58,7 @@
 ## 🧪 **Testing Protocol**
 
 ### **Phase 1: System Diagnostic**
-1. Open `payment-system-test.html` in browser
+1. Open `payment-system-test.html` in your browser (located in the project root directory)
 2. Click **"Run Full Diagnostic"**
 3. Verify all checks pass (green status)
 4. Check for any warnings or failures
@@ -67,10 +67,14 @@
 1. **Create Test Payment**:
    ```bash
    # Use existing test payment creation function
-   supabase functions invoke create-payment-dodo-official --body '{
-     "productId": "test-product",
-     "credits": 10
-   }'
+   # Replace YOUR_JWT_TOKEN with a valid user JWT from browser dev tools
+   # or use service role key if testing requires elevated permissions
+   supabase functions invoke create-payment-dodo-official \
+     --header "Authorization: Bearer YOUR_JWT_TOKEN" \
+     --body '{
+       "productId": "test-product",
+       "credits": 10
+     }'
    ```
 
 2. **Monitor Payment Processing**:
@@ -208,7 +212,7 @@ The payment system fix is successful when:
 
 ## 🔗 **Quick Links**
 
-- **Test Interface**: `file:///Users/lava/Documents/sproutcv/payment-system-test.html`
+- **Test Interface**: Open `./payment-system-test.html` in your browser from the project root directory
 - **Webhook Logs**: Supabase Dashboard → Functions → enhanced-dodo-webhook → Logs
 - **Database**: Supabase Dashboard → Table Editor
 - **Payment Functions**: Supabase Dashboard → SQL Editor

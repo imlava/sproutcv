@@ -4,6 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 interface PaymentRecord {
@@ -17,32 +19,95 @@ interface PaymentRecord {
   expires_at?: string;
   created_at: string;
   updated_at: string;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   try {
-    const { paymentId } = await req.json();
-
-    if (!paymentId) {
-      throw new Error("Payment ID is required");
+    if (req.method !== "POST") {
+      return new Response(JSON.stringify({ error: "Method not allowed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 405,
+      });
     }
 
-    console.log(`🔍 Checking payment status for: ${paymentId}`);
+    const contentType = req.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return new Response(JSON.stringify({ error: "Unsupported Media Type" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 415,
+      });
+    }
+
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
+    const paymentId = (body?.paymentId ?? "").toString().trim();
+    if (!paymentId) {
+      return new Response(JSON.stringify({ error: "Payment ID is required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
+    // …rest of your handler logic…
+  } catch (err) {
+    // existing error handling…
+  }
+});
+    }
 
     // Create Supabase client with service role key
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+      console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+      return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const parts = authHeader.split(" ");
+    const token =
+      parts.length === 2 && /^Bearer$/i.test(parts[0]) ? parts[1] : "";
 
-    // Get authenticated user
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
+    if (!token) {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid Authorization header" }),
+        {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "WWW-Authenticate":
+              'Bearer realm="supabase", error="invalid_request"',
+          },
+          status: 401,
+        }
+      );
+    }
+
+    const { data: userData, error: userError } =
+      await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !userData?.user) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
+        {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "WWW-Authenticate":
+              'Bearer realm="supabase", error="invalid_token"',
+          },
+          status: 401,
+        }
+      );
     }
 
     const token = authHeader.replace("Bearer ", "");
@@ -80,19 +145,28 @@ serve(async (req) => {
         .maybeSingle();
       
       if (stripePayment) {
-        payment = stripePayment as PaymentRecord;
-        console.log(`✅ Found payment by stripe session: ${payment.id}`);
+    // Check if payment has expired
+    if (payment.expires_at && new Date(payment.expires_at) < new Date()) {
+      if (payment.status === 'pending') {
+        console.log(`⏰ Payment expired, updating status: ${payment.id}`);
+        
+        const { error: updErr } = await supabaseAdmin
+          .from("payments")
+          .update({
+            status: 'expired',
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", payment.id)
+          .eq("status", "pending"); // guard against races
+        if (updErr) {
+          console.error("payments update error:", updErr);
+          return new Response(JSON.stringify({ error: "Failed to mark payment expired" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 500,
+          });
+        }
       }
     }
-    
-    // Strategy 3: Direct payment ID lookup
-    if (!payment) {
-      const { data: idPayment } = await supabaseAdmin
-        .from("payments")
-        .select("*")
-        .eq("id", paymentId)
-        .eq("user_id", user.id)
-        .maybeSingle();
       
       if (idPayment) {
         payment = idPayment as PaymentRecord;
@@ -163,11 +237,13 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
-  } catch (error) {
-    console.error("❌ Payment status check error:", error);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("❌ Payment status check error:", err);
     return new Response(JSON.stringify({
       error: "Payment status check failed",
-      message: error.message
+      message: message,
+      details: typeof err === 'object' && err !== null ? JSON.stringify(err) : String(err)
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

@@ -6,6 +6,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Payment type for minimal required fields
+interface Payment {
+  id: string;
+  user_id: string;
+  status: string;
+  expires_at?: string;
+  amount: number;
+  credits_purchased: number;
+}
+
+// Minimal columns to select for performance
+const PAYMENT_COLS = "id,user_id,status,expires_at,amount,credits_purchased";
+
+// UUID validation helper
+function isValidUuid(str: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -42,41 +61,61 @@ serve(async (req) => {
     console.log(`Checking payment status for ${paymentId} for user ${user.id}`);
 
     // Find the payment record with multiple strategies
-    let payment = null;
+    let payment: Payment | null = null;
     
     // Strategy 1: Direct provider ID lookup
     const { data: directPayment, error: directError } = await supabaseAdmin
       .from("payments")
-      .select("*")
+      .select(PAYMENT_COLS)
       .eq("payment_provider_id", paymentId)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
+    
+    if (directError) {
+      console.error("Direct payment lookup error:", directError);
+      throw new Error(`Database error during provider ID lookup: ${directError.message}`);
+    }
     
     if (directPayment) {
-      payment = directPayment;
+      payment = directPayment as Payment;
+      console.log(`✅ Found payment by provider ID: ${payment.id}`);
     } else {
       // Strategy 2: Stripe session ID lookup (for backward compatibility)
       const { data: stripePayment, error: stripeError } = await supabaseAdmin
         .from("payments")
-        .select("*")
+        .select(PAYMENT_COLS)
         .eq("stripe_session_id", paymentId)
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
+      
+      if (stripeError) {
+        console.error("Stripe payment lookup error:", stripeError);
+        throw new Error(`Database error during stripe session lookup: ${stripeError.message}`);
+      }
       
       if (stripePayment) {
-        payment = stripePayment;
-      } else {
-        // Strategy 3: Payment ID lookup
+        payment = stripePayment as Payment;
+        console.log(`✅ Found payment by stripe session: ${payment.id}`);
+      } else if (isValidUuid(paymentId)) {
+        // Strategy 3: Payment ID lookup (only if valid UUID)
         const { data: idPayment, error: idError } = await supabaseAdmin
           .from("payments")
-          .select("*")
+          .select(PAYMENT_COLS)
           .eq("id", paymentId)
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle();
+        
+        if (idError) {
+          console.error("Payment ID lookup error:", idError);
+          throw new Error(`Database error during payment ID lookup: ${idError.message}`);
+        }
         
         if (idPayment) {
-          payment = idPayment;
+          payment = idPayment as Payment;
+          console.log(`✅ Found payment by ID: ${payment.id}`);
         }
+      } else {
+        console.log(`⚠️ Skipping UUID lookup - invalid format: ${paymentId}`);
       }
     }
 
@@ -131,9 +170,13 @@ serve(async (req) => {
       status: 200,
     });
 
-  } catch (error) {
-    console.error("Payment status check error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Payment status check error:", err);
+    return new Response(JSON.stringify({ 
+      error: "Payment status check failed",
+      message: message 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
