@@ -21,8 +21,8 @@ Your payment system has been completely rebuilt with **100% trust in Dodo Paymen
 - ✅ **Security Logging**: Comprehensive security incident tracking
 
 ### **2. Perfect Webhook Handler**
-- **Location**: `supabase/functions/dodo-webhook-handler/index.ts`
-- **URL**: `https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook-handler`
+- **Location**: `supabase/functions/dodo-webhook/index.ts`
+- **URL**: `https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook`
 - **Purpose**: 100% trusted webhook event processing
 
 **Supported Events:**
@@ -49,6 +49,7 @@ Add these to your Supabase project environment:
 
 ```bash
 # Dodo Payments Configuration
+# Dodo Payments API Configuration
 DODO_PAYMENTS_API_KEY=your_dodo_api_key_here
 DODO_PAYMENTS_ENVIRONMENT=test  # or 'live' for production
 DODO_PAYMENTS_WEBHOOK_SECRET=your_webhook_secret_here
@@ -151,7 +152,7 @@ window.open(portal_url, '_blank'); // Open customer portal
 ### **1. Add Webhook in Dodo Dashboard**
 1. Go to Dodo Payments Dashboard → Settings → Webhooks
 2. Click "Add Webhook"
-3. **Webhook URL**: `https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook-handler`
+3. **Webhook URL**: `https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook`
 4. **Events**: Select all payment and subscription events
 5. **Copy webhook secret** and add to environment variables
 
@@ -330,7 +331,7 @@ curl -X POST "https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-perfect
 
 ### **3. Test Webhook Handler**
 Use Dodo Dashboard → Webhooks → Testing to send test webhooks to:
-`https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook-handler`
+`https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook`
 
 ---
 
@@ -368,7 +369,7 @@ if (status === 'success') {
 ```typescript
 // 🛡️ SECURE: Only trust Dodo API
 const dodoResponse = await fetch(`${DODO_API}/payments/${payment_id}`, {
-  headers: { 'Authorization': `Bearer ${DODO_API_KEY}` }
+  headers: { 'Authorization': `Bearer ${DODO_PAYMENTS_API_KEY}` }
 });
 const { status } = await dodoResponse.json();
 if (status === 'succeeded') {

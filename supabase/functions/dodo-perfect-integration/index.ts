@@ -52,16 +52,19 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, payment_id, subscription_id } = await req.json();
+    const requestBody = await req.json();
+    const { action, payment_id, subscription_id } = requestBody;
 
     // 🔑 DODO PAYMENTS API CONFIGURATION
     const DODO_API_KEY = Deno.env.get('DODO_PAYMENTS_API_KEY');
-    const DODO_API_BASE = Deno.env.get('DODO_PAYMENTS_ENVIRONMENT') === 'live' 
-      ? 'https://api.dodopayments.com/v1' 
-      : 'https://test.dodopayments.com/v1';
+    const DODO_API_BASE = Deno.env.get('DODO_API_BASE_URL') || 'https://api.dodopayments.com/v1';
 
     if (!DODO_API_KEY) {
-      throw new Error('Dodo Payments API key not configured');
+      throw new Error('DODO_PAYMENTS_API_KEY is not defined');
+    }
+
+    if (!DODO_API_BASE) {
+      throw new Error('DODO_API_BASE is not defined');
     }
 
     const dodoHeaders = {
@@ -77,13 +80,13 @@ serve(async (req) => {
         return await verifySubscriptionWithDodo(subscription_id, dodoHeaders, supabase, DODO_API_BASE);
       
       case 'create_payment_link':
-        return await createDodoPaymentLink(req, dodoHeaders, DODO_API_BASE);
+        return await createDodoPaymentLink(requestBody, dodoHeaders, DODO_API_BASE);
       
       case 'create_subscription_link':
-        return await createDodoSubscriptionLink(req, dodoHeaders, DODO_API_BASE);
+        return await createDodoSubscriptionLink(requestBody, dodoHeaders, DODO_API_BASE);
       
-      case 'get_customer_portal':
-        return await createCustomerPortal(req, dodoHeaders, DODO_API_BASE);
+      case 'create_customer_portal':
+        return await createCustomerPortal(requestBody, dodoHeaders, DODO_API_BASE);
       
       default:
         throw new Error('Invalid action specified');
@@ -108,11 +111,12 @@ serve(async (req) => {
 async function verifyPaymentWithDodo(
   payment_id: string, 
   headers: Record<string, string>,
-  supabase: any
+  supabase: any,
+  apiBase: string
 ): Promise<Response> {
   try {
     // 🎯 STEP 1: Get payment data DIRECTLY from Dodo API
-    const response = await fetch(`${DODO_API_BASE}/payments/${payment_id}`, {
+    const response = await fetch(`${apiBase}/payments/${payment_id}`, {
       method: 'GET',
       headers
     });
@@ -226,11 +230,12 @@ async function verifyPaymentWithDodo(
 async function verifySubscriptionWithDodo(
   subscription_id: string,
   headers: Record<string, string>,
-  supabase: any
+  supabase: any,
+  apiBase: string
 ): Promise<Response> {
   try {
     // 🎯 Get subscription data DIRECTLY from Dodo API
-    const response = await fetch(`${DODO_API_BASE}/subscriptions/${subscription_id}`, {
+    const response = await fetch(`${apiBase}/subscriptions/${subscription_id}`, {
       method: 'GET',
       headers
     });
@@ -294,8 +299,9 @@ async function verifySubscriptionWithDodo(
 
 // 💳 CREATE DODO PAYMENT LINK WITH PERFECT INTEGRATION
 async function createDodoPaymentLink(
-  req: Request,
-  headers: Record<string, string>
+  requestBody: any,
+  headers: Record<string, string>,
+  apiBase: string
 ): Promise<Response> {
   const { 
     product_id, 
@@ -304,7 +310,7 @@ async function createDodoPaymentLink(
     quantity = 1, 
     metadata = {},
     return_url 
-  } = await req.json();
+  } = requestBody;
 
   try {
     const paymentData = {
@@ -330,10 +336,10 @@ async function createDodoPaymentLink(
         integration_source: 'perfect_dodo_integration',
         created_by: 'dodo-perfect-integration'
       },
-      return_url: return_url || `${Deno.env.get('FRONTEND_URL')}/payments/success`
+      return_url: return_url || `https://your-domain.com/payments/success`
     };
 
-    const response = await fetch(`${DODO_API_BASE}/payments`, {
+    const response = await fetch(`${apiBase}/payments`, {
       method: 'POST',
       headers,
       body: JSON.stringify(paymentData)
@@ -374,8 +380,9 @@ async function createDodoPaymentLink(
 
 // 🔄 CREATE DODO SUBSCRIPTION LINK
 async function createDodoSubscriptionLink(
-  req: Request,
-  headers: Record<string, string>
+  requestBody: any,
+  headers: Record<string, string>,
+  apiBase: string
 ): Promise<Response> {
   const { 
     product_id, 
@@ -385,7 +392,7 @@ async function createDodoSubscriptionLink(
     metadata = {},
     return_url,
     trial_period_days
-  } = await req.json();
+  } = requestBody;
 
   try {
     const subscriptionData = {
@@ -409,11 +416,11 @@ async function createDodoSubscriptionLink(
         integration_source: 'perfect_dodo_integration',
         created_by: 'dodo-perfect-integration'
       },
-      return_url: return_url || `${Deno.env.get('FRONTEND_URL')}/subscriptions/success`,
+      return_url: return_url || `https://your-domain.com/subscriptions/success`,
       trial_period_days
     };
 
-    const response = await fetch(`${DODO_API_BASE}/subscriptions`, {
+    const response = await fetch(`${apiBase}/subscriptions`, {
       method: 'POST',
       headers,
       body: JSON.stringify(subscriptionData)
@@ -454,13 +461,14 @@ async function createDodoSubscriptionLink(
 
 // 👥 CREATE CUSTOMER PORTAL SESSION
 async function createCustomerPortal(
-  req: Request,
-  headers: Record<string, string>
+  requestBody: any,
+  headers: Record<string, string>,
+  apiBase: string
 ): Promise<Response> {
-  const { customer_id, send_email = false } = await req.json();
+  const { customer_id, send_email = false } = requestBody;
 
   try {
-    const response = await fetch(`${DODO_API_BASE}/customers/${customer_id}/customer-portal/session`, {
+    const response = await fetch(`${apiBase}/customers/${customer_id}/customer-portal/session`, {
       method: 'POST',
       headers,
       body: JSON.stringify({

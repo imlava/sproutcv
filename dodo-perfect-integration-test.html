@@ -267,7 +267,7 @@
 
         async function testWebhookHandler() {
             try {
-                const { response, data } = await makeApiCall('dodo-webhook-handler', {
+                const { response, data } = await makeApiCall('dodo-webhook', {
                     type: 'payment.succeeded',
                     payment_id: document.getElementById('testPaymentId').value,
                     customer_id: 'test-customer-123',
@@ -296,7 +296,7 @@
             try {
                 // Test webhook without proper signature
                 const supabaseUrl = document.getElementById('supabaseUrl').value;
-                const response = await fetch(`${supabaseUrl}/functions/v1/dodo-webhook-handler`, {
+                const response = await fetch(`${supabaseUrl}/functions/v1/dodo-webhook`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

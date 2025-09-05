@@ -21,14 +21,15 @@ You now have the most secure, reliable, and complete Dodo Payments integration p
 - **Status**: ✅ **DEPLOYED TO SUPABASE**
 
 ### ✅ 2. Webhook Handler Function
-**File**: `supabase/functions/dodo-webhook-handler/index.ts`
-- **Signature Verification**: StandardWebhooks library for 100% security
+**File**: `supabase/functions/dodo-webhook/index.ts`
+- **Signature Verification**: X-Dodo-Signature header verification for 100% security
 - **Complete Event Processing**: All Dodo webhook events handled
 - **Payment Lifecycle**: payment.succeeded, payment.failed, payment.refunded
 - **Subscription Lifecycle**: created, updated, cancelled, reactivated
 - **Customer Management**: customer.created, customer.updated
 - **Database Integration**: Automatic credit and subscription updates
 - **Status**: ✅ **DEPLOYED TO SUPABASE**
+- **Endpoint**: `https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook`
 
 ### ✅ 3. Perfect Database Schema
 **File**: `dodo-perfect-integration-schema.sql`
@@ -126,7 +127,7 @@ You now have the most secure, reliable, and complete Dodo Payments integration p
 | Component | Status | Next Action |
 |-----------|--------|-------------|
 | **Perfect Integration Function** | ✅ **DEPLOYED** | Configure API keys |
-| **Webhook Handler** | ✅ **DEPLOYED** | Set webhook URL in Dodo Dashboard |
+| **Webhook Handler** | ✅ **DEPLOYED** | ✅ CONFIGURED in Dodo Dashboard |
 | **Database Schema** | ✅ **READY** | Apply SQL migration |
 | **Frontend Component** | ✅ **READY** | Deploy to production |
 | **Documentation** | ✅ **COMPLETE** | Follow setup guide |
@@ -139,7 +140,8 @@ You now have the most secure, reliable, and complete Dodo Payments integration p
 ### 🔧 **1. Configure Environment (5 minutes)**
 ```bash
 # Add to Supabase Project Settings → Edge Functions → Environment Variables
-DODO_API_KEY=your_dodo_api_key_here
+# Add to Supabase Project Settings → Edge Functions → Environment Variables
+DODO_PAYMENTS_API_KEY=your_dodo_api_key_here
 DODO_WEBHOOK_SECRET=your_dodo_webhook_secret_here
 ```
 
@@ -150,7 +152,7 @@ DODO_WEBHOOK_SECRET=your_dodo_webhook_secret_here
 
 ### 🔗 **3. Configure Webhook Endpoint (3 minutes)**
 1. Go to Dodo Dashboard → Webhooks
-2. Add webhook URL: `https://your-project.supabase.co/functions/v1/dodo-webhook-handler`
+2. Add webhook URL: `https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook`
 3. Select all events to subscribe
 
 ### 🖥️ **4. Deploy Frontend (5 minutes)**

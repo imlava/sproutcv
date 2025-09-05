@@ -8,7 +8,8 @@ Add these environment variables to your Supabase project settings:
 
 ```bash
 # Dodo Payments API Configuration
-DODO_API_KEY=your_dodo_api_key_here
+# Dodo Payments API Configuration
+DODO_PAYMENTS_API_KEY=your_dodo_api_key_here
 DODO_WEBHOOK_SECRET=your_dodo_webhook_secret_here
 
 # Optional: Dodo API Base URL (defaults to production)
@@ -41,7 +42,7 @@ ENABLE_SECURITY_LOGGING=true
 1. **In Dodo Dashboard → Webhooks**
 2. **Add new webhook endpoint**:
    ```
-   Webhook URL: https://your-project.supabase.co/functions/v1/dodo-webhook-handler
+   Webhook URL: https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook
    ```
 3. **Select Events to Subscribe**:
    - ✅ payment.succeeded
@@ -88,7 +89,7 @@ VITE_ENVIRONMENT=production
 
 ### Test Payment Function:
 ```bash
-curl -X POST https://your-project.supabase.co/functions/v1/dodo-perfect-integration \
+curl -X POST https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-perfect-integration \
   -H "Authorization: Bearer your_anon_key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -99,12 +100,15 @@ curl -X POST https://your-project.supabase.co/functions/v1/dodo-perfect-integrat
 
 ### Test Webhook Handler:
 ```bash
-curl -X POST https://your-project.supabase.co/functions/v1/dodo-webhook-handler \
+curl -X POST https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/dodo-webhook \
   -H "Content-Type: application/json" \
-  -H "Webhook-Signature: test_signature" \
+  -H "X-Dodo-Signature: test_signature" \
   -d '{
-    "type": "payment.succeeded",
-    "payment_id": "test_payment_id"
+    "event_type": "payment.succeeded",
+    "data": {
+      "id": "test_payment_id",
+      "status": "succeeded"
+    }
   }'
 ```
 
@@ -172,7 +176,7 @@ ORDER BY timestamp DESC;
    - Check Supabase Edge Function logs
 
 2. **Payment Verification Failing**:
-   - Verify DODO_API_KEY is correct
+   - Verify DODO_PAYMENTS_API_KEY is correct
    - Check if payment_id exists in Dodo system
    - Review security_events table for errors
 
@@ -187,7 +191,7 @@ ORDER BY timestamp DESC;
 supabase functions logs dodo-perfect-integration
 
 # Check webhook handler logs
-supabase functions logs dodo-webhook-handler
+supabase functions logs dodo-webhook
 
 # Test database connection
 supabase db reset --debug
