@@ -247,43 +247,72 @@ const EnhancedDodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onC
   // Enhanced payment status checking
   const checkPendingPayment = async (paymentId: string) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-payment-status`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ paymentId })
+      const { data, error } = await supabase.functions.invoke('enhanced-payment-status', {
+        body: { paymentId }
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (error) {
+        console.error('❌ Status check error:', error);
         
-        if (data.status && data.status !== 'pending') {
-          // Update payment status
-          setPaymentStatus(prev => prev ? {
-            ...prev,
-            status: data.status,
-            error: data.error
-          } : null);
+        // Handle 404 or function not found errors
+        if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+          toast({
+            variant: "destructive",
+            title: "❌ Payment Verification Failed",
+            description: "Unable to verify payment status. The payment may have failed.",
+            duration: 8000,
+          });
+        }
+        return;
+      }
+
+      if (data && data.status !== 'pending') {
+        // Update payment status
+        setPaymentStatus(prev => prev ? {
+          ...prev,
+          status: data.status,
+          error: data.error
+        } : null);
+        
+        if (data.status === 'completed') {
+          // Clear pending payment
+          localStorage.removeItem('pending_payment');
           
-          if (data.status === 'completed') {
-            // Clear pending payment
-            localStorage.removeItem('pending_payment');
-            
-            // Success notification
-            toast({
-              title: "🎉 Payment Successful!",
-              description: `${data.credits || 0} credits have been added to your account.`,
-              duration: 10000,
-            });
-            
-            onSuccess();
-          }
+          // Success notification
+          toast({
+            title: "🎉 Payment Successful!",
+            description: `${data.credits || 0} credits have been added to your account.`,
+            duration: 10000,
+          });
+          
+          onSuccess();
+        } else if (data.status === 'failed' || data.status === 'expired') {
+          // Clear pending payment
+          localStorage.removeItem('pending_payment');
+          
+          // Failure notification
+          toast({
+            variant: "destructive",
+            title: "❌ Payment Failed",
+            description: `Your payment ${data.status}. Please try again.`,
+            duration: 8000,
+          });
         }
       }
     } catch (error) {
       console.error('Payment status check error:', error);
+      
+      // Handle network errors or other exceptions
+      if (error instanceof Error && 
+          (error.message?.includes('404') || 
+           error.message?.includes('FunctionsHttpError'))) {
+        toast({
+          variant: "destructive",
+          title: "❌ Payment System Error", 
+          description: "Payment verification service is temporarily unavailable.",
+          duration: 8000,
+        });
+      }
     }
   };
 

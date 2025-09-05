@@ -198,9 +198,18 @@ const UserDashboard = () => {
           cleanupPolling();
           toast({
             variant: "destructive",
-            title: "⏰ Polling Timeout",
-            description: "Payment status check timed out. Please check your account manually.",
-            duration: 7000,
+            title: "⏰ Payment Check Timeout",
+            description: "Payment verification timed out. Please check your account or try a new payment.",
+            action: (
+              <Button
+                size="sm"
+                onClick={() => setShowPaymentModal(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                New Payment
+              </Button>
+            ),
+            duration: 12000,
           });
           return;
         }
@@ -217,7 +226,30 @@ const UserDashboard = () => {
 
         if (error) {
           console.error('❌ Payment status check error:', error);
-          // Treat API errors as failures for backoff logic
+          
+          // Handle specific error types
+          if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+            // 404 means function doesn't exist or payment not found
+            cleanupPolling();
+            toast({
+              variant: "destructive",
+              title: "❌ Payment Check Failed",
+              description: "Unable to verify payment status. Please try making a new payment.",
+              action: (
+                <Button
+                  size="sm"
+                  onClick={() => setShowPaymentModal(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Retry Payment
+                </Button>
+              ),
+              duration: 10000,
+            });
+            return;
+          }
+          
+          // Treat other API errors as temporary failures for backoff logic
           handlePollingFailure(new Error(`API Error: ${error.message || 'Unknown error'}`));
           return;
         }
@@ -248,6 +280,15 @@ const UserDashboard = () => {
             variant: "destructive",
             title: "❌ Payment Failed",
             description: `Your payment ${data.status}. Please try again.`,
+            action: (
+              <Button
+                size="sm"
+                onClick={() => setShowPaymentModal(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Try Again
+              </Button>
+            ),
             duration: 5000,
           });
         } else {
@@ -256,6 +297,31 @@ const UserDashboard = () => {
         }
       } catch (error) {
         console.error('Payment polling network error:', error);
+        
+        // Check if it's a 404 or function not found error
+        if (error instanceof Error && 
+            (error.message?.includes('404') || 
+             error.message?.includes('Not Found') || 
+             error.message?.includes('FunctionsHttpError'))) {
+          cleanupPolling();
+          toast({
+            variant: "destructive",
+            title: "❌ Payment System Error",
+            description: "Payment verification service is temporarily unavailable.",
+            action: (
+              <Button
+                size="sm"
+                onClick={() => setShowPaymentModal(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Retry Payment
+              </Button>
+            ),
+            duration: 10000,
+          });
+          return;
+        }
+        
         handlePollingFailure(error as Error);
       }
     };
@@ -269,8 +335,17 @@ const UserDashboard = () => {
         toast({
           variant: "destructive",
           title: "🚫 Payment Check Failed",
-          description: "Unable to check payment status after multiple attempts. Please refresh the page or check manually.",
-          duration: 10000,
+          description: "Unable to check payment status after multiple attempts. Please try making a new payment.",
+          action: (
+            <Button
+              size="sm"
+              onClick={() => setShowPaymentModal(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              New Payment
+            </Button>
+          ),
+          duration: 15000,
         });
         return;
       }

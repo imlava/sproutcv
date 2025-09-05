@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment System Error Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { border-color: #4CAF50; background: #f1f8e9; }
+        .error { border-color: #f44336; background: #ffebee; }
+        .warning { border-color: #ff9800; background: #fff8e1; }
+        .btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover { background: #1976D2; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Payment System Error Testing</h1>
+        <p>This tool tests the payment system error handling and 404 scenarios mentioned in your error report.</p>
+
+        <div class="test-section">
+            <h3>Configuration Status</h3>
+            <div id="configStatus"></div>
+            <button class="btn" onclick="checkConfig()">Check Configuration</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Function Availability Test</h3>
+            <div id="functionStatus"></div>
+            <button class="btn" onclick="testFunctions()">Test Payment Functions</button>
+        </div>
+
+        <div class="test-section">
+            <h3>404 Error Simulation</h3>
+            <div id="errorSimulation"></div>
+            <button class="btn" onclick="simulate404Error()">Simulate 404 Error</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Payment Status Check</h3>
+            <input type="text" id="paymentIdInput" placeholder="Enter Payment ID" style="padding: 8px; margin: 5px; width: 200px;">
+            <button class="btn" onclick="testPaymentStatus()">Check Payment Status</button>
+            <div id="paymentResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Error Handling Test Results</h3>
+            <div id="testResults"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Configuration
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1Y2Rwdm5tY3Vva2VtaHFwbnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjUyNzE0NjksImV4cCI6MjA0MDg0NzQ2OX0.iMfT5o2U8sZdXs0KgLXt5YOa6N9gI-kK_ZGe5Rz5oQ8';
+
+        let testResults = [];
+
+        function log(message, type = 'info') {
+            console.log(message);
+            testResults.push({ message, type, timestamp: new Date().toISOString() });
+            updateTestResults();
+        }
+
+        function updateTestResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = testResults.map(result => 
+                `<div class="status ${result.type}">[${new Date(result.timestamp).toLocaleTimeString()}] ${result.message}</div>`
+            ).join('');
+        }
+
+        window.checkConfig = function() {
+            const status = document.getElementById('configStatus');
+            
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+                status.innerHTML = '<div class="status error">❌ Configuration missing - Please check SUPABASE_URL and SUPABASE_ANON_KEY</div>';
+                return;
+            }
+            
+            status.innerHTML = `
+                <div class="status success">✅ Configuration loaded</div>
+                <div><strong>URL:</strong> ${SUPABASE_URL}</div>
+                <div><strong>Key:</strong> ${SUPABASE_ANON_KEY.substring(0, 30)}...</div>
+            `;
+            log('Configuration check completed', 'success');
+        };
+
+        window.testFunctions = async function() {
+            const status = document.getElementById('functionStatus');
+            status.innerHTML = '<div class="status warning">🔄 Testing functions...</div>';
+            
+            const functions = ['check-payment-status', 'enhanced-payment-status', 'payment-system-diagnostic'];
+            const results = [];
+            
+            for (const func of functions) {
+                try {
+                    log(`Testing ${func} function...`, 'info');
+                    
+                    const response = await fetch(`${SUPABASE_URL}/functions/v1/${func}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({ paymentId: 'test-payment-id' })
+                    });
+
+                    const result = {
+                        function: func,
+                        status: response.status,
+                        statusText: response.statusText,
+                        available: response.status !== 404
+                    };
+
+                    if (response.status === 404) {
+                        result.message = '❌ Function not found (404)';
+                        log(`${func}: 404 Not Found`, 'error');
+                    } else if (response.status === 401) {
+                        result.message = '🔐 Function exists but requires authentication';
+                        log(`${func}: Authentication required (this is expected)`, 'warning');
+                    } else if (response.status >= 400) {
+                        result.message = `⚠️ Function exists but returned ${response.status}`;
+                        log(`${func}: Error ${response.status}`, 'warning');
+                    } else {
+                        result.message = '✅ Function available and responding';
+                        log(`${func}: Function working`, 'success');
+                    }
+
+                    results.push(result);
+                } catch (error) {
+                    const result = {
+                        function: func,
+                        status: 'ERROR',
+                        statusText: error.message,
+                        available: false,
+                        message: `❌ Network error: ${error.message}`
+                    };
+                    results.push(result);
+                    log(`${func}: Network error - ${error.message}`, 'error');
+                }
+            }
+
+            status.innerHTML = results.map(r => 
+                `<div class="status ${r.available ? 'success' : 'error'}">
+                    <strong>${r.function}:</strong> ${r.message}
+                    <br><small>Status: ${r.status} ${r.statusText}</small>
+                </div>`
+            ).join('');
+        };
+
+        window.simulate404Error = async function() {
+            const status = document.getElementById('errorSimulation');
+            status.innerHTML = '<div class="status warning">🔄 Simulating 404 error...</div>';
+            
+            try {
+                log('Simulating the exact error from your report...', 'info');
+                
+                // Simulate the exact call that's failing
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    },
+                    body: JSON.stringify({ paymentId: 'test-404-payment' })
+                });
+
+                if (response.status === 404) {
+                    status.innerHTML = `
+                        <div class="status error">❌ 404 Error Confirmed</div>
+                        <div>This reproduces your exact error. The function call is failing.</div>
+                        <div><strong>Solution:</strong> Frontend should fall back to enhanced-payment-status or show retry option.</div>
+                    `;
+                    log('404 error reproduced - this matches your error report', 'error');
+                } else {
+                    const data = await response.text();
+                    status.innerHTML = `
+                        <div class="status success">✅ No 404 Error</div>
+                        <div>Function is responding normally (Status: ${response.status})</div>
+                        <pre>${data}</pre>
+                    `;
+                    log(`Function responded with status ${response.status}`, 'success');
+                }
+            } catch (error) {
+                status.innerHTML = `
+                    <div class="status error">❌ Network Error</div>
+                    <div>${error.message}</div>
+                    <div>This could be the root cause of your 404 errors.</div>
+                `;
+                log(`Network error during 404 simulation: ${error.message}`, 'error');
+            }
+        };
+
+        window.testPaymentStatus = async function() {
+            const paymentId = document.getElementById('paymentIdInput').value;
+            const result = document.getElementById('paymentResult');
+            
+            if (!paymentId) {
+                result.innerHTML = '<div class="status error">❌ Please enter a payment ID</div>';
+                return;
+            }
+
+            result.innerHTML = '<div class="status warning">🔄 Checking payment status...</div>';
+            log(`Testing payment status for: ${paymentId}`, 'info');
+
+            // Test both functions
+            const functions = ['check-payment-status', 'enhanced-payment-status'];
+            let results = [];
+
+            for (const func of functions) {
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/functions/v1/${func}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        },
+                        body: JSON.stringify({ paymentId })
+                    });
+
+                    const data = await response.text();
+                    let jsonData;
+                    try {
+                        jsonData = JSON.parse(data);
+                    } catch {
+                        jsonData = { raw: data };
+                    }
+
+                    results.push({
+                        function: func,
+                        status: response.status,
+                        data: jsonData
+                    });
+
+                    if (response.status === 404) {
+                        log(`${func}: 404 Not Found (This is the error from your report!)`, 'error');
+                    } else {
+                        log(`${func}: Status ${response.status}`, response.status < 400 ? 'success' : 'warning');
+                    }
+                } catch (error) {
+                    results.push({
+                        function: func,
+                        status: 'ERROR',
+                        data: { error: error.message }
+                    });
+                    log(`${func}: Network error - ${error.message}`, 'error');
+                }
+            }
+
+            result.innerHTML = results.map(r => `
+                <div class="status ${r.status === 404 ? 'error' : r.status < 400 ? 'success' : 'warning'}">
+                    <strong>${r.function}</strong> (Status: ${r.status})
+                    <pre>${JSON.stringify(r.data, null, 2)}</pre>
+                </div>
+            `).join('');
+        };
+
+        // Auto-run configuration check
+        window.addEventListener('load', () => {
+            checkConfig();
+            log('Payment System Error Test Tool loaded', 'success');
+        });
+    </script>
+</body>
+</html>

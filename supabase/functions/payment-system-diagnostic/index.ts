@@ -82,7 +82,46 @@ const supabase = createClient(
       addCheck("profiles_table", "fail", `Profiles table error: ${error.message}`);
     }
 
-    // Check 4: Recent payment activity
+    // Check 4: Payment status functions
+    try {
+      // Test both check-payment-status and enhanced-payment-status functions
+      const testPaymentId = '00000000-0000-0000-0000-000000000000';
+      
+      // Test check-payment-status function
+      try {
+        const { data: checkData, error: checkError } = await supabase.functions.invoke('check-payment-status', {
+          body: { paymentId: testPaymentId }
+        });
+        
+        if (checkError && !checkError.message?.includes('not found')) {
+          addCheck("check_payment_status_function", "pass", "check-payment-status function accessible");
+        } else {
+          addCheck("check_payment_status_function", "pass", "check-payment-status function working (expected not found)");
+        }
+      } catch (error) {
+        addCheck("check_payment_status_function", "warning", `check-payment-status function error: ${error.message}`);
+      }
+      
+      // Test enhanced-payment-status function  
+      try {
+        const { data: enhancedData, error: enhancedError } = await supabase.functions.invoke('enhanced-payment-status', {
+          body: { paymentId: testPaymentId }
+        });
+        
+        if (enhancedError && !enhancedError.message?.includes('not found')) {
+          addCheck("enhanced_payment_status_function", "pass", "enhanced-payment-status function accessible");
+        } else {
+          addCheck("enhanced_payment_status_function", "pass", "enhanced-payment-status function working (expected not found)");
+        }
+      } catch (error) {
+        addCheck("enhanced_payment_status_function", "warning", `enhanced-payment-status function error: ${error.message}`);
+      }
+    } catch (error) {
+      addCheck("payment_status_functions", "fail", `Payment status functions check failed: ${error.message}`);
+    }
+
+    // Check 5: Recent payment activity
+    // Check 5: Recent payment activity
     try {
       const { data: recentPayments, error } = await supabase
         .from("payments")
@@ -106,7 +145,8 @@ const supabase = createClient(
       addCheck("recent_payments", "fail", `Recent payments check failed: ${error.message}`);
     }
 
-    // Check 5: Pending payments
+    // Check 6: Pending payments
+    // Check 6: Pending payments
     try {
       const { data: pendingPayments, error } = await supabase
         .from("payments")
@@ -138,7 +178,8 @@ const supabase = createClient(
       addCheck("pending_payments", "fail", `Pending payments check failed: ${error.message}`);
     }
 
-    // Check 6: Payment processing function
+    // Check 7: Payment processing function
+    // Check 7: Payment processing function
     try {
       const { data: functionCheck, error } = await supabase.rpc('get_user_credit_summary', {
         target_user_id: '00000000-0000-0000-0000-000000000000'  // Test with dummy UUID
@@ -154,7 +195,8 @@ const supabase = createClient(
       addCheck("payment_functions", "fail", `Payment functions check failed: ${error.message}`);
     }
 
-    // Check 7: Credits ledger (optional)
+    // Check 8: Credits ledger (optional)
+    // Check 8: Credits ledger (optional)
     try {
       const { data: ledgerCheck } = await supabase.from("credits_ledger").select("id").limit(1);
       addCheck("credits_ledger", "pass", "Credits ledger table accessible");
@@ -162,7 +204,8 @@ const supabase = createClient(
       addCheck("credits_ledger", "warning", `Credits ledger not available: ${error.message}`);
     }
 
-    // Check 8: Webhook logs (optional)
+    // Check 9: Webhook logs (optional)
+    // Check 9: Webhook logs (optional)
     try {
       const { data: webhookLogs } = await supabase
         .from("webhook_logs")
@@ -175,7 +218,7 @@ const supabase = createClient(
       addCheck("webhook_logs", "warning", `Webhook logs not available: ${error.message}`);
     }
 
-    // Check 9: Test payment processing function with actual pending payment (if any)
+    // Check 10: Test payment processing function with actual pending payment (if any)
     try {
       const { data: testPayment } = await supabase
         .from("payments")

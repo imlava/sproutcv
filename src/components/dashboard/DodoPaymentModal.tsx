@@ -156,12 +156,22 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
     try {
       console.log('🔍 Checking payment status:', paymentId);
       
-      const { data, error } = await supabase.functions.invoke('check-payment-status', {
+      const { data, error } = await supabase.functions.invoke('enhanced-payment-status', {
         body: { paymentId }
       });
 
       if (error) {
         console.error('❌ Status check error:', error);
+        
+        // Handle 404 or function not found errors specifically
+        if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+          toast({
+            variant: "destructive",
+            title: "❌ Payment Verification Failed",
+            description: "Unable to verify payment status. Please try again.",
+            duration: 8000,
+          });
+        }
         return;
       }
 
@@ -176,7 +186,7 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
         });
         
         onSuccess(); // Refresh the parent component
-      } else if (data?.status === 'failed') {
+      } else if (data?.status === 'failed' || data?.status === 'expired') {
         localStorage.removeItem('pending_payment');
         
         toast({

@@ -204,18 +204,52 @@ const EnhancedPaymentsPage = () => {
       attempts++;
       
       try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-payment-status`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ paymentId })
+        const { data, error } = await supabase.functions.invoke('enhanced-payment-status', {
+          body: { paymentId }
         });
 
-        const data = await response.json();
+        if (error) {
+          console.error('Payment monitoring error:', error);
+          
+          // Handle 404 errors specifically  
+          if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+            clearInterval(monitor);
+            setProcessing(false);
+            
+            // Update URL to show failed payment
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('payment', 'failed');
+            newUrl.searchParams.set('reason', 'verification_failed');
+            window.history.replaceState({}, '', newUrl);
+            
+            showFailureNotification({
+              status: 'failed',
+              paymentId,
+              amount: 0,
+              credits: 0,
+              timestamp: new Date().toISOString(),
+              error: 'Payment verification failed'
+            });
+            return;
+          }
+          
+          // For other errors, continue monitoring if we haven't exceeded max attempts
+          if (attempts >= maxAttempts) {
+            clearInterval(monitor);
+            setProcessing(false);
+            showTimeoutNotification({
+              status: 'timeout',
+              paymentId,
+              amount: 0,
+              credits: 0,
+              timestamp: new Date().toISOString(),
+              error: 'Payment monitoring timeout'
+            });
+          }
+          return;
+        }
         
-        if (data.status && data.status !== 'pending') {
+        if (data?.status && data.status !== 'pending') {
           clearInterval(monitor);
           setProcessing(false);
           

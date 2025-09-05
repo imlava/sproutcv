@@ -146,12 +146,20 @@ const PaymentsPage = () => {
     setProcessing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('check-payment-status', {
+      const { data, error } = await supabase.functions.invoke('enhanced-payment-status', {
         body: { paymentId }
       });
 
       if (error) {
         console.error('Payment status check error:', error);
+        
+        // Handle 404 or function not found errors
+        if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+          setPaymentStatus({
+            status: 'failed',
+            message: 'Payment verification failed - Unable to verify payment status'
+          });
+        }
         return;
       }
 

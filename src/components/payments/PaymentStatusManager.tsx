@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   CheckCircle, 
   XCircle, 
@@ -64,18 +65,35 @@ export const PaymentStatusManager: React.FC<PaymentStatusManagerProps> = ({
       if (!paymentStatus?.paymentId) return;
       
       try {
-        const response = await fetch('/api/check-payment-status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId: paymentStatus.paymentId })
+        const { data, error } = await supabase.functions.invoke('enhanced-payment-status', {
+          body: { paymentId: paymentStatus.paymentId }
         });
+
+        if (error) {
+          console.error('Payment monitoring error:', error);
+          
+          // Handle 404 or function not found errors
+          if (error.message?.includes('404') || error.message?.includes('Not Found')) {
+            clearInterval(interval);
+            setIsMonitoring(false);
+            // Show failure notification for function not found
+            handlePaymentUpdate({
+              ...paymentStatus,
+              status: 'failed',
+              error: 'Payment verification failed'
+            });
+          }
+          return;
+        }
         
-        const data = await response.json();
-        
-        if (data.status !== 'pending') {
+        if (data?.status && data.status !== 'pending') {
           clearInterval(interval);
           setIsMonitoring(false);
-          handlePaymentUpdate(data);
+          handlePaymentUpdate({
+            ...paymentStatus,
+            status: data.status,
+            credits: data.credits || paymentStatus.credits
+          });
         }
       } catch (error) {
         console.error('Payment monitoring error:', error);
