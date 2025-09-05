@@ -14,6 +14,12 @@ serve(async (req) => {
   try {
     console.log("=== PAYMENT SYSTEM DIAGNOSTIC START ===");
     
+    // Skip authentication for diagnostic purposes
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader && req.method !== "GET") {
+      console.log("No auth header provided, continuing with service role access");
+    }
+    
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -25,7 +31,13 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 
 const supabase = createClient(
   SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY
+  SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 );
 
     const diagnostic = {
@@ -66,10 +78,32 @@ const supabase = createClient(
       addCheck("database_connectivity", "fail", `Database connection failed: ${error.message}`);
     }
 
-    // Check 2: Payment tables exist
+    // Check 2: Payment tables exist and check for payment_transactions table conflict
     try {
-      const { data: paymentsCheck } = await supabase.from("payments").select("id").limit(1);
+      const { data: paymentsCheck, error: paymentsError } = await supabase.from("payments").select("id").limit(1);
+      if (paymentsError) throw paymentsError;
       addCheck("payments_table", "pass", "Payments table accessible");
+      
+      // Test payment_transactions table specifically
+      try {
+        const { data: transactionsCheck, error: transactionsError } = await supabase
+          .from("payment_transactions")
+          .select("id")
+          .limit(1);
+        
+        if (transactionsError) {
+          if (transactionsError.code === 'PGRST106' || transactionsError.message?.includes('relation') || transactionsError.message?.includes('does not exist')) {
+            addCheck("payment_transactions_table", "fail", "payment_transactions table does not exist - this is causing the 400 errors!");
+          } else {
+            addCheck("payment_transactions_table", "warning", `payment_transactions table access error: ${transactionsError.message}`);
+          }
+        } else {
+          addCheck("payment_transactions_table", "pass", "payment_transactions table accessible");
+        }
+      } catch (error) {
+        addCheck("payment_transactions_table", "fail", `payment_transactions table error: ${error.message}`);
+      }
+      
     } catch (error) {
       addCheck("payments_table", "fail", `Payments table error: ${error.message}`);
     }
@@ -237,6 +271,61 @@ const supabase = createClient(
       }
     } catch (error) {
       addCheck("test_payment_processing", "pass", "No pending payments found for testing");
+    }
+
+    // Check 11: Simulate the exact 400 error - test REST API access to payment_transactions
+    try {
+      console.log("Testing REST API access to payment_transactions table...");
+      
+      const testData = {
+        payment_provider_id: "test_dodo_payment_" + Date.now(),
+        transaction_type: "webhook",
+        amount: 2500,
+        currency: "USD",
+        status: "failed",
+        provider_response: { test: true },
+        metadata: { test_simulation: true }
+      };
+
+      const { data: insertResult, error: insertError } = await supabase
+        .from("payment_transactions")
+        .insert(testData)
+        .select();
+
+      if (insertError) {
+        if (insertError.code === 'PGRST106' || insertError.message?.includes('relation') || insertError.message?.includes('does not exist')) {
+          addCheck("rest_api_payment_transactions", "fail", 
+            "CRITICAL: payment_transactions table missing - this causes the 400 error in webhook!", 
+            { 
+              error_code: insertError.code,
+              error_message: insertError.message,
+              fix_needed: "Run create-payment-transactions-table.sql"
+            }
+          );
+        } else if (insertError.code === '23503') {
+          addCheck("rest_api_payment_transactions", "warning", 
+            "payment_transactions table exists but foreign key constraint failed (expected for test data)", 
+            { error_details: insertError.message }
+          );
+        } else {
+          addCheck("rest_api_payment_transactions", "warning", 
+            `payment_transactions table access issue: ${insertError.message}`, 
+            { error_code: insertError.code }
+          );
+        }
+      } else {
+        addCheck("rest_api_payment_transactions", "pass", "payment_transactions table working - 400 error should be resolved");
+        
+        // Clean up test data
+        if (insertResult && insertResult[0]) {
+          await supabase.from("payment_transactions").delete().eq("id", insertResult[0].id);
+        }
+      }
+    } catch (error) {
+      addCheck("rest_api_payment_transactions", "fail", 
+        `Critical error testing payment_transactions: ${error.message}`,
+        { stack: error.stack }
+      );
     }
 
     console.log("=== PAYMENT SYSTEM DIAGNOSTIC COMPLETE ===");
