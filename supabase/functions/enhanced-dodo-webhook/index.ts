@@ -286,20 +286,60 @@ async function handlePaymentFailure(supabase: any, payload: DodoWebhookPayload) 
   console.log("❌ Processing failed payment:", payload.payment_id);
   
   try {
-    // Update payment status
+    // First try to find payment by provider ID
+    const { data: payment, error: findError } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("payment_provider_id", payload.payment_id)
+      .single();
+
+    if (findError && findError.code !== 'PGRST116') {
+      console.error("Error finding payment:", findError);
+    }
+
+    // Update payment status in payments table
     const { error: updateError } = await supabase
-      .from("payment_transactions")
+      .from("payments")
       .update({
         status: "failed",
         metadata: {
-          ...payload.metadata,
+          ...payment?.metadata || {},
           webhook_received_at: new Date().toISOString(),
-          failure_reason: payload.status
+          failure_reason: payload.status,
+          dodo_payment_id: payload.payment_id
         }
       })
       .eq("payment_provider_id", payload.payment_id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Error updating payment:", updateError);
+      // Don't throw, continue with fallback
+    }
+
+    // Try to log transaction (optional, won't fail if table doesn't exist)
+    try {
+      const { error: transactionError } = await supabase
+        .from("payment_transactions")
+        .insert({
+          payment_id: payment?.id,
+          payment_provider_id: payload.payment_id,
+          transaction_type: "webhook",
+          amount: payload.amount || 0,
+          currency: payload.currency || "USD",
+          status: "failed",
+          provider_response: payload,
+          metadata: {
+            webhook_received_at: new Date().toISOString(),
+            failure_reason: payload.status
+          }
+        });
+
+      if (transactionError) {
+        console.log("Note: Could not log to payment_transactions (table may not exist):", transactionError.message);
+      }
+    } catch (transactionLogError) {
+      console.log("Note: payment_transactions table not available, skipping transaction log");
+    }
 
     // Send failure email
     const userId = payload.metadata.user_id;
@@ -327,9 +367,9 @@ async function handlePaymentDispute(supabase: any, payload: DodoWebhookPayload) 
   console.log("⚠️ Processing payment dispute:", payload.payment_id);
   
   try {
-    // Update payment status
+    // Update payment status in payments table
     const { error: updateError } = await supabase
-      .from("payment_transactions")
+      .from("payments")
       .update({
         status: "disputed",
         metadata: {
@@ -341,7 +381,34 @@ async function handlePaymentDispute(supabase: any, payload: DodoWebhookPayload) 
       })
       .eq("payment_provider_id", payload.payment_id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Error updating payment for dispute:", updateError);
+    }
+
+    // Try to log transaction (optional)
+    try {
+      const { error: transactionError } = await supabase
+        .from("payment_transactions")
+        .insert({
+          payment_provider_id: payload.payment_id,
+          transaction_type: "webhook",
+          amount: payload.amount || 0,
+          currency: payload.currency || "USD",
+          status: "disputed",
+          provider_response: payload,
+          metadata: {
+            webhook_received_at: new Date().toISOString(),
+            dispute_reason: payload.dispute?.reason,
+            dispute_amount: payload.dispute?.amount
+          }
+        });
+
+      if (transactionError) {
+        console.log("Note: Could not log to payment_transactions:", transactionError.message);
+      }
+    } catch (transactionLogError) {
+      console.log("Note: payment_transactions table not available, skipping transaction log");
+    }
 
     // Freeze credits if they were already added
     const userId = payload.metadata.user_id;
@@ -375,9 +442,9 @@ async function handlePaymentRefund(supabase: any, payload: DodoWebhookPayload) {
   console.log("🔄 Processing payment refund:", payload.payment_id);
   
   try {
-    // Update payment status
+    // Update payment status in payments table
     const { error: updateError } = await supabase
-      .from("payment_transactions")
+      .from("payments")
       .update({
         status: "refunded",
         metadata: {
@@ -389,7 +456,34 @@ async function handlePaymentRefund(supabase: any, payload: DodoWebhookPayload) {
       })
       .eq("payment_provider_id", payload.payment_id);
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error("Error updating payment for refund:", updateError);
+    }
+
+    // Try to log transaction (optional)
+    try {
+      const { error: transactionError } = await supabase
+        .from("payment_transactions")
+        .insert({
+          payment_provider_id: payload.payment_id,
+          transaction_type: "refund",
+          amount: -(payload.refund?.amount || payload.amount || 0),
+          currency: payload.currency || "USD",
+          status: "refunded",
+          provider_response: payload,
+          metadata: {
+            webhook_received_at: new Date().toISOString(),
+            refund_amount: payload.refund?.amount,
+            refund_reason: payload.refund?.reason
+          }
+        });
+
+      if (transactionError) {
+        console.log("Note: Could not log to payment_transactions:", transactionError.message);
+      }
+    } catch (transactionLogError) {
+      console.log("Note: payment_transactions table not available, skipping transaction log");
+    }
 
     // Remove credits from user account
     const userId = payload.metadata.user_id;
@@ -423,16 +517,46 @@ async function handlePaymentExpired(supabase: any, payload: DodoWebhookPayload) 
   console.log("⏰ Processing expired payment:", payload.payment_id);
   
   try {
+    // Update payment status in payments table
     const { error: updateError } = await supabase
-      .from("payment_transactions")
+      .from("payments")
       .update({
-        status: "expired",
+        status: "cancelled", // Use cancelled instead of expired for payments table
         metadata: {
           ...payload.metadata,
-          webhook_received_at: new Date().toISOString()
+          webhook_received_at: new Date().toISOString(),
+          expiry_reason: "Payment session expired"
         }
       })
       .eq("payment_provider_id", payload.payment_id);
+
+    if (updateError) {
+      console.error("Error updating payment for expiry:", updateError);
+    }
+
+    // Try to log transaction (optional)
+    try {
+      const { error: transactionError } = await supabase
+        .from("payment_transactions")
+        .insert({
+          payment_provider_id: payload.payment_id,
+          transaction_type: "webhook",
+          amount: 0,
+          currency: payload.currency || "USD",
+          status: "expired",
+          provider_response: payload,
+          metadata: {
+            webhook_received_at: new Date().toISOString(),
+            expiry_reason: "Payment session expired"
+          }
+        });
+
+      if (transactionError) {
+        console.log("Note: Could not log to payment_transactions:", transactionError.message);
+      }
+    } catch (transactionLogError) {
+      console.log("Note: payment_transactions table not available, skipping transaction log");
+    }
 
     if (updateError) throw updateError;
 
