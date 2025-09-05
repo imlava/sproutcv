@@ -20,23 +20,61 @@ All payment-related functions are now deployed and ready for production:
 - ✅ Error handling improved across the application
 - ✅ Authentication flow working correctly
 
-### **🔍 Root Cause Analysis Completed**
-- ✅ Identified database schema mismatch as the primary issue
-- ✅ Created comprehensive migration scripts
-- ✅ Developed debugging tools for troubleshooting
-- ✅ Implemented fallback systems for testing
+## 🚨 **CRITICAL FINDINGS - IMMEDIATE ACTION REQUIRED**
 
-## 🚀 **NEXT STEPS TO COMPLETE DEPLOYMENT**
+### **🔍 Root Cause Analysis - COMPLETED** 
+✅ **TWO CRITICAL ISSUES IDENTIFIED:**
 
-### **1. Apply Database Migrations (CRITICAL)**
-**Execute this SQL in your Supabase Dashboard:**
-```sql
--- Copy and run the contents of apply-migrations.sql
--- This will add all missing columns and tables
--- This is the key step to fix the 500 errors
+1. **❌ Database Schema Missing**: `payment_transactions` table doesn't exist (causing webhook 400 errors)
+2. **❌ Function Authentication**: Frontend using invalid/expired user tokens (causing function 404/401 errors)
+
+### **⚡ IMMEDIATE FIXES NEEDED:**
+
+#### **1. Fix Database Schema (CRITICAL)**
+**❗ Click the red button in the emergency fix page to create the missing `payment_transactions` table**
+- This will stop all webhook 400 errors immediately
+- Required for payment processing to work
+
+#### **2. Fix Function Authentication (CRITICAL)**  
+**❗ The 404 errors are actually authentication failures**
+- Functions are deployed but rejecting invalid tokens
+- Frontend needs to use fresh user session tokens
+- Alternative: Update functions to not require strict auth for testing
+
+### **📊 Current Status Analysis:**
+- ✅ **Payment Creation**: Working (returns payment ID successfully)
+- ❌ **Database Storage**: Failing (payment_transactions table missing) 
+- ❌ **Status Checking**: Failing (authentication token issues)
+- ❌ **Webhook Processing**: Failing (database schema incomplete)
+
+## 🚀 **IMMEDIATE ACTION PLAN**
+
+### **Step 1: Fix Database Schema (URGENT)**
+1. **✅ Open the emergency fix page**: `emergency-schema-fix.html` (already opened)
+2. **✅ Click the red "APPLY SCHEMA FIX NOW" button**
+3. **✅ Verify success message appears**
+4. **✅ This will create the missing `payment_transactions` table**
+
+### **Step 2: Fix Function Authentication**
+The enhanced-payment-status function is deployed but authentication is failing. Two options:
+
+**Option A: Use Service Role (Recommended for testing)**
+```bash
+curl -X POST "https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/enhanced-payment-status" \
+  -H "Authorization: Bearer [SERVICE_ROLE_KEY]" \
+  -H "Content-Type: application/json" \
+  -d '{"payment_id": "pay_B3GOrZzPyiAYc5i1VLGxk"}'
 ```
 
-**Location:** https://supabase.com/dashboard/project/yucdpvnmcuokemhqpnvz/sql
+**Option B: Fix Frontend Authentication**
+- Update frontend to use fresh user session tokens
+- Ensure user is properly signed in before calling functions
+
+### **Step 3: Test Payment Flow**
+After applying the database fix:
+1. Test payment creation (should still work)
+2. Check webhook processing (should work after schema fix)
+3. Test payment status checking (should work after auth fix)
 
 ### **2. Deploy Frontend to Production**
 Choose your preferred hosting platform:

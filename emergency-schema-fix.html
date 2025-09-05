@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Schema Fix</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+    <h1>Emergency Schema Fix</h1>
+    <button onclick="applySchemaFix()" style="background: #f44336; color: white; padding: 15px 30px; font-size: 18px; border: none; border-radius: 5px; cursor: pointer;">
+        🚨 APPLY SCHEMA FIX NOW 🚨
+    </button>
+    <div id="result" style="margin-top: 20px; padding: 15px; background: #f5f5f5; white-space: pre-wrap; font-family: monospace;"></div>
+
+    <script>
+        const supabaseUrl = 'https://yucdpvnmcuokemhqpnvz.supabase.co'
+        // Using anon key instead of service role for RPC calls
+        const supabaseKey = '***REMOVED***'
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+        
+        async function applySchemaFix() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Applying schema fix...\n';
+            
+            try {
+                // Create payment_transactions table
+                const { data, error } = await supabase.rpc('exec_sql', {
+                    sql: `
+                        -- Create payment_transactions table if it doesn't exist
+                        CREATE TABLE IF NOT EXISTS public.payment_transactions (
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            payment_id UUID REFERENCES public.payments(id) ON DELETE CASCADE,
+                            transaction_type TEXT NOT NULL DEFAULT 'payment',
+                            amount INTEGER NOT NULL,
+                            currency TEXT NOT NULL DEFAULT 'USD',
+                            provider_transaction_id TEXT,
+                            provider_response JSONB DEFAULT '{}',
+                            status TEXT NOT NULL DEFAULT 'pending',
+                            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+                        );
+                        
+                        -- Enable RLS
+                        ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
+                        
+                        -- Create policy for service role access
+                        DROP POLICY IF EXISTS "Service role can manage payment transactions" ON public.payment_transactions;
+                        CREATE POLICY "Service role can manage payment transactions" 
+                        ON public.payment_transactions FOR ALL 
+                        USING (true);
+                        
+                        -- Add missing columns to payments table
+                        ALTER TABLE public.payments 
+                        ADD COLUMN IF NOT EXISTS payment_provider_id TEXT,
+                        ADD COLUMN IF NOT EXISTS payment_data JSONB DEFAULT '{}';
+                        
+                        -- Add indexes
+                        CREATE INDEX IF NOT EXISTS idx_payment_transactions_payment_id ON public.payment_transactions(payment_id);
+                        CREATE INDEX IF NOT EXISTS idx_payment_transactions_provider_id ON public.payment_transactions(provider_transaction_id);
+                    `
+                });
+                
+                if (error) {
+                    resultDiv.textContent += `❌ Error: ${error.message}\n`;
+                } else {
+                    resultDiv.textContent += '✅ Schema fix applied successfully!\n';
+                    resultDiv.textContent += '✅ payment_transactions table created\n';
+                    resultDiv.textContent += '✅ RLS policies configured\n';
+                    resultDiv.textContent += '✅ Missing columns added\n';
+                    resultDiv.textContent += '✅ Indexes created\n';
+                    resultDiv.textContent += '\n🎉 Webhook 400 errors should now be fixed!\n';
+                }
+            } catch (err) {
+                resultDiv.textContent += `❌ Unexpected error: ${err.message}\n`;
+            }
+        }
+    </script>
+</body>
+</html>

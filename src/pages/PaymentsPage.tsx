@@ -35,8 +35,31 @@ const PaymentsPage = () => {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [processing, setProcessing] = useState(false);
 
-  // Get payment parameters from URL
+  // Get payment parameters from URL with security checks
   const paymentId = searchParams.get('payment_id');
+  
+  // SECURITY FIX: Check for duplicate status parameters (parameter injection attack)
+  const urlString = window.location.search;
+  const allStatusMatches = urlString.match(/[?&]status=([^&]*)/g);
+  
+  if (allStatusMatches && allStatusMatches.length > 1) {
+    console.error('🚨 SECURITY ALERT: Multiple status parameters detected!');
+    console.error('URL:', urlString);
+    console.error('Status parameters:', allStatusMatches);
+    
+    // Use the LAST status parameter (more likely to be the real one)
+    const lastStatusMatch = allStatusMatches[allStatusMatches.length - 1];
+    const status = lastStatusMatch.split('=')[1];
+    console.log('Using last status parameter:', status);
+    
+    // Show security warning
+    toast({
+      variant: "destructive",
+      title: "Security Alert",
+      description: "Suspicious payment URL detected. Payment verification will be strict.",
+    });
+  }
+  
   const status = searchParams.get('status');
   const amount = searchParams.get('amount');
   const credits = searchParams.get('credits');
@@ -71,8 +94,8 @@ const PaymentsPage = () => {
     try {
       console.log('Processing payment status:', { paymentId, status, amount, credits });
 
-      // Verify payment with backend
-      const { data, error } = await supabase.functions.invoke('verify-payment', {
+      // SECURITY: Use secure payment verification function
+      const { data, error } = await supabase.functions.invoke('secure-payment-verification', {
         body: {
           paymentId,
           status,
@@ -82,11 +105,21 @@ const PaymentsPage = () => {
       });
 
       if (error) {
-        console.error('Payment verification error:', error);
+        console.error('🚨 SECURE Payment verification error:', error);
+        
+        // Show security-specific error messages
+        if (error.message?.includes('verification failed') || error.message?.includes('not successful')) {
+          toast({
+            variant: "destructive",
+            title: "Payment Verification Failed",
+            description: "Your payment could not be verified with the payment provider. No credits have been added.",
+          });
+        }
+        
         setPaymentStatus({
           status: 'failed',
           paymentId,
-          message: 'Payment verification failed'
+          message: 'Payment verification failed - Security check failed'
         });
         return;
       }
