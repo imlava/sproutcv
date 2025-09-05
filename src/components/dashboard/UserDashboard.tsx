@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,10 +26,22 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [pendingPayment, setPendingPayment] = useState<string | null>(null);
+  const [creditsPollingInterval, setCreditsPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchAnalyses();
+    setupPaymentMonitoring();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup polling interval on unmount
+      if (creditsPollingInterval) {
+        clearInterval(creditsPollingInterval);
+      }
+    };
+  }, [creditsPollingInterval]);
 
   const fetchAnalyses = async () => {
     if (!user) {
@@ -96,6 +107,115 @@ const UserDashboard = () => {
 
   const handleStartNewAnalysis = () => {
     navigate('/analyze');
+  };
+
+  const setupPaymentMonitoring = () => {
+    // Check for pending payments in localStorage
+    const storedPayment = localStorage.getItem('pending_payment');
+    if (storedPayment) {
+      try {
+        const paymentData = JSON.parse(storedPayment);
+        setPendingPayment(paymentData.paymentId);
+        startPaymentPolling(paymentData.paymentId, paymentData.credits);
+      } catch (error) {
+        console.error('Error parsing stored payment:', error);
+        localStorage.removeItem('pending_payment');
+      }
+    }
+
+    // Set up real-time subscription for profile changes
+    const subscription = supabase
+      .channel('profile-changes')
+      .on('postgres_changes', 
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'profiles',
+          filter: `id=eq.${user?.id}`
+        }, 
+        (payload) => {
+          console.log('🔄 Profile updated:', payload.new);
+          // Refresh profile data
+          refreshProfile();
+        }
+      )
+      .subscribe();
+
+    return () => subscription.unsubscribe();
+  };
+
+  const startPaymentPolling = (paymentId: string, expectedCredits: number) => {
+    console.log(`🔄 Starting payment polling for: ${paymentId}`);
+    
+    const pollPayment = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('enhanced-payment-status', {
+          body: { paymentId }
+        });
+
+        if (error) {
+          console.error('❌ Payment status check error:', error);
+          return;
+        }
+
+        console.log(`📊 Payment status:`, data);
+
+        if (data?.status === 'completed') {
+          // Payment completed successfully
+          localStorage.removeItem('pending_payment');
+          setPendingPayment(null);
+          
+          if (creditsPollingInterval) {
+            clearInterval(creditsPollingInterval);
+            setCreditsPollingInterval(null);
+          }
+
+          // Refresh profile to get updated credits
+          await refreshProfile();
+          
+          toast({
+            title: "🎉 Payment Completed!",
+            description: `${expectedCredits} credits have been added to your account.`,
+            duration: 5000,
+          });
+        } else if (data?.status === 'failed' || data?.status === 'expired') {
+          // Payment failed or expired
+          localStorage.removeItem('pending_payment');
+          setPendingPayment(null);
+          
+          if (creditsPollingInterval) {
+            clearInterval(creditsPollingInterval);
+            setCreditsPollingInterval(null);
+          }
+
+          toast({
+            variant: "destructive",
+            title: "❌ Payment Failed",
+            description: `Your payment ${data.status}. Please try again.`,
+            duration: 5000,
+          });
+        }
+      } catch (error) {
+        console.error('Payment polling error:', error);
+      }
+    };
+
+    // Poll every 3 seconds for up to 5 minutes
+    const interval = setInterval(pollPayment, 3000);
+    setCreditsPollingInterval(interval);
+
+    // Stop polling after 5 minutes
+    setTimeout(() => {
+      if (creditsPollingInterval) {
+        clearInterval(creditsPollingInterval);
+        setCreditsPollingInterval(null);
+        setPendingPayment(null);
+        localStorage.removeItem('pending_payment');
+      }
+    }, 5 * 60 * 1000);
+
+    // Initial check
+    pollPayment();
   };
 
   if (loading) {

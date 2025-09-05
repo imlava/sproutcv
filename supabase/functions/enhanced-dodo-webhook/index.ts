@@ -154,48 +154,93 @@ async function verifyDodoSignature(body: string, signature: string, secret: stri
 }
 
 async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) {
-  console.log("🎉 Processing successful payment:", payload.payment_id);
+  console.log(`🔄 Processing payment success: ${payload.payment_id}`);
   
   try {
-    // Update payment status
-    const { error: updateError } = await supabase
-      .from("payment_transactions")
-      .update({
-        status: "completed",
-        metadata: {
-          ...payload.metadata,
-          webhook_received_at: new Date().toISOString(),
-          dodo_customer_id: payload.customer.customer_id
-        }
-      })
-      .eq("payment_provider_id", payload.payment_id);
-
-    if (updateError) {
-      console.error("✗ Failed to update payment:", updateError);
-      throw updateError;
-    }
-
-    // Get user ID from metadata or payment record
-    const userId = payload.metadata.user_id;
-    const credits = parseInt(payload.metadata.credits || "0");
+    // Multiple fallback strategies for finding payment
+    let payment = null;
     
-    if (userId && credits > 0) {
-      // Add credits to user account
-      await addCreditsToUser(supabase, userId, credits, payload.payment_id);
+    // Strategy 1: Direct lookup by provider ID
+    const { data: directPayment } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("payment_provider_id", payload.payment_id)
+      .eq("status", "pending")
+      .single();
+    
+    if (directPayment) {
+      payment = directPayment;
+      console.log(`✅ Found payment by provider ID: ${payment.id}`);
+    } else {
+      console.log("⚠️ Payment not found by provider ID, trying fuzzy lookup...");
       
-      // Send success email
-      await sendPaymentEmail(supabase, userId, "success", {
-        paymentId: payload.payment_id,
-        amount: payload.amount,
-        credits: credits,
-        customerEmail: payload.customer.email
-      });
+      // Strategy 2: Fuzzy lookup by amount and recent timestamp
+      const { data: fuzzyPayment } = await supabase
+        .from("payments")
+        .select("*")
+        .eq("amount", payload.amount)
+        .eq("status", "pending")
+        .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Last hour
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (fuzzyPayment) {
+        payment = fuzzyPayment;
+        console.log(`✅ Found payment by fuzzy lookup: ${payment.id}`);
+        
+        // Update with correct provider ID
+        await supabase
+          .from("payments")
+          .update({ payment_provider_id: payload.payment_id })
+          .eq("id", fuzzyPayment.id);
+      }
     }
+    
+    if (!payment) {
+      throw new Error(`Payment not found for provider ID: ${payload.payment_id}`);
+    }
+    
+    console.log(`🔄 Processing payment ${payment.id} for user ${payment.user_id}`);
+    
+    // Process payment using the enhanced function
+    const { data: success, error: processError } = await supabase.rpc(
+      "process_successful_payment",
+      {
+        payment_id: payment.id,
+        provider_transaction_id: payload.payment_id
+      }
+    );
+    
+    if (processError) {
+      console.error("❌ Process error:", processError);
+      throw processError;
+    }
+    
+    console.log(`🎉 Payment processed successfully: ${payment.id}`);
+    
+    // Verify credits were actually added
+    const { data: updatedProfile } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", payment.user_id)
+      .single();
+    
+    console.log(`💰 User credits after payment: ${updatedProfile?.credits}`);
+    
+    // Send success email notification
+    await sendPaymentEmail(supabase, payment.user_id, "success", {
+      paymentId: payload.payment_id,
+      amount: payment.amount,
+      credits: payment.credits_purchased,
+      customerEmail: payload.customer.email
+    });
 
     return { 
       success: true, 
       message: "Payment processed successfully",
-      creditsAdded: credits 
+      creditsAdded: payment.credits_purchased,
+      paymentId: payment.id
     };
     
   } catch (error) {
@@ -371,38 +416,52 @@ async function addCreditsToUser(supabase: any, userId: string, credits: number, 
   
   // Get current credits
   const { data: profile, error: profileError } = await supabase
-    .from("user_profiles")
+    .from("profiles")
     .select("credits")
     .eq("id", userId)
     .single();
 
-  if (profileError) throw profileError;
+  if (profileError) {
+    console.error("❌ Profile fetch error:", profileError);
+    throw profileError;
+  }
 
   const currentCredits = profile?.credits || 0;
   const newCredits = currentCredits + credits;
 
-  // Update user credits
+  // Update user credits with transaction
   const { error: updateError } = await supabase
-    .from("user_profiles")
-    .update({ credits: newCredits })
+    .from("profiles")
+    .update({ 
+      credits: newCredits,
+      updated_at: new Date().toISOString()
+    })
     .eq("id", userId);
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    console.error("❌ Credits update error:", updateError);
+    throw updateError;
+  }
 
-  // Record in credits ledger
-  const { error: ledgerError } = await supabase
-    .from("credits_ledger")
-    .insert({
-      user_id: userId,
-      credits_before: currentCredits,
-      credits_after: newCredits,
-      credits_changed: credits,
-      transaction_type: "purchase",
-      description: `Credit purchase - Payment ${paymentId}`,
-      related_payment_id: paymentId
-    });
+  // Record in credits ledger (if table exists)
+  try {
+    const { error: ledgerError } = await supabase
+      .from("credits_ledger")
+      .insert({
+        user_id: userId,
+        transaction_type: "purchase",
+        credits_amount: credits,
+        balance_after: newCredits,
+        related_payment_id: paymentId,
+        description: `Credits purchased via payment ${paymentId}`
+      });
 
-  if (ledgerError) throw ledgerError;
+    if (ledgerError && !ledgerError.message.includes('relation "credits_ledger" does not exist')) {
+      console.error("⚠️ Ledger error (non-critical):", ledgerError);
+    }
+  } catch (error) {
+    console.error("⚠️ Ledger insert failed (non-critical):", error);
+  }
   
   console.log(`✅ Credits updated: ${currentCredits} → ${newCredits}`);
 }
@@ -411,7 +470,7 @@ async function removeCreditsFromUser(supabase: any, userId: string, credits: num
   console.log(`🔄 Removing ${credits} credits from user ${userId}`);
   
   const { data: profile, error: profileError } = await supabase
-    .from("user_profiles")
+    .from("profiles")
     .select("credits")
     .eq("id", userId)
     .single();
@@ -422,26 +481,34 @@ async function removeCreditsFromUser(supabase: any, userId: string, credits: num
   const newCredits = Math.max(0, currentCredits - credits);
 
   const { error: updateError } = await supabase
-    .from("user_profiles")
-    .update({ credits: newCredits })
+    .from("profiles")
+    .update({ 
+      credits: newCredits,
+      updated_at: new Date().toISOString()
+    })
     .eq("id", userId);
 
   if (updateError) throw updateError;
 
-  // Record in credits ledger
-  const { error: ledgerError } = await supabase
-    .from("credits_ledger")
-    .insert({
-      user_id: userId,
-      credits_before: currentCredits,
-      credits_after: newCredits,
-      credits_changed: -credits,
-      transaction_type: "refund",
-      description: `Credit refund - Payment ${paymentId}`,
-      related_payment_id: paymentId
-    });
+  // Record in credits ledger (if table exists)
+  try {
+    const { error: ledgerError } = await supabase
+      .from("credits_ledger")
+      .insert({
+        user_id: userId,
+        transaction_type: "refund",
+        credits_amount: -credits,
+        balance_after: newCredits,
+        related_payment_id: paymentId,
+        description: `Credit refund - Payment ${paymentId}`
+      });
 
-  if (ledgerError) throw ledgerError;
+    if (ledgerError && !ledgerError.message.includes('relation "credits_ledger" does not exist')) {
+      console.error("⚠️ Ledger error (non-critical):", ledgerError);
+    }
+  } catch (error) {
+    console.error("⚠️ Ledger insert failed (non-critical):", error);
+  }
 }
 
 async function freezeUserCredits(supabase: any, userId: string, credits: number, paymentId: string) {

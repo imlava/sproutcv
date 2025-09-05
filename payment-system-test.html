@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment System Test & Diagnostic</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            border: 1px solid #e1e5e9;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            margin: 8px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 4px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .log-entry {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px 0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .diagnostic-check {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .diagnostic-check:last-child { border-bottom: none; }
+        .check-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .check-status.pass { background: #28a745; color: white; }
+        .check-status.fail { background: #dc3545; color: white; }
+        .check-status.warning { background: #ffc107; color: #212529; }
+        pre { 
+            background: #f8f9fa; 
+            padding: 12px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Payment System Test & Diagnostic</h1>
+        <p>Comprehensive testing and diagnostic tool for the SproutCV payment system.</p>
+        
+        <div class="test-section">
+            <h3>📊 System Status</h3>
+            <div id="systemStatus" class="status info">Initializing...</div>
+            <button onclick="runFullDiagnostic()">Run Full Diagnostic</button>
+            <button onclick="checkRecentPayments()">Check Recent Payments</button>
+            <button onclick="processPendingPayments()">Process Pending Payments</button>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="container">
+            <h3>🔍 Diagnostic Results</h3>
+            <div id="diagnosticResults">
+                <div class="status info">Click "Run Full Diagnostic" to start system check</div>
+            </div>
+        </div>
+
+        <div class="container">
+            <h3>💳 Payment Tests</h3>
+            <div class="test-section">
+                <h4>Payment Status Check</h4>
+                <input type="text" id="paymentIdInput" placeholder="Enter payment ID" style="width: 100%; padding: 8px; margin: 8px 0;">
+                <button onclick="checkPaymentStatus()">Check Status</button>
+                <div id="paymentStatusResult"></div>
+            </div>
+            
+            <div class="test-section">
+                <h4>User Credit Summary</h4>
+                <input type="text" id="userIdInput" placeholder="Enter user ID" style="width: 100%; padding: 8px; margin: 8px 0;">
+                <button onclick="getUserCreditSummary()">Get Summary</button>
+                <div id="creditSummaryResult"></div>
+            </div>
+        </div>
+
+        <div class="container">
+            <h3>🔧 Manual Actions</h3>
+            <div class="test-section">
+                <h4>Process Specific Payment</h4>
+                <input type="text" id="processPaymentId" placeholder="Payment ID to process" style="width: 100%; padding: 8px; margin: 8px 0;">
+                <button onclick="processSpecificPayment()">Process Payment</button>
+                <div id="processPaymentResult"></div>
+            </div>
+            
+            <div class="test-section">
+                <h4>Webhook Test</h4>
+                <textarea id="webhookPayload" placeholder="Paste webhook payload JSON here" style="width: 100%; height: 100px; padding: 8px; margin: 8px 0;"></textarea>
+                <button onclick="testWebhook()">Test Webhook</button>
+                <div id="webhookTestResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h3>📋 Activity Log</h3>
+        <div id="activityLog"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        // Configuration
+        const SUPABASE_URL = 'https://obfogfgkhltjfwqhxvjd.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9iZm9nZmdraGx0amZ3cWh4dmpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjI1OTY1OTksImV4cCI6MjAzODE3MjU5OX0.g7jP4-5QwB7LW5KUqFYJyZ7QVi1WF0_AhCj8j7rCPHE';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            document.getElementById('activityLog').prepend(logEntry);
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('systemStatus');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        async function runFullDiagnostic() {
+            updateStatus('Running diagnostic...', 'info');
+            log('🔍 Starting full system diagnostic');
+            
+            try {
+                const { data, error } = await supabase.functions.invoke('payment-system-diagnostic');
+                
+                if (error) {
+                    throw error;
+                }
+
+                const resultsEl = document.getElementById('diagnosticResults');
+                resultsEl.innerHTML = `
+                    <div class="status ${data.summary.failed > 0 ? 'error' : data.summary.warnings > 0 ? 'warning' : 'success'}">
+                        Summary: ${data.summary.passed} passed, ${data.summary.failed} failed, ${data.summary.warnings} warnings
+                    </div>
+                `;
+
+                data.checks.forEach(check => {
+                    const checkEl = document.createElement('div');
+                    checkEl.className = 'diagnostic-check';
+                    checkEl.innerHTML = `
+                        <span>${check.name}</span>
+                        <span class="check-status ${check.status}">${check.status.toUpperCase()}</span>
+                    `;
+                    resultsEl.appendChild(checkEl);
+                    
+                    if (check.data) {
+                        const dataEl = document.createElement('pre');
+                        dataEl.textContent = JSON.stringify(check.data, null, 2);
+                        resultsEl.appendChild(dataEl);
+                    }
+                });
+
+                updateStatus(`Diagnostic complete: ${data.summary.passed}/${data.summary.total_checks} checks passed`, 
+                    data.summary.failed > 0 ? 'error' : 'success');
+                log(`✅ Diagnostic complete: ${data.summary.passed}/${data.summary.total_checks} checks passed`);
+
+            } catch (error) {
+                updateStatus(`Diagnostic failed: ${error.message}`, 'error');
+                log(`❌ Diagnostic failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkRecentPayments() {
+            log('🔍 Checking recent payments');
+            try {
+                const { data, error } = await supabase
+                    .from('payments')
+                    .select('*')
+                    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+
+                if (error) throw error;
+
+                log(`Found ${data.length} payments in last 24 hours`);
+                
+                const statusCounts = data.reduce((acc, payment) => {
+                    acc[payment.status] = (acc[payment.status] || 0) + 1;
+                    return acc;
+                }, {});
+
+                log(`Status breakdown: ${JSON.stringify(statusCounts)}`);
+
+            } catch (error) {
+                log(`❌ Failed to check recent payments: ${error.message}`, 'error');
+            }
+        }
+
+        async function processPendingPayments() {
+            log('🔄 Processing pending payments');
+            try {
+                const { data, error } = await supabase.rpc('check_and_process_pending_payments');
+                
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    data.forEach(result => {
+                        if (result.status === 'completed') {
+                            log(`✅ Processed payment ${result.payment_id}: ${result.credits_added} credits added`);
+                        } else {
+                            log(`❌ Failed to process payment ${result.payment_id}: ${result.error_message}`, 'error');
+                        }
+                    });
+                } else {
+                    log('No pending payments found to process');
+                }
+
+            } catch (error) {
+                log(`❌ Failed to process pending payments: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkPaymentStatus() {
+            const paymentId = document.getElementById('paymentIdInput').value;
+            if (!paymentId) {
+                log('❌ Please enter a payment ID', 'error');
+                return;
+            }
+
+            log(`🔍 Checking status for payment: ${paymentId}`);
+            try {
+                const { data, error } = await supabase.functions.invoke('enhanced-payment-status', {
+                    body: { paymentId }
+                });
+
+                if (error) throw error;
+
+                const resultEl = document.getElementById('paymentStatusResult');
+                resultEl.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                log(`✅ Payment status: ${data.status}`);
+
+            } catch (error) {
+                log(`❌ Payment status check failed: ${error.message}`, 'error');
+                document.getElementById('paymentStatusResult').innerHTML = 
+                    `<div class="status error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function getUserCreditSummary() {
+            const userId = document.getElementById('userIdInput').value;
+            if (!userId) {
+                log('❌ Please enter a user ID', 'error');
+                return;
+            }
+
+            log(`🔍 Getting credit summary for user: ${userId}`);
+            try {
+                const { data, error } = await supabase.rpc('get_user_credit_summary', {
+                    target_user_id: userId
+                });
+
+                if (error) throw error;
+
+                const resultEl = document.getElementById('creditSummaryResult');
+                resultEl.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                log(`✅ Credit summary retrieved for user ${userId}`);
+
+            } catch (error) {
+                log(`❌ Credit summary failed: ${error.message}`, 'error');
+                document.getElementById('creditSummaryResult').innerHTML = 
+                    `<div class="status error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function processSpecificPayment() {
+            const paymentId = document.getElementById('processPaymentId').value;
+            if (!paymentId) {
+                log('❌ Please enter a payment ID', 'error');
+                return;
+            }
+
+            log(`🔄 Processing payment: ${paymentId}`);
+            try {
+                const { data, error } = await supabase.rpc('process_successful_payment', {
+                    payment_id: paymentId
+                });
+
+                if (error) throw error;
+
+                const resultEl = document.getElementById('processPaymentResult');
+                if (data) {
+                    resultEl.innerHTML = `<div class="status success">✅ Payment processed successfully</div>`;
+                    log(`✅ Payment ${paymentId} processed successfully`);
+                } else {
+                    resultEl.innerHTML = `<div class="status error">❌ Payment processing failed</div>`;
+                    log(`❌ Payment ${paymentId} processing failed`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Payment processing failed: ${error.message}`, 'error');
+                document.getElementById('processPaymentResult').innerHTML = 
+                    `<div class="status error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testWebhook() {
+            const payload = document.getElementById('webhookPayload').value;
+            if (!payload) {
+                log('❌ Please enter webhook payload', 'error');
+                return;
+            }
+
+            try {
+                const parsedPayload = JSON.parse(payload);
+                log('🔄 Testing webhook with payload');
+
+                const { data, error } = await supabase.functions.invoke('enhanced-dodo-webhook', {
+                    body: parsedPayload
+                });
+
+                if (error) throw error;
+
+                const resultEl = document.getElementById('webhookTestResult');
+                resultEl.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                log(`✅ Webhook test completed: ${data.message || 'Success'}`);
+
+            } catch (error) {
+                log(`❌ Webhook test failed: ${error.message}`, 'error');
+                document.getElementById('webhookTestResult').innerHTML = 
+                    `<div class="status error">Error: ${error.message}</div>`;
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('activityLog').innerHTML = '';
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Payment System Test Tool initialized');
+            updateStatus('Ready - Click "Run Full Diagnostic" to start', 'info');
+        });
+    </script>
+</body>
+</html>
