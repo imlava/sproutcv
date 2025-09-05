@@ -222,11 +222,11 @@ async function handlePaymentSuccess(supabaseAdmin: any, payload: DodoWebhookPayl
 
   console.log(`Processing successful payment ${paymentId} for user ${metadata.user_id}`);
 
-  // Find the payment record with multiple fallback strategies
+  // Find the payment record using Dodo payment ID only
   const { data: payment, error: paymentError } = await supabaseAdmin
     .from("payments")
     .select("*")
-    .or(`payment_provider_id.eq.${paymentId},stripe_session_id.eq.${paymentId}`)
+    .eq("payment_provider_id", paymentId)
     .eq("user_id", metadata.user_id)
     .in("status", ["pending", "processing"])
     .single();
@@ -335,6 +335,7 @@ async function handlePaymentFailure(supabaseAdmin: any, payload: DodoWebhookPayl
   
   console.log(`Processing failed payment ${paymentId}`);
 
+  // Update payment status to failed for Dodo payment
   const { error: updateError } = await supabaseAdmin
     .from("payments")
     .update({ 
@@ -346,9 +347,7 @@ async function handlePaymentFailure(supabaseAdmin: any, payload: DodoWebhookPayl
         webhook_processed_at: new Date().toISOString()
       }
     })
-    .or(`payment_provider_id.eq.${paymentId},stripe_session_id.eq.${paymentId}`);
-
-  if (updateError) {
+    .eq("payment_provider_id", paymentId);  if (updateError) {
     console.error("Failed to update payment status:", updateError);
     throw updateError;
   } else {
@@ -362,6 +361,7 @@ async function handlePaymentCancellation(supabaseAdmin: any, payload: DodoWebhoo
   
   console.log(`Processing cancelled payment ${paymentId}`);
 
+  // Update payment status to cancelled for Dodo payment
   const { error: updateError } = await supabaseAdmin
     .from("payments")
     .update({ 
@@ -373,7 +373,7 @@ async function handlePaymentCancellation(supabaseAdmin: any, payload: DodoWebhoo
         webhook_processed_at: new Date().toISOString()
       }
     })
-    .or(`payment_provider_id.eq.${paymentId},stripe_session_id.eq.${paymentId}`);
+    .eq("payment_provider_id", paymentId);
 
   if (updateError) {
     console.error("Failed to update payment status:", updateError);
@@ -389,6 +389,7 @@ async function handlePaymentPending(supabaseAdmin: any, payload: DodoWebhookPayl
   
   console.log(`Processing pending payment ${paymentId}`);
 
+  // Update payment status to processing for Dodo payment
   const { error: updateError } = await supabaseAdmin
     .from("payments")
     .update({ 
@@ -399,7 +400,7 @@ async function handlePaymentPending(supabaseAdmin: any, payload: DodoWebhookPayl
         webhook_processed_at: new Date().toISOString()
       }
     })
-    .or(`payment_provider_id.eq.${paymentId},stripe_session_id.eq.${paymentId}`);
+    .eq("payment_provider_id", paymentId);
 
   if (updateError) {
     console.error("Failed to update payment status:", updateError);

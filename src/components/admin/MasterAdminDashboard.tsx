@@ -227,7 +227,7 @@ const MasterAdminDashboard = () => {
 
   const filteredUsers = users.filter(u => !userSearch || u.email.toLowerCase().includes(userSearch.toLowerCase()) || (u.full_name || '').toLowerCase().includes(userSearch.toLowerCase()));
   const filteredPayments = payments.filter((p: any) => {
-    const matchesSearch = !paymentSearch || (p.payment_provider_id || p.stripe_session_id || p.id).toLowerCase().includes(paymentSearch.toLowerCase()) || (p.profiles?.email || '').toLowerCase().includes(paymentSearch.toLowerCase());
+    const matchesSearch = !paymentSearch || (p.payment_provider_id || p.id).toLowerCase().includes(paymentSearch.toLowerCase()) || (p.profiles?.email || '').toLowerCase().includes(paymentSearch.toLowerCase());
     const matchesStatus = paymentStatusFilter === 'all' || p.status === paymentStatusFilter;
     const created = new Date(p.created_at).getTime();
     const fromOk = !paymentFrom || created >= new Date(paymentFrom).getTime();
@@ -526,7 +526,7 @@ const MasterAdminDashboard = () => {
                   <TableBody>
                     {filteredPayments.map((payment: any) => (
                       <TableRow key={payment.id}>
-                        <TableCell className="font-mono text-xs">{payment.payment_provider_id || payment.stripe_session_id || payment.id}</TableCell>
+                        <TableCell className="font-mono text-xs">{payment.payment_provider_id || payment.id}</TableCell>
                         <TableCell className="text-sm">{payment.profiles?.email || payment.user_id.slice(0,8) + '...'}</TableCell>
                         <TableCell>${(payment.amount / 100).toFixed(2)}</TableCell>
                         <TableCell>{payment.credits_purchased}</TableCell>
@@ -583,7 +583,7 @@ const MasterAdminDashboard = () => {
                   <TableBody>
                     {payments.slice(0, 20).map((p: any) => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-mono text-xs">{p.payment_provider_id || p.stripe_session_id || p.id}</TableCell>
+                        <TableCell className="font-mono text-xs">{p.payment_provider_id || p.id}</TableCell>
                         <TableCell className="text-sm">{p.profiles?.email || p.user_id.slice(0,8) + '...'}</TableCell>
                         <TableCell>${(p.amount / 100).toFixed(2)}</TableCell>
                         <TableCell>{p.credits_purchased}</TableCell>
