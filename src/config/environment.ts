@@ -1,8 +1,8 @@
 // Environment configuration for AI Resume Analyzer
 export const config = {
   // Supabase configuration
-  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co',
-  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key',
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://yucdpvnmcuokemhqpnvz.supabase.co',
+  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '***REMOVED***',
   
   // Feature flags
   enableAIAnalysis: true,
@@ -19,7 +19,7 @@ export const config = {
   
   // Demo mode settings
   demoMode: {
-    enabled: !import.meta.env.VITE_SUPABASE_URL || import.meta.env.VITE_DEMO_MODE === 'true',
+    enabled: false, // AI is now fully functional with GEMINI_API_KEY configured
     sampleAnalysis: {
       overall_score: 85,
       ats_score: 78,

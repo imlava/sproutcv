@@ -3,7 +3,7 @@ import { corsHeaders } from '../_shared/cors.ts'
 
 console.log("Gemini Analyze function loaded")
 
-const GEMINI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY')
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -13,7 +13,7 @@ serve(async (req) => {
 
   try {
     if (!GEMINI_API_KEY) {
-      throw new Error('GOOGLE_AI_API_KEY not found in environment variables')
+      throw new Error('GEMINI_API_KEY not found in environment variables')
     }
 
     const { prompt } = await req.json()
@@ -24,9 +24,9 @@ serve(async (req) => {
 
     console.log('Calling Gemini API with prompt length:', prompt.length)
 
-    // Call Gemini Pro API
+    // Call Gemini API
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: {
