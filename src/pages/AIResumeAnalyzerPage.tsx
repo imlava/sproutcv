@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import mammoth from 'mammoth';
+import * as pdfjsLib from 'pdfjs-dist';
 import { 
   Brain, 
   FileText, 
@@ -98,36 +99,68 @@ const AIResumeAnalyzerPage = () => {
   }, [user, loading, navigate]);
   const environment = validateEnvironment();
 
-  // File processing functions
+  // Set up PDF.js worker
+  useEffect(() => {
+    // Set the worker source for PDF.js
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  }, []);
+
+  // Enhanced file processing functions
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+
+      // Extract text from each page
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+        fullText += pageText + '\n';
+      }
+
+      // Clean up the extracted text
+      return fullText
+        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+        .replace(/\n\s*\n/g, '\n') // Replace multiple newlines with single newline
+        .trim();
+    } catch (error) {
+      console.error('PDF extraction error:', error);
+      throw new Error('Failed to extract text from PDF. Please try copying and pasting the text manually.');
+    }
+  };
+
   const processFile = async (file: File): Promise<string> => {
     const fileType = file.type;
     const fileName = file.name.toLowerCase();
     
-    if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
-      return await file.text();
+    try {
+      if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
+        return await file.text();
+      }
+      
+      if (fileName.endsWith('.md') || fileName.endsWith('.markdown')) {
+        return await file.text();
+      }
+      
+      if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        return result.value;
+      }
+      
+      if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+        return await extractTextFromPDF(file);
+      }
+      
+      throw new Error('Unsupported file type. Please use .txt, .docx, .md, .pdf files or copy-paste text.');
+    } catch (error) {
+      console.error('File processing error:', error);
+      throw error;
     }
-    
-    if (fileName.endsWith('.md') || fileName.endsWith('.markdown')) {
-      return await file.text();
-    }
-    
-    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
-      const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.extractRawText({ arrayBuffer });
-      return result.value;
-    }
-    
-    if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
-      // For PDF, we'll show a message to user to copy-paste text for now
-      toast({
-        title: "PDF Upload",
-        description: "Please copy the text from your PDF and paste it in the text area. PDF text extraction will be added soon.",
-        variant: "default"
-      });
-      return '';
-    }
-    
-    throw new Error('Unsupported file type. Please use .txt, .docx, .md, or copy-paste text.');
   };
 
   const handleFileUpload = useCallback(async (acceptedFiles: File[]) => {
@@ -135,22 +168,52 @@ const AIResumeAnalyzerPage = () => {
     
     const file = acceptedFiles[0];
     setIsProcessingFile(true);
+    setError(null);
     
     try {
       const text = await processFile(file);
-      if (text) {
+      if (text && text.trim().length > 0) {
         setResumeText(text);
+        
+        // Provide feedback based on file type
+        const fileType = file.name.toLowerCase();
+        let successMessage = `Successfully processed ${file.name}`;
+        
+        if (fileType.endsWith('.pdf')) {
+          successMessage += '. PDF text extracted successfully!';
+        } else if (fileType.endsWith('.docx')) {
+          successMessage += '. Word document processed successfully!';
+        }
+        
         toast({
           title: "File uploaded successfully",
-          description: `Processed ${file.name}`,
+          description: successMessage,
         });
+        
+        // Auto-switch to text view to show extracted content
+        setResumeInputMode('text');
+      } else {
+        throw new Error('No text could be extracted from the file. Please check the file content and try again.');
       }
     } catch (error) {
+      console.error('File upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process file';
+      
+      setError(`File processing failed: ${errorMessage}`);
       toast({
         title: "Error processing file",
-        description: error instanceof Error ? error.message : 'Failed to process file',
+        description: errorMessage,
         variant: "destructive"
       });
+      
+      // If PDF processing fails, show helpful message
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        toast({
+          title: "PDF Processing Tip",
+          description: "If PDF processing fails, try copying the text from your PDF viewer and pasting it directly in the text area.",
+          variant: "default"
+        });
+      }
     } finally {
       setIsProcessingFile(false);
     }
@@ -797,10 +860,10 @@ BENEFITS:
                           )}
                         </div>
                         <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
-                          <Badge variant="outline">.txt</Badge>
-                          <Badge variant="outline">.docx</Badge>
-                          <Badge variant="outline">.md</Badge>
                           <Badge variant="outline">.pdf</Badge>
+                          <Badge variant="outline">.docx</Badge>
+                          <Badge variant="outline">.txt</Badge>
+                          <Badge variant="outline">.md</Badge>
                         </div>
                       </div>
                     </div>

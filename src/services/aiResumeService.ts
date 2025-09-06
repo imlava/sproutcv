@@ -159,8 +159,59 @@ class AIResumeService {
     return Math.abs(hash).toString(36);
   }
 
+  private preprocessContent(text: string): string {
+    // Clean and normalize text content from various document formats
+    return text
+      // Remove excessive whitespace
+      .replace(/\s+/g, ' ')
+      // Remove multiple newlines
+      .replace(/\n\s*\n/g, '\n')
+      // Remove special characters that might confuse AI
+      .replace(/[^\w\s\.\,\;\:\!\?\-\(\)\[\]\{\}\"\'\/\@\#\$\%\&\*\+\=\<\>\~\`\|\\\n]/g, ' ')
+      // Normalize quotes
+      .replace(/[""'']/g, '"')
+      // Remove excessive punctuation
+      .replace(/\.{2,}/g, '.')
+      // Clean up common OCR/extraction artifacts
+      .replace(/\s+([,.;:!?])/g, '$1')
+      // Trim and ensure proper spacing
+      .trim()
+      .replace(/\s+/g, ' ');
+  }
+
+  private validateContent(resumeText: string, jobDescription: string): void {
+    // Validate content quality and length
+    if (!resumeText || resumeText.trim().length < 50) {
+      throw new Error('Resume text is too short or empty. Please provide a complete resume.');
+    }
+    
+    if (!jobDescription || jobDescription.trim().length < 20) {
+      throw new Error('Job description is too short or empty. Please provide a complete job description.');
+    }
+
+    // Check for common extraction errors
+    if (resumeText.includes('Error:') || resumeText.includes('Failed to')) {
+      throw new Error('There was an error processing your document. Please try copying and pasting the text manually.');
+    }
+
+    // Check for minimum content requirements
+    const hasContactInfo = /email|phone|contact/i.test(resumeText);
+    const hasExperience = /experience|work|job|position|role/i.test(resumeText);
+    const hasSkills = /skill|proficient|knowledge|familiar/i.test(resumeText);
+    
+    if (!hasContactInfo && !hasExperience && !hasSkills) {
+      console.warn('Resume may be missing key sections - proceeding but accuracy may be affected');
+    }
+  }
+
   async analyzeResume(request: AnalysisRequest): Promise<AnalysisResult> {
-    const { resumeText, jobDescription, jobTitle, companyName, analysisType } = request;
+    let { resumeText, jobDescription, jobTitle, companyName, analysisType } = request;
+
+    // Preprocess and validate content
+    resumeText = this.preprocessContent(resumeText);
+    jobDescription = this.preprocessContent(jobDescription);
+    
+    this.validateContent(resumeText, jobDescription);
 
     // Generate content hash for deduplication
     const contentHash = this.generateContentHash(resumeText + jobDescription + analysisType);
@@ -189,7 +240,13 @@ class AIResumeService {
       if (analysisType === 'comprehensive') {
         prompt = `You are an expert HR consultant and career coach. Perform a comprehensive analysis of the following resume against the job description.
 
-Resume:
+IMPORTANT: The resume text may come from different document formats (PDF, DOCX, TXT, etc.). Please:
+1. Ignore any formatting artifacts or extraction errors
+2. Focus on the actual content and meaning
+3. Be flexible with text layout and spacing issues
+4. Extract key information even if formatting is imperfect
+
+Resume Content:
 ${resumeText}
 
 Job Description:
@@ -197,6 +254,8 @@ ${jobDescription}
 
 Job Title: ${jobTitle || 'Not specified'}
 Company: ${companyName || 'Not specified'}
+
+Provide a detailed analysis in the following JSON format. Ensure all values are realistic and based on the actual content provided:
 
 Provide a comprehensive analysis in the following JSON format:
 {
@@ -265,7 +324,12 @@ Provide only the JSON response, no additional text.`;
       } else if (analysisType === 'quick') {
         prompt = `You are an expert resume reviewer. Perform a quick analysis of this resume against the job description.
 
-Resume:
+IMPORTANT: The resume text may come from different document formats (PDF, DOCX, TXT, etc.). Please:
+1. Ignore any formatting artifacts or extraction errors
+2. Focus on the actual content and meaning
+3. Be flexible with text layout and spacing issues
+
+Resume Content:
 ${resumeText}
 
 Job Description:
@@ -285,7 +349,13 @@ Provide only the JSON response, no additional text.`;
       } else if (analysisType === 'ats') {
         prompt = `You are an ATS (Applicant Tracking System) expert. Analyze this resume for ATS compatibility against the job description.
 
-Resume:
+IMPORTANT: The resume text may come from different document formats (PDF, DOCX, TXT, etc.). Please:
+1. Ignore any formatting artifacts or extraction errors
+2. Focus on keyword matching and content relevance
+3. Be flexible with text layout and spacing issues
+4. Extract keywords even if formatting is imperfect
+
+Resume Content:
 ${resumeText}
 
 Job Description:
