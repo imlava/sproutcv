@@ -20,6 +20,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminPage from "./pages/AdminPage";
 import SecuritySettingsPage from "./pages/SecuritySettingsPage";
 import PaymentsPagePerfect from "./pages/PaymentsPagePerfect";
+import ReferralPage from "./pages/ReferralPage";
 
 const App = () => {
   // Create QueryClient inside component to ensure proper React context
@@ -57,6 +58,7 @@ const App = () => {
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/security" element={<SecuritySettingsPage />} />
               <Route path="/payments" element={<PaymentsPagePerfect />} />
+              <Route path="/referrals" element={<ReferralPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
