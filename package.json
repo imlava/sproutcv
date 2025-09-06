@@ -8,9 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "deploy:functions": "supabase functions deploy gemini-analyze && supabase functions deploy log-analytics",
-    "deploy:ai": "npm run deploy:functions && npm run build"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^1.12.1",
