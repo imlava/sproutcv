@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, Target, Zap, Gift } from 'lucide-react';
+import { CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, Target, Zap, Gift, Brain } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import DodoPaymentModal from './DodoPaymentModal';
@@ -120,6 +120,10 @@ const UserDashboard = () => {
 
   const handleStartNewAnalysis = () => {
     navigate('/analyze');
+  };
+
+  const handleAIResumeAnalyzer = () => {
+    navigate('/ai-resume-analyzer');
   };
 
   const setupPaymentMonitoring = () => {
@@ -498,17 +502,27 @@ const UserDashboard = () => {
                         </>
                       )}
                     </div>
-                    <Button 
-                      className="w-full sm:w-auto" 
-                      onClick={handleStartNewAnalysis}
-                      disabled={!userProfile?.credits || userProfile.credits <= 0}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      {userProfile?.credits && userProfile.credits > 0 
-                        ? 'Start New Analysis' 
-                        : 'Buy Credits to Start'
-                      }
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button 
+                        className="flex-1 sm:flex-initial" 
+                        onClick={handleStartNewAnalysis}
+                        disabled={!userProfile?.credits || userProfile.credits <= 0}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        {userProfile?.credits && userProfile.credits > 0 
+                          ? 'Start New Analysis' 
+                          : 'Buy Credits to Start'
+                        }
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        className="flex-1 sm:flex-initial" 
+                        onClick={handleAIResumeAnalyzer}
+                      >
+                        <Brain className="h-4 w-4 mr-2" />
+                        AI Resume Analyzer
+                      </Button>
+                    </div>
                   </div>
                   <div className="hidden sm:block">
                     <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">

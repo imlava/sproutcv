@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
 import Dashboard from "./pages/Dashboard";
 import AnalyzePage from "./pages/AnalyzePage";
+import AIResumeAnalyzerPage from "./pages/AIResumeAnalyzerPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import HelpCenter from "./pages/HelpCenter";
 import ContactUs from "./pages/ContactUs";
@@ -44,6 +45,7 @@ const App = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/analyze" element={<AnalyzePage />} />
+              <Route path="/ai-resume-analyzer" element={<AIResumeAnalyzerPage />} />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/help" element={<HelpCenter />} />
               <Route path="/contact" element={<ContactUs />} />
