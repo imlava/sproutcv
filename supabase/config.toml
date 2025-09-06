@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.verify-dodo-config]
 verify_jwt = false
+
+[functions.gemini-analyze]
+verify_jwt = false
+
+[functions.log-analytics]
+verify_jwt = false
