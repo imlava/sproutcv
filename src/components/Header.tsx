@@ -31,7 +31,6 @@ const Header = () => {
 
   const navigationItems = [
     { label: 'Features', action: () => scrollToSection('features') },
-    { label: 'AI Analyzer', action: () => handleNavigation('/ai-resume-analyzer') },
     { label: 'How It Works', action: () => handleNavigation('/how-it-works') },
     { label: 'Pricing', action: () => scrollToSection('pricing') },
     { label: 'About', action: () => scrollToSection('about') }

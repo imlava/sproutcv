@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Brain, 
   FileText, 
@@ -46,7 +47,15 @@ const AIResumeAnalyzerPage = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Protect route - redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
   const environment = validateEnvironment();
 
   // Pre-fill with sample data
@@ -330,6 +339,20 @@ BENEFITS:
       });
     }
   };
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-accent/5">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" aria-label="Loading" />
+      </div>
+    );
+  }
+
+  // Redirect to auth if not logged in (handled by useEffect, but this prevents flash)
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
