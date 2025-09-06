@@ -20,8 +20,8 @@ jobs:
 
     - name: Deploy Supabase Edge Functions
       run: |
-        supabase functions deploy gemini-analyze --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
-        supabase functions deploy log-analytics --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+        supabase functions deploy gemini-analyze --project-ref yucdpvnmcuokemhqpnvz
+        supabase functions deploy log-analytics --project-ref yucdpvnmcuokemhqpnvz
       env:
         SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
@@ -48,7 +48,8 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-    - name: Deploy to Vercel
+    - name: Deploy to Vercel (if configured)
+      if: ${{ secrets.VERCEL_TOKEN }}
       uses: vercel/action@v1
       with:
         vercel-token: ${{ secrets.VERCEL_TOKEN }}
