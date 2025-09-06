@@ -202,7 +202,7 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
+    if (score >= 60) return 'text-emerald-600';
     return 'text-red-600';
   };
 
@@ -268,28 +268,30 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={onBack}>
+          <Button variant="outline" onClick={onBack} className="border-green-200 text-green-600 hover:bg-green-50">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">{analysis.job_title || 'Resume Analysis'}</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              {analysis.job_title || 'Resume Analysis'}
+            </h1>
             <p className="text-muted-foreground">
               {analysis.company_name && `${analysis.company_name} • `}
               Analyzed on {new Date(analysis.created_at).toLocaleDateString()}
             </p>
-            <Badge variant="secondary" className="mt-1">
+            <Badge variant="secondary" className="mt-1 bg-green-100 text-green-700 border-green-200">
               Expires in {daysUntilExpiry} days
             </Badge>
           </div>
         </div>
         
         <div className="flex space-x-2">
-          <Button variant="outline" onClick={shareAnalysis}>
+          <Button variant="outline" onClick={shareAnalysis} className="border-green-200 text-green-600 hover:bg-green-50">
             <Share2 className="h-4 w-4 mr-2" />
             Share
           </Button>
-          <Button variant="outline" onClick={exportToPDF}>
+          <Button variant="outline" onClick={exportToPDF} className="border-green-200 text-green-600 hover:bg-green-50">
             <Download className="h-4 w-4 mr-2" />
             Export PDF
           </Button>
@@ -297,9 +299,9 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
       </div>
 
       {/* Score Overview */}
-      <Card className="p-6 bg-gradient-to-br from-background to-muted/20">
-        <h2 className="text-xl font-semibold mb-6 flex items-center">
-          <TrendingUp className="h-5 w-5 mr-2" />
+      <Card className="p-6 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 border-green-200">
+        <h2 className="text-xl font-semibold mb-6 flex items-center text-green-700">
+          <TrendingUp className="h-5 w-5 mr-2 text-green-600" />
           Analysis Overview
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -308,7 +310,7 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
               {analysis.overall_score}%
             </div>
             <p className="text-sm text-muted-foreground">Overall Score</p>
-            <Badge variant="outline" className="mt-2">
+            <Badge variant="outline" className="mt-2 border-green-200 text-green-700">
               {getScoreBadge(analysis.overall_score)}
             </Badge>
           </div>
@@ -408,32 +410,32 @@ const DetailedAnalysisView: React.FC<DetailedAnalysisViewProps> = ({ analysisId,
 
           {/* Detailed Analysis Metrics */}
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-primary">
+            <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="text-2xl font-bold text-green-600">
                 {analysis.analysis_results.totalKeywords || 0}
               </div>
-              <p className="text-sm text-muted-foreground">Total Keywords</p>
+              <p className="text-sm text-green-700">Total Keywords</p>
             </div>
             
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
+            <div className="text-center p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+              <div className="text-2xl font-bold text-emerald-600">
                 {analysis.analysis_results.matchingKeywords || 0}
               </div>
-              <p className="text-sm text-muted-foreground">Matching Keywords</p>
+              <p className="text-sm text-emerald-700">Matching Keywords</p>
             </div>
             
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-orange-600">
+            <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="text-2xl font-bold text-green-600">
                 {analysis.analysis_results.keywordMatch || analysis.keyword_match}%
               </div>
-              <p className="text-sm text-muted-foreground">Keyword Match Rate</p>
+              <p className="text-sm text-green-700">Keyword Match Rate</p>
             </div>
             
-            <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
+            <div className="text-center p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+              <div className="text-2xl font-bold text-emerald-600">
                 {analysis.analysis_results.overallScore || analysis.overall_score}%
               </div>
-              <p className="text-sm text-muted-foreground">Computed Score</p>
+              <p className="text-sm text-emerald-700">Computed Score</p>
             </div>
           </div>
         </Card>

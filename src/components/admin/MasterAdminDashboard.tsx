@@ -31,7 +31,8 @@ import {
   Search,
   Download,
   ClipboardCopy,
-  Info
+  Info,
+  Sprout
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -378,26 +379,35 @@ const MasterAdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card shadow-sm border-b px-6 py-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      {/* Enhanced Header */}
+      <header className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-green-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <Settings className="h-5 w-5 text-primary-foreground" />
+            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+              <Sprout className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-2xl font-bold">Master Admin Dashboard</h1>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                SproutCV Admin
+              </h1>
+              <p className="text-sm text-green-600/70">Master Dashboard</p>
+            </div>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-muted-foreground">Welcome, {user?.email}</span>
-            <Button variant="outline" onClick={handleSignOut}>
+            <span className="text-sm text-gray-600">Welcome, {user?.email}</span>
+            <Button 
+              variant="outline" 
+              onClick={handleSignOut}
+              className="border-green-200 text-green-600 hover:bg-green-50"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
             </Button>
@@ -408,12 +418,12 @@ const MasterAdminDashboard = () => {
       <div className="p-6">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <Card className="p-6">
+          <Card className="p-6 border-green-200">
             <div className="flex items-center">
-              <Users className="h-8 w-8 text-blue-600" />
+              <Users className="h-8 w-8 text-green-600" />
               <div className="ml-4">
                 <p className="text-sm font-medium text-muted-foreground">Total Users</p>
-                <p className="text-2xl font-bold">{stats?.total_users || 0}</p>
+                <p className="text-2xl font-bold text-green-700">{stats?.total_users || 0}</p>
               </div>
             </div>
           </Card>

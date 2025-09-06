@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, Target, Zap, Gift, Brain } from 'lucide-react';
+import { CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, Target, Zap, Gift, Brain, Home, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import DodoPaymentModal from './DodoPaymentModal';
+import Footer from '@/components/Footer';
 
 interface Analysis {
   id: string;
@@ -370,12 +371,12 @@ const UserDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <nav className="bg-card shadow-sm border-b">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+        <nav className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-green-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-2">
-                <Skeleton className="w-8 h-8 rounded-lg" />
+                <Skeleton className="w-10 h-10 rounded-xl" />
                 <Skeleton className="w-24 h-6" />
               </div>
               <div className="flex items-center space-x-4">
@@ -436,33 +437,66 @@ const UserDashboard = () => {
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
+    if (score >= 60) return 'text-emerald-600';
     return 'text-red-600';
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="bg-card shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+      {/* Enhanced Header */}
+      <nav className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-green-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
-              <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg">
-                <Sprout className="h-5 w-5 text-primary" />
+            {/* Logo */}
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                <Sprout className="h-6 w-6 text-white" />
               </div>
-              <h1 className="text-xl font-bold">SproutCV</h1>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  SproutCV
+                </h1>
+                <p className="text-xs text-green-600/70">Dashboard</p>
+              </div>
             </div>
+
+            {/* Navigation Actions */}
             <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 bg-primary/5 px-3 py-1 rounded-full">
-                <CreditCard className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">
+              {/* Credits Display */}
+              <div className="flex items-center space-x-2 bg-green-50 border border-green-200 px-3 py-1 rounded-full">
+                <CreditCard className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700">
                   {userProfile?.credits || 0} credits
                 </span>
               </div>
-              <Button variant="outline" size="sm" onClick={() => setShowPaymentModal(true)}>
+
+              {/* Navigation Buttons */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/analyze')}
+                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              >
+                <Shield className="h-4 w-4 mr-2" />
+                Analyzer
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPaymentModal(true)}
+                className="border-green-200 text-green-600 hover:bg-green-50"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Buy Credits
               </Button>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSignOut}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
@@ -475,27 +509,27 @@ const UserDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Welcome Card */}
             <div className="lg:col-span-2">
-              <Card className="p-6 mb-6 bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+              <Card className="p-6 mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-2">
+                    <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                       Welcome back, {userProfile?.full_name || user?.email?.split('@')[0]}!
                     </h2>
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-green-700/80 mb-4">
                       Ready to grow your resume for your next dream job?
                     </p>
                     <div className="flex items-center space-x-4 mb-4">
                       {analyses.length > 0 && (
                         <>
                           <div className="flex items-center space-x-2">
-                            <Target className="h-4 w-4 text-primary" />
-                            <span className="text-sm">
+                            <Target className="h-4 w-4 text-green-600" />
+                            <span className="text-sm text-green-700">
                               {analyses.length} analysis{analyses.length !== 1 ? 'es' : ''} completed
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <TrendingUp className={`h-4 w-4 ${getScoreColor(averageScore)}`} />
-                            <span className="text-sm">
+                            <span className="text-sm text-green-700">
                               {averageScore}% average score
                             </span>
                           </div>
@@ -504,7 +538,7 @@ const UserDashboard = () => {
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
                       <Button 
-                        className="flex-1 sm:flex-initial" 
+                        className="flex-1 sm:flex-initial bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white" 
                         onClick={handleStartNewAnalysis}
                         disabled={!userProfile?.credits || userProfile.credits <= 0}
                       >
@@ -516,7 +550,7 @@ const UserDashboard = () => {
                       </Button>
                       <Button 
                         variant="outline"
-                        className="flex-1 sm:flex-initial" 
+                        className="flex-1 sm:flex-initial border-green-200 text-green-600 hover:bg-green-50" 
                         onClick={handleAIResumeAnalyzer}
                       >
                         <Brain className="h-4 w-4 mr-2" />
@@ -525,8 +559,8 @@ const UserDashboard = () => {
                     </div>
                   </div>
                   <div className="hidden sm:block">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-                      <Zap className="h-8 w-8 text-primary" />
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                      <Zap className="h-8 w-8 text-green-600" />
                     </div>
                   </div>
                 </div>
@@ -552,6 +586,7 @@ const UserDashboard = () => {
                       variant="outline" 
                       onClick={handleStartNewAnalysis}
                       disabled={!userProfile?.credits || userProfile.credits <= 0}
+                      className="border-green-200 text-green-600 hover:bg-green-50"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Create Your First Analysis
@@ -590,7 +625,7 @@ const UserDashboard = () => {
                                analysis.overall_score >= 60 ? 'Good' : 'Needs Work'}
                             </p>
                           </div>
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" className="text-green-600 hover:bg-green-50">
                             View Details
                           </Button>
                         </div>
@@ -598,7 +633,7 @@ const UserDashboard = () => {
                     ))}
                     {analyses.length >= 10 && (
                       <div className="text-center pt-2">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className="text-green-600 hover:bg-green-50">
                           View All Analyses
                         </Button>
                       </div>
@@ -615,8 +650,8 @@ const UserDashboard = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between py-2">
                   <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                      <FileText className="h-4 w-4 text-primary" />
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-green-600" />
                     </div>
                     <span className="text-muted-foreground">Total Analyses</span>
                   </div>
@@ -624,12 +659,12 @@ const UserDashboard = () => {
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <CreditCard className="h-4 w-4 text-blue-600" />
+                    <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <CreditCard className="h-4 w-4 text-emerald-600" />
                     </div>
                     <span className="text-muted-foreground">Available Credits</span>
                   </div>
-                  <span className="font-semibold text-lg text-blue-600">{userProfile?.credits || 0}</span>
+                  <span className="font-semibold text-lg text-emerald-600">{userProfile?.credits || 0}</span>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <div className="flex items-center space-x-2">
@@ -656,23 +691,23 @@ const UserDashboard = () => {
               <div className="space-y-3">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start" 
+                  className="w-full justify-start border-green-200 text-green-600 hover:bg-green-50" 
                   onClick={handleStartNewAnalysis}
                   disabled={!userProfile?.credits || userProfile.credits <= 0}
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   New Analysis
                   {userProfile?.credits && userProfile.credits > 0 && (
-                    <Badge variant="secondary" className="ml-auto text-xs">
+                    <Badge variant="secondary" className="ml-auto text-xs bg-green-100 text-green-700">
                       {userProfile.credits} left
                     </Badge>
                   )}
                 </Button>
-                <Button variant="outline" className="w-full justify-start" onClick={() => setShowPaymentModal(true)}>
+                <Button variant="outline" className="w-full justify-start border-green-200 text-green-600 hover:bg-green-50" onClick={() => setShowPaymentModal(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Purchase Credits
                 </Button>
-                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/referrals')}>
+                <Button variant="outline" className="w-full justify-start border-green-200 text-green-600 hover:bg-green-50" onClick={() => navigate('/referrals')}>
                   <Gift className="h-4 w-4 mr-2" />
                   Refer Friends
                 </Button>
@@ -713,6 +748,9 @@ const UserDashboard = () => {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <Footer />
 
       <DodoPaymentModal 
         isOpen={showPaymentModal} 
