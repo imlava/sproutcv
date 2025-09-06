@@ -91,18 +91,13 @@ const Header = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-full sm:w-80 bg-white">
                 <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between pb-6 border-b">
+                  <div className="flex items-center justify-center pb-6 border-b">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
                         <Sprout className="h-5 w-5 text-white" />
                       </div>
                       <span className="text-xl font-bold text-gray-900">SproutCV</span>
                     </div>
-                    <SheetClose asChild>
-                      <Button variant="ghost" size="icon">
-                        <X className="h-6 w-6" />
-                      </Button>
-                    </SheetClose>
                   </div>
 
                   <nav className="flex-1 py-6">
