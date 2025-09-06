@@ -3,7 +3,7 @@ import './index.css'
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import AnalyzePage from "./pages/AnalyzePage";
+import AIResumeAnalyzerPage from "./pages/AIResumeAnalyzerPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import DemoPage from "./pages/DemoPage";
 import ContactUs from "./pages/ContactUs";
@@ -16,7 +16,8 @@ import AdminPage from "./pages/AdminPage";
 import ReferralPage from "./pages/ReferralPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
-import PaymentsPage from "./pages/PaymentsPage";
+import PaymentsPagePerfect from "./pages/PaymentsPagePerfect";
+import SecuritySettingsPage from "./pages/SecuritySettingsPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import { AuthProvider } from "./contexts/AuthContext";
@@ -33,7 +34,7 @@ function App() {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<EnhancedAuthPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/analyze" element={<AnalyzePage />} />
+            <Route path="/analyze" element={<AIResumeAnalyzerPage />} />
             <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="/demo" element={<DemoPage />} />
             <Route path="/contact" element={<ContactUs />} />
@@ -42,9 +43,11 @@ function App() {
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/security" element={<SecuritySettingsPage />} />
             <Route path="/referrals" element={<ReferralPage />} />
             <Route path="/analysis/:id" element={<AnalysisDetailPage />} />
-            <Route path="/payments" element={<PaymentsPage />} />
+            <Route path="/payments" element={<PaymentsPagePerfect />} />
+            <Route path="/ai-resume-analyzer" element={<Navigate to="/analyze" replace />} />
             <Route path="/ai-analyzer" element={<Navigate to="/analyze" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
