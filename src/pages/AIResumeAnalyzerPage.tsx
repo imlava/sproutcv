@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDropzone } from 'react-dropzone';
+import mammoth from 'mammoth';
 import { 
   Brain, 
   FileText, 
@@ -31,7 +33,12 @@ import {
   FileCheck,
   MessageSquare,
   Settings,
-  Layers
+  Layers,
+  Upload,
+  File,
+  Link,
+  FileType,
+  Globe
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +67,12 @@ const AIResumeAnalyzerPage = () => {
   const [userAnalyses, setUserAnalyses] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   
+  // Input mode states
+  const [resumeInputMode, setResumeInputMode] = useState<'text' | 'file'>('text');
+  const [jobInputMode, setJobInputMode] = useState<'text' | 'linkedin'>('text');
+  const [linkedinUrl, setLinkedinUrl] = useState('');
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
+  
   // Enhanced interactive features
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [tailoredSections, setTailoredSections] = useState<{[key: string]: string}>({});
@@ -84,6 +97,94 @@ const AIResumeAnalyzerPage = () => {
     }
   }, [user, loading, navigate]);
   const environment = validateEnvironment();
+
+  // File processing functions
+  const processFile = async (file: File): Promise<string> => {
+    const fileType = file.type;
+    const fileName = file.name.toLowerCase();
+    
+    if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
+      return await file.text();
+    }
+    
+    if (fileName.endsWith('.md') || fileName.endsWith('.markdown')) {
+      return await file.text();
+    }
+    
+    if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      return result.value;
+    }
+    
+    if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+      // For PDF, we'll show a message to user to copy-paste text for now
+      toast({
+        title: "PDF Upload",
+        description: "Please copy the text from your PDF and paste it in the text area. PDF text extraction will be added soon.",
+        variant: "default"
+      });
+      return '';
+    }
+    
+    throw new Error('Unsupported file type. Please use .txt, .docx, .md, or copy-paste text.');
+  };
+
+  const handleFileUpload = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+    
+    const file = acceptedFiles[0];
+    setIsProcessingFile(true);
+    
+    try {
+      const text = await processFile(file);
+      if (text) {
+        setResumeText(text);
+        toast({
+          title: "File uploaded successfully",
+          description: `Processed ${file.name}`,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error processing file",
+        description: error instanceof Error ? error.message : 'Failed to process file',
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingFile(false);
+    }
+  }, [toast]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleFileUpload,
+    accept: {
+      'text/plain': ['.txt'],
+      'text/markdown': ['.md', '.markdown'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/pdf': ['.pdf']
+    },
+    maxFiles: 1,
+    disabled: isProcessingFile
+  });
+
+  const extractFromLinkedIn = async () => {
+    if (!linkedinUrl) {
+      toast({
+        title: "LinkedIn URL Required",
+        description: "Please enter a LinkedIn job URL",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // For now, show a placeholder message. In production, this would use a LinkedIn scraping service
+    toast({
+      title: "LinkedIn Integration Coming Soon",
+      description: "Please copy the job description from LinkedIn and paste it in the text area for now.",
+      variant: "default"
+    });
+  };
 
   // Pre-fill with sample data
   useEffect(() => {
@@ -626,37 +727,178 @@ BENEFITS:
         {/* Input Tab */}
         <TabsContent value="input" className="space-y-6">
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Resume Input */}
+            {/* Enhanced Resume Input */}
             <Card>
               <CardHeader>
-                <CardTitle>Resume Text</CardTitle>
-                <CardDescription>Paste your resume text here</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Resume Input
+                </CardTitle>
+                <CardDescription>Upload a file or paste your resume text</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={resumeText}
-                  onChange={(e) => setResumeText(e.target.value)}
-                  placeholder="Paste your resume text here..."
-                  className="min-h-[300px]"
-                  required
-                />
+              <CardContent className="space-y-4">
+                {/* Input Mode Toggle */}
+                <div className="flex gap-2">
+                  <Button
+                    variant={resumeInputMode === 'text' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setResumeInputMode('text')}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Text Input
+                  </Button>
+                  <Button
+                    variant={resumeInputMode === 'file' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setResumeInputMode('file')}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    File Upload
+                  </Button>
+                </div>
+
+                {resumeInputMode === 'text' ? (
+                  <Textarea
+                    value={resumeText}
+                    onChange={(e) => setResumeText(e.target.value)}
+                    placeholder="Paste your resume text here..."
+                    className="min-h-[300px]"
+                    required
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    {/* File Upload Area */}
+                    <div
+                      {...getRootProps()}
+                      className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                        isDragActive
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <input {...getInputProps()} />
+                      <div className="space-y-2">
+                        <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                        <div>
+                          {isProcessingFile ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Processing file...</span>
+                            </div>
+                          ) : isDragActive ? (
+                            <p>Drop the file here...</p>
+                          ) : (
+                            <div>
+                              <p className="font-medium">Drag & drop your resume here</p>
+                              <p className="text-sm text-gray-500">or click to select a file</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-500">
+                          <Badge variant="outline">.txt</Badge>
+                          <Badge variant="outline">.docx</Badge>
+                          <Badge variant="outline">.md</Badge>
+                          <Badge variant="outline">.pdf</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Text Preview/Edit */}
+                    {resumeText && (
+                      <div className="space-y-2">
+                        <Label>Extracted Text (editable)</Label>
+                        <Textarea
+                          value={resumeText}
+                          onChange={(e) => setResumeText(e.target.value)}
+                          className="min-h-[200px]"
+                          placeholder="Extracted resume text will appear here..."
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Job Description Input */}
+            {/* Enhanced Job Description Input */}
             <Card>
               <CardHeader>
-                <CardTitle>Job Description</CardTitle>
-                <CardDescription>Paste the target job description</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" />
+                  Job Description
+                </CardTitle>
+                <CardDescription>Paste job description or extract from LinkedIn</CardDescription>
               </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste the job description here..."
-                  className="min-h-[300px]"
-                  required
-                />
+              <CardContent className="space-y-4">
+                {/* Input Mode Toggle */}
+                <div className="flex gap-2">
+                  <Button
+                    variant={jobInputMode === 'text' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setJobInputMode('text')}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Text Input
+                  </Button>
+                  <Button
+                    variant={jobInputMode === 'linkedin' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setJobInputMode('linkedin')}
+                    className="flex items-center gap-2"
+                  >
+                    <Globe className="h-4 w-4" />
+                    LinkedIn URL
+                  </Button>
+                </div>
+
+                {jobInputMode === 'text' ? (
+                  <Textarea
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    placeholder="Paste the job description here..."
+                    className="min-h-[300px]"
+                    required
+                  />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>LinkedIn Job URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={linkedinUrl}
+                          onChange={(e) => setLinkedinUrl(e.target.value)}
+                          placeholder="https://www.linkedin.com/jobs/view/..."
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={extractFromLinkedIn}
+                          variant="outline"
+                          disabled={!linkedinUrl}
+                        >
+                          <Link className="h-4 w-4 mr-2" />
+                          Extract
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Copy the LinkedIn job URL and we'll extract the job description
+                      </p>
+                    </div>
+
+                    {/* Manual fallback */}
+                    <div className="space-y-2">
+                      <Label>Job Description (editable)</Label>
+                      <Textarea
+                        value={jobDescription}
+                        onChange={(e) => setJobDescription(e.target.value)}
+                        placeholder="Job description will appear here, or paste manually..."
+                        className="min-h-[200px]"
+                      />
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -131,6 +131,23 @@ class AIResumeService {
     }
   }
 
+  private extractJSONFromResponse(response: string): string {
+    // Remove markdown code blocks and extract JSON
+    const jsonMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+    if (jsonMatch) {
+      return jsonMatch[1];
+    }
+    
+    // If no code blocks, try to find JSON object
+    const directJsonMatch = response.match(/\{[\s\S]*\}/);
+    if (directJsonMatch) {
+      return directJsonMatch[0];
+    }
+    
+    // Return as-is if no patterns match
+    return response.trim();
+  }
+
   private generateContentHash(content: string): string {
     // Simple hash function for content deduplication
     let hash = 0;
@@ -291,12 +308,14 @@ Provide only the JSON response, no additional text.`;
       // Call Gemini API
       const aiResponse = await this.callGeminiAPI(prompt);
       
-      // Parse the JSON response
+      // Parse the JSON response (handle markdown code blocks)
       let analysisResult: AnalysisResult;
       try {
-        analysisResult = JSON.parse(aiResponse);
+        const cleanedResponse = this.extractJSONFromResponse(aiResponse);
+        analysisResult = JSON.parse(cleanedResponse);
       } catch (parseError) {
         console.error('Failed to parse AI response:', parseError);
+        console.error('Raw response:', aiResponse);
         throw new Error('Invalid AI response format');
       }
 
