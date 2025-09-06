@@ -1,5 +1,6 @@
-# Netlify/Lovable SPA routing configuration
+# SPA routing configuration for Lovable deployment
 /*    /index.html   200
 
-# API redirects (if needed)
-/api/*  https://yucdpvnmcuokemhqpnvz.supabase.co/:splat  200
+# Legacy route redirects for AI analyzer
+/ai-resume-analyzer  /analyze  301
+/ai-analyzer         /analyze  301

@@ -3,12 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
 import Dashboard from "./pages/Dashboard";
-import AnalyzePage from "./pages/AnalyzePage";
 import AIResumeAnalyzerPage from "./pages/AIResumeAnalyzerPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import HelpCenter from "./pages/HelpCenter";
@@ -44,8 +43,10 @@ const App = () => {
               <Route path="/auth" element={<EnhancedAuthPage />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/analyze" element={<AnalyzePage />} />
-              <Route path="/ai-resume-analyzer" element={<AIResumeAnalyzerPage />} />
+              <Route path="/analyze" element={<AIResumeAnalyzerPage />} />
+              {/* Legacy route redirects */}
+              <Route path="/ai-resume-analyzer" element={<Navigate to="/analyze" replace />} />
+              <Route path="/ai-analyzer" element={<Navigate to="/analyze" replace />} />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/help" element={<HelpCenter />} />
               <Route path="/contact" element={<ContactUs />} />

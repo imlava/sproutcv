@@ -123,7 +123,7 @@ const UserDashboard = () => {
   };
 
   const handleAIResumeAnalyzer = () => {
-    navigate('/ai-resume-analyzer');
+    navigate('/analyze'); // Consolidated to single route
   };
 
   const setupPaymentMonitoring = () => {
