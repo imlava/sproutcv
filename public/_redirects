@@ -1,0 +1,5 @@
+# Netlify/Lovable SPA routing configuration
+/*    /index.html   200
+
+# API redirects (if needed)
+/api/*  https://yucdpvnmcuokemhqpnvz.supabase.co/:splat  200
