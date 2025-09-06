@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧠 AI Resume Analyzer - Full Test</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+            color: #1a202c;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .content {
+            padding: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #374151;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        .btn-secondary {
+            background: #10b981;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #059669;
+        }
+        .btn-tertiary {
+            background: #f59e0b;
+            color: white;
+        }
+        .btn-tertiary:hover {
+            background: #d97706;
+        }
+        .result-container {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .score-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .score-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+        }
+        .score-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .score-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .insights-section {
+            margin: 20px 0;
+        }
+        .insight-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .improvement-item {
+            border-left-color: #f59e0b;
+        }
+        .recommendation-item {
+            border-left-color: #10b981;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+        }
+        .success {
+            background: #f0fdf4;
+            color: #16a34a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #bbf7d0;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+        }
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 AI Resume Analyzer</h1>
+            <p>Advanced AI-powered resume analysis with Gemini integration</p>
+        </div>
+        
+        <div class="content">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('input')">📝 Input</div>
+                <div class="tab" onclick="switchTab('analysis')">📊 Analysis</div>
+                <div class="tab" onclick="switchTab('results')">📋 Results</div>
+            </div>
+
+            <!-- Input Tab -->
+            <div id="input-tab" class="tab-content active">
+                <div class="form-group">
+                    <label for="resumeText">Resume Text *</label>
+                    <textarea id="resumeText" rows="8" placeholder="Paste your resume text here...">JOHN SMITH
+Senior Software Engineer
+Email: john.smith@email.com | Phone: (555) 123-4567
+
+PROFESSIONAL SUMMARY
+Experienced Senior Software Engineer with 8+ years developing scalable web applications using React, Node.js, and Python. Led cross-functional teams of 5+ developers and delivered 20+ successful projects. Expertise in cloud architecture, microservices, and agile methodologies.
+
+EXPERIENCE
+Senior Software Engineer | Tech Corp | 2020 - Present
+• Led development of customer-facing web application serving 100K+ daily users
+• Reduced system response time by 40% through performance optimization
+• Mentored 3 junior developers and established code review processes
+• Implemented CI/CD pipeline reducing deployment time from 2 hours to 15 minutes
+
+Software Engineer | StartupXYZ | 2018 - 2020
+• Built RESTful APIs handling 10M+ requests daily
+• Collaborated with product team to deliver 15+ features ahead of schedule
+• Reduced bug reports by 60% through comprehensive testing strategies
+• Worked with React, Node.js, PostgreSQL, and AWS services
+
+Junior Developer | WebSolutions | 2016 - 2018
+• Developed responsive websites for 25+ clients
+• Learned and applied modern JavaScript frameworks
+• Participated in agile development processes
+
+EDUCATION
+Bachelor of Science in Computer Science | State University | 2016
+
+SKILLS
+Languages: JavaScript, Python, TypeScript, Java
+Frameworks: React, Node.js, Express, Django
+Databases: PostgreSQL, MongoDB, Redis
+Cloud: AWS, Docker, Kubernetes
+Tools: Git, Jenkins, JIRA, Slack</textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="jobDescription">Job Description *</label>
+                    <textarea id="jobDescription" rows="6" placeholder="Paste the job description here...">SENIOR FULL STACK DEVELOPER
+Company: InnovateNow Inc.
+Location: San Francisco, CA (Remote OK)
+
+ROLE OVERVIEW:
+We're seeking a Senior Full Stack Developer to join our fast-growing fintech startup. You'll be responsible for building scalable web applications, leading technical initiatives, and mentoring junior developers.
+
+REQUIREMENTS:
+• 5+ years experience in full-stack development
+• Strong proficiency in React, Node.js, and TypeScript
+• Experience with cloud platforms (AWS preferred)
+• Knowledge of microservices architecture and API design
+• Experience with PostgreSQL and NoSQL databases
+• Familiarity with DevOps practices (CI/CD, Docker, Kubernetes)
+• Strong problem-solving skills and attention to detail
+• Experience working in agile/scrum environments
+• Bachelor's degree in Computer Science or related field
+
+PREFERRED QUALIFICATIONS:
+• Experience in fintech or financial services
+• Knowledge of GraphQL and modern state management
+• Experience with testing frameworks (Jest, Cypress)
+• Leadership experience and ability to mentor junior developers
+• Open source contributions
+
+RESPONSIBILITIES:
+• Design and develop scalable web applications
+• Lead technical architecture decisions
+• Mentor and guide junior developers
+• Collaborate with product and design teams
+• Implement best practices for code quality and security
+• Participate in code reviews and technical discussions
+
+BENEFITS:
+• Competitive salary: $140K - $180K
+• Equity package
+• Health, dental, vision insurance
+• Remote work flexibility
+• Learning and development budget</textarea>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label for="jobTitle">Job Title</label>
+                        <input type="text" id="jobTitle" placeholder="e.g. Senior Full Stack Developer" value="Senior Full Stack Developer">
+                    </div>
+                    <div class="form-group">
+                        <label for="companyName">Company Name</label>
+                        <input type="text" id="companyName" placeholder="e.g. InnovateNow Inc." value="InnovateNow Inc.">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Analysis Options</label>
+                    <div style="display: flex; gap: 20px; margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" id="includeInteractive" checked>
+                            Interactive Insights
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" id="includeCoverLetter">
+                            Generate Cover Letter
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                            <input type="checkbox" id="generateTailoredResume">
+                            Generate Tailored Resume
+                        </label>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" onclick="runComprehensiveAnalysis()">
+                        🧠 Comprehensive Analysis
+                    </button>
+                    <button class="btn-secondary" onclick="runQuickAnalysis()">
+                        ⚡ Quick Analysis
+                    </button>
+                    <button class="btn-tertiary" onclick="runATSFocusAnalysis()">
+                        🎯 ATS Focus Analysis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Analysis Tab -->
+            <div id="analysis-tab" class="tab-content">
+                <div id="analysisProgress" class="loading">
+                    Ready to analyze your resume...
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div id="results-tab" class="tab-content">
+                <div id="analysisResults">
+                    <p>No analysis results yet. Please run an analysis first.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const SUPABASE_ANON_KEY = '***REMOVED***';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs and contents
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        async function runAnalysis(analysisType) {
+            const resumeText = document.getElementById('resumeText').value.trim();
+            const jobDescription = document.getElementById('jobDescription').value.trim();
+            const jobTitle = document.getElementById('jobTitle').value.trim();
+            const companyName = document.getElementById('companyName').value.trim();
+            const includeInteractive = document.getElementById('includeInteractive').checked;
+            const includeCoverLetter = document.getElementById('includeCoverLetter').checked;
+            const generateTailoredResume = document.getElementById('generateTailoredResume').checked;
+
+            if (!resumeText || !jobDescription) {
+                alert('Please fill in both resume text and job description');
+                return;
+            }
+
+            // Switch to analysis tab
+            switchTabTo('analysis');
+            
+            const progressDiv = document.getElementById('analysisProgress');
+            progressDiv.innerHTML = `
+                <div class="loading">
+                    <h3>🧠 AI Analysis in Progress...</h3>
+                    <p>Analyzing your resume with advanced Gemini AI</p>
+                    <p><strong>Analysis Type:</strong> ${analysisType}</p>
+                    <p>This may take 30-60 seconds...</p>
+                </div>
+            `;
+
+            try {
+                console.log('🚀 Starting AI resume analysis...');
+                
+                const requestBody = {
+                    resumeText,
+                    jobDescription,
+                    jobTitle: jobTitle || 'Position',
+                    companyName: companyName || 'Company',
+                    analysisType,
+                    includeInteractive,
+                    includeCoverLetter,
+                    generateTailoredResume,
+                    userId: 'test-user-' + Date.now() // Test user ID
+                };
+
+                console.log('📡 Calling gemini-resume-analyzer...');
+                const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
+                    body: requestBody
+                });
+
+                if (error) {
+                    throw new Error(error.message);
+                }
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+
+                console.log('✅ Analysis completed:', data);
+                displayResults(data.data);
+                switchTabTo('results');
+
+            } catch (error) {
+                console.error('❌ Analysis error:', error);
+                progressDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Analysis Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>Please try again or check your input.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function switchTabTo(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector('.tab').click(); // Reset
+            document.querySelectorAll('.tab').forEach((tab, index) => {
+                if ((tabName === 'input' && index === 0) ||
+                    (tabName === 'analysis' && index === 1) ||
+                    (tabName === 'results' && index === 2)) {
+                    tab.classList.add('active');
+                }
+            });
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        function runComprehensiveAnalysis() {
+            runAnalysis('comprehensive');
+        }
+
+        function runQuickAnalysis() {
+            runAnalysis('quick');
+        }
+
+        function runATSFocusAnalysis() {
+            runAnalysis('ats_focus');
+        }
+
+        function displayResults(analysisData) {
+            const resultsDiv = document.getElementById('analysisResults');
+            
+            let html = `
+                <div class="success">
+                    <h3>🎉 Analysis Complete!</h3>
+                    <p>Your resume has been analyzed using advanced AI. Review the insights below.</p>
+                </div>
+
+                <div class="score-display">
+                    <div class="score-card">
+                        <div class="score-value">${analysisData.overallScore}%</div>
+                        <div class="score-label">Overall Score</div>
+                    </div>
+                    <div class="score-card">
+                        <div class="score-value">${analysisData.detailedAnalysis.keywordMatch}%</div>
+                        <div class="score-label">Keyword Match</div>
+                    </div>
+                    <div class="score-card">
+                        <div class="score-value">${analysisData.detailedAnalysis.skillsAlignment}%</div>
+                        <div class="score-label">Skills Alignment</div>
+                    </div>
+                    <div class="score-card">
+                        <div class="score-value">${analysisData.detailedAnalysis.experienceRelevance}%</div>
+                        <div class="score-label">Experience Relevance</div>
+                    </div>
+                    <div class="score-card">
+                        <div class="score-value">${analysisData.detailedAnalysis.atsCompatibility}%</div>
+                        <div class="score-label">ATS Compatibility</div>
+                    </div>
+                    <div class="score-card">
+                        <div class="score-value">${analysisData.confidenceScore}%</div>
+                        <div class="score-label">AI Confidence</div>
+                    </div>
+                </div>
+            `;
+
+            // Interactive Insights
+            if (analysisData.interactiveInsights) {
+                html += `<div class="insights-section">`;
+                
+                // Strengths
+                if (analysisData.interactiveInsights.strengthsAnalysis?.length > 0) {
+                    html += `<h3>💪 Strengths Analysis</h3>`;
+                    analysisData.interactiveInsights.strengthsAnalysis.forEach(strength => {
+                        html += `
+                            <div class="insight-item">
+                                <h4>${strength.category} (${strength.score}%)</h4>
+                                <p>${strength.details}</p>
+                                <ul>
+                                    ${strength.examples.map(example => `<li>${example}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Improvements
+                if (analysisData.interactiveInsights.improvementAreas?.length > 0) {
+                    html += `<h3>🔧 Improvement Areas</h3>`;
+                    analysisData.interactiveInsights.improvementAreas.forEach(improvement => {
+                        const priorityColor = improvement.priority === 'high' ? '#dc2626' : 
+                                            improvement.priority === 'medium' ? '#f59e0b' : '#10b981';
+                        html += `
+                            <div class="insight-item improvement-item">
+                                <h4 style="color: ${priorityColor};">
+                                    ${improvement.category} 
+                                    <span style="font-size: 12px; background: ${priorityColor}; color: white; padding: 2px 8px; border-radius: 12px;">
+                                        ${improvement.priority.toUpperCase()}
+                                    </span>
+                                </h4>
+                                <p><strong>Issue:</strong> ${improvement.issue}</p>
+                                <p><strong>Solution:</strong> ${improvement.solution}</p>
+                                <p><strong>Expected Impact:</strong> ${improvement.impact}</p>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Keywords
+                if (analysisData.interactiveInsights.missingKeywords?.length > 0) {
+                    html += `
+                        <h3>🔍 Missing Keywords</h3>
+                        <div class="insight-item">
+                            <p>Add these important keywords from the job description:</p>
+                            <p><strong>Missing:</strong> ${analysisData.interactiveInsights.missingKeywords.join(', ')}</p>
+                            <p><strong>Suggested:</strong> ${analysisData.interactiveInsights.suggeredKeywords?.join(', ') || 'N/A'}</p>
+                        </div>
+                    `;
+                }
+
+                html += `</div>`;
+            }
+
+            // Actionable Recommendations
+            if (analysisData.actionableRecommendations?.length > 0) {
+                html += `<h3>📋 Actionable Recommendations</h3>`;
+                analysisData.actionableRecommendations.forEach(rec => {
+                    html += `
+                        <div class="insight-item recommendation-item">
+                            <h4>${rec.action}</h4>
+                            <p>${rec.description}</p>
+                            <p><strong>Expected Impact:</strong> ${rec.expectedImpact}</p>
+                            <p><strong>Difficulty:</strong> ${rec.difficulty} | <strong>Time:</strong> ${rec.timeEstimate}</p>
+                        </div>
+                    `;
+                });
+            }
+
+            // Cover Letter
+            if (analysisData.coverLetter) {
+                html += `
+                    <h3>📝 Generated Cover Letter</h3>
+                    <div class="insight-item">
+                        <pre style="white-space: pre-wrap; font-family: inherit;">${analysisData.coverLetter.content}</pre>
+                    </div>
+                `;
+            }
+
+            // Tailored Resume
+            if (analysisData.tailoredResume) {
+                html += `
+                    <h3>📄 Optimized Resume</h3>
+                    <div class="insight-item">
+                        <pre style="white-space: pre-wrap; font-family: inherit;">${analysisData.tailoredResume}</pre>
+                    </div>
+                `;
+            }
+
+            // Competitive Analysis
+            if (analysisData.competitiveAnalysis) {
+                html += `
+                    <h3>🏆 Competitive Analysis</h3>
+                    <div class="insight-item">
+                        <p><strong>Market Position:</strong> ${analysisData.competitiveAnalysis.marketPosition}</p>
+                        <p><strong>Competitiveness Score:</strong> ${analysisData.competitiveAnalysis.competitivenessScore}%</p>
+                        <p><strong>Standout Factors:</strong></p>
+                        <ul>
+                            ${analysisData.competitiveAnalysis.standoutFactors?.map(factor => `<li>${factor}</li>`).join('') || '<li>None identified</li>'}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // Metadata
+            html += `
+                <div style="margin-top: 30px; padding: 15px; background: #f9fafb; border-radius: 8px; font-size: 12px; color: #6b7280;">
+                    <p><strong>Analysis Engine:</strong> ${analysisData.processingVersion || 'gemini-v1.0'}</p>
+                    <p><strong>Generated:</strong> ${analysisData.timestamp || new Date().toISOString()}</p>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

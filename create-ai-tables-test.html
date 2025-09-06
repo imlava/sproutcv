@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create AI Resume Analysis Tables</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div style="padding: 20px; font-family: Arial;">
+        <h2>🧠 AI Resume Analysis Database Setup</h2>
+        <p>This will create the necessary database tables for AI-powered resume analysis.</p>
+        
+        <button onclick="createTables()" style="padding: 10px 20px; background: #22c55e; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Create AI Analysis Tables
+        </button>
+        
+        <div id="result" style="margin-top: 20px; white-space: pre-wrap; font-family: monospace; background: #f5f5f5; padding: 15px; border-radius: 5px;"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const SUPABASE_ANON_KEY = '***REMOVED***';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function createTables() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = '🚀 Creating AI Resume Analysis tables...\n\nThis may take a few moments...';
+
+            try {
+                console.log('📡 Calling create-ai-tables function...');
+                
+                const { data, error } = await supabase.functions.invoke('create-ai-tables', {
+                    body: { action: 'create_tables' }
+                });
+
+                if (error) {
+                    console.error('❌ Function call error:', error);
+                    resultDiv.textContent = `❌ ERROR: ${error.message}\n\n${JSON.stringify(error, null, 2)}`;
+                    return;
+                }
+
+                console.log('✅ Function response:', data);
+                
+                if (data.success) {
+                    let result = "🎉 SUCCESS! AI Resume Analysis tables created successfully!\n\n";
+                    result += "📊 Tables Created:\n";
+                    data.tables_created.forEach(table => {
+                        result += `  ✅ ${table}\n`;
+                    });
+                    result += "\n🚀 Features Enabled:\n";
+                    data.features_enabled.forEach(feature => {
+                        result += `  ✅ ${feature}\n`;
+                    });
+                    result += `\n⏰ Created at: ${data.timestamp}`;
+                    result += "\n\n🎯 Ready for AI-powered resume analysis!";
+                    
+                    resultDiv.textContent = result;
+                } else {
+                    resultDiv.textContent = `❌ FAILED: ${data.error}\n\n${JSON.stringify(data, null, 2)}`;
+                }
+
+            } catch (error) {
+                console.error('💥 Unexpected error:', error);
+                resultDiv.textContent = `💥 UNEXPECTED ERROR: ${error.message}\n\nPlease check the console for more details.`;
+            }
+        }
+    </script>
+</body>
+</html>

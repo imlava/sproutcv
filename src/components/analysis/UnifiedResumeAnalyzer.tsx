@@ -22,7 +22,8 @@ import {
   Zap,
   Shield,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Trophy
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -647,29 +648,232 @@ const UnifiedResumeAnalyzer: React.FC = () => {
   );
 
   const renderResultsStep = () => (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-6xl mx-auto space-y-8">
       <div className="text-center mb-8">
         <div className="w-20 h-20 bg-gradient-to-br from-success to-primary rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-10 h-10 text-white" />
         </div>
         <h2 className="text-3xl font-bold text-foreground mb-3">Analysis Complete!</h2>
         <p className="text-lg text-muted-foreground">
-          Your resume has been analyzed and optimized for maximum impact
+          Your resume has been analyzed using advanced AI for maximum impact
         </p>
+        {state.analysisResult?.confidenceScore && (
+          <Badge variant="outline" className="mt-4 text-sm px-4 py-2">
+            AI Confidence: {state.analysisResult.confidenceScore}%
+          </Badge>
+        )}
       </div>
 
       {state.analysisResult && (
-        <ScoreDashboard
-          overallScore={state.analysisResult.overallScore || 75}
-          keywordMatch={state.analysisResult.keywordMatch || 70}
-          skillsAlignment={state.analysisResult.skillsAlignment || 80}
-          atsCompatibility={state.analysisResult.atsCompatibility || 85}
-          experienceRelevance={state.analysisResult.experienceRelevance || 75}
-          suggestions={state.analysisResult.suggestions || []}
-        />
+        <>
+          {/* Score Dashboard */}
+          <Card className="p-6">
+            <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Target className="w-5 h-5 text-primary" />
+              Analysis Scores
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-2xl font-bold text-primary mb-1">
+                  {state.analysisResult.overallScore || 0}%
+                </div>
+                <div className="text-sm text-muted-foreground">Overall Score</div>
+              </div>
+              <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-2xl font-bold text-primary mb-1">
+                  {state.analysisResult.detailedAnalysis?.keywordMatch || 0}%
+                </div>
+                <div className="text-sm text-muted-foreground">Keyword Match</div>
+              </div>
+              <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-2xl font-bold text-primary mb-1">
+                  {state.analysisResult.detailedAnalysis?.skillsAlignment || 0}%
+                </div>
+                <div className="text-sm text-muted-foreground">Skills Alignment</div>
+              </div>
+              <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-2xl font-bold text-primary mb-1">
+                  {state.analysisResult.detailedAnalysis?.atsCompatibility || 0}%
+                </div>
+                <div className="text-sm text-muted-foreground">ATS Compatible</div>
+              </div>
+              <div className="text-center p-4 bg-muted/30 rounded-lg">
+                <div className="text-2xl font-bold text-primary mb-1">
+                  {state.analysisResult.detailedAnalysis?.experienceRelevance || 0}%
+                </div>
+                <div className="text-sm text-muted-foreground">Experience Match</div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Strengths Analysis */}
+          {state.analysisResult.interactiveInsights?.strengthsAnalysis?.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-success">
+                <CheckCircle className="w-5 h-5" />
+                Key Strengths
+              </h3>
+              <div className="space-y-4">
+                {state.analysisResult.interactiveInsights.strengthsAnalysis.map((strength: any, index: number) => (
+                  <div key={index} className="p-4 bg-success/5 border border-success/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-success">{strength.category}</h4>
+                      <Badge variant="outline" className="text-success border-success">
+                        {strength.score}%
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-3">{strength.details}</p>
+                    {strength.examples?.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Examples:</p>
+                        <ul className="text-xs text-muted-foreground list-disc list-inside">
+                          {strength.examples.map((example: string, idx: number) => (
+                            <li key={idx}>{example}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Improvement Areas */}
+          {state.analysisResult.interactiveInsights?.improvementAreas?.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-warning">
+                <AlertTriangle className="w-5 h-5" />
+                Improvement Opportunities
+              </h3>
+              <div className="space-y-4">
+                {state.analysisResult.interactiveInsights.improvementAreas.map((improvement: any, index: number) => (
+                  <div key={index} className="p-4 bg-warning/5 border border-warning/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-warning">{improvement.category}</h4>
+                      <Badge 
+                        variant={improvement.priority === 'high' ? 'destructive' : 
+                               improvement.priority === 'medium' ? 'default' : 'outline'}
+                      >
+                        {improvement.priority.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2 text-sm">
+                      <p><strong>Issue:</strong> {improvement.issue}</p>
+                      <p><strong>Solution:</strong> {improvement.solution}</p>
+                      <p><strong>Expected Impact:</strong> {improvement.impact}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Keywords Analysis */}
+          {(state.analysisResult.interactiveInsights?.missingKeywords?.length > 0 || 
+            state.analysisResult.interactiveInsights?.suggeredKeywords?.length > 0) && (
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Eye className="w-5 h-5 text-primary" />
+                Keyword Analysis
+              </h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                {state.analysisResult.interactiveInsights.missingKeywords?.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-destructive mb-2">Missing Keywords</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {state.analysisResult.interactiveInsights.missingKeywords.map((keyword: string, index: number) => (
+                        <Badge key={index} variant="destructive" className="text-xs">
+                          {keyword}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {state.analysisResult.interactiveInsights.suggeredKeywords?.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-success mb-2">Suggested Keywords</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {state.analysisResult.interactiveInsights.suggeredKeywords.map((keyword: string, index: number) => (
+                        <Badge key={index} variant="outline" className="text-xs border-success text-success">
+                          {keyword}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Actionable Recommendations */}
+          {state.analysisResult.actionableRecommendations?.length > 0 && (
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-primary">
+                <Target className="w-5 h-5" />
+                Action Plan
+              </h3>
+              <div className="space-y-4">
+                {state.analysisResult.actionableRecommendations.map((rec: any, index: number) => (
+                  <div key={index} className="p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold text-primary">{rec.action}</h4>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {rec.difficulty}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          {rec.timeEstimate}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{rec.description}</p>
+                    <p className="text-sm font-medium">
+                      <span className="text-success">Expected Impact:</span> {rec.expectedImpact}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Competitive Analysis */}
+          {state.analysisResult.competitiveAnalysis && (
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-accent" />
+                Market Position
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-accent/5 rounded-lg">
+                  <span className="font-medium">Competitiveness Score</span>
+                  <Badge variant="outline" className="text-lg px-4 py-2">
+                    {state.analysisResult.competitiveAnalysis.competitivenessScore}%
+                  </Badge>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2">Market Analysis</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {state.analysisResult.competitiveAnalysis.marketPosition}
+                  </p>
+                </div>
+                {state.analysisResult.competitiveAnalysis.standoutFactors?.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Your Competitive Advantages</h4>
+                    <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                      {state.analysisResult.competitiveAnalysis.standoutFactors.map((factor: string, index: number) => (
+                        <li key={index}>{factor}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+        </>
       )}
 
-      <div className="flex justify-center mt-8">
+      <div className="flex justify-center gap-4 mt-8">
         <Button
           onClick={() => updateState({ 
             step: 'upload', 
@@ -688,6 +892,28 @@ const UnifiedResumeAnalyzer: React.FC = () => {
         >
           <RefreshCw className="w-4 h-4" />
           Analyze Another Resume
+        </Button>
+        
+        <Button
+          onClick={() => {
+            const analysisText = JSON.stringify(state.analysisResult, null, 2);
+            const blob = new Blob([analysisText], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resume-analysis-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast({
+              title: "Analysis Downloaded",
+              description: "Your analysis has been saved as a JSON file.",
+            });
+          }}
+          size="lg"
+          className="flex items-center gap-2"
+        >
+          <FileText className="w-4 h-4" />
+          Download Analysis
         </Button>
       </div>
     </div>

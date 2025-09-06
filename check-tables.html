@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Database Tables</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div style="padding: 20px; font-family: Arial;">
+        <h2>Database Table Check</h2>
+        <button onclick="checkTables()">Check Resume Analysis Tables</button>
+        <div id="result" style="margin-top: 20px; white-space: pre-wrap;"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const SUPABASE_ANON_KEY = '***REMOVED***';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function checkTables() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Checking database tables...';
+
+            try {
+                // Check if resume_analyses table exists
+                const { data: resumeAnalyses, error: error1 } = await supabase
+                    .from('resume_analyses')
+                    .select('*')
+                    .limit(1);
+
+                // Check if optimized_resumes table exists  
+                const { data: optimizedResumes, error: error2 } = await supabase
+                    .from('optimized_resumes')
+                    .select('*')
+                    .limit(1);
+
+                // Check if job_descriptions table exists
+                const { data: jobDescriptions, error: error3 } = await supabase
+                    .from('job_descriptions')
+                    .select('*')
+                    .limit(1);
+
+                let result = "TABLE CHECK RESULTS:\n\n";
+                
+                result += "1. resume_analyses table: " + (error1 ? "❌ NOT EXISTS - " + error1.message : "✅ EXISTS") + "\n";
+                result += "2. optimized_resumes table: " + (error2 ? "❌ NOT EXISTS - " + error2.message : "✅ EXISTS") + "\n"; 
+                result += "3. job_descriptions table: " + (error3 ? "❌ NOT EXISTS - " + error3.message : "✅ EXISTS") + "\n\n";
+
+                if (error1 || error2 || error3) {
+                    result += "TABLES MISSING - Need to create migration!\n";
+                } else {
+                    result += "ALL TABLES EXIST - Ready for AI analysis!\n";
+                }
+
+                resultDiv.textContent = result;
+
+            } catch (error) {
+                resultDiv.textContent = 'Error checking tables: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
