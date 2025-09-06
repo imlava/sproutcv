@@ -549,6 +549,95 @@ OPTIMIZATIONS_APPLIED:
       throw error;
     }
   }
+
+  async generateSectionSuggestions(request: {
+    sectionName: string;
+    sectionContent: string;
+    jobDescription: string;
+    jobTitle?: string;
+  }): Promise<string[]> {
+    const { sectionName, sectionContent, jobDescription, jobTitle } = request;
+
+    const prompt = `You are a professional resume writer. Provide 3-5 specific suggestions to improve this resume section for the target job.
+
+Section: ${sectionName}
+Current Content:
+${sectionContent}
+
+Target Job: ${jobTitle || 'position'}
+Job Requirements:
+${jobDescription}
+
+Provide suggestions that:
+1. Better align with job requirements
+2. Include relevant keywords
+3. Quantify achievements where possible
+4. Improve ATS compatibility
+5. Enhance professional impact
+
+Return only an array of specific, actionable suggestions.`;
+
+    try {
+      const environment = validateEnvironment();
+      
+      if (environment.demoMode) {
+        // Demo suggestions based on section type
+        const demoSuggestions: {[key: string]: string[]} = {
+          summary: [
+            "Add specific years of experience relevant to the role",
+            "Include 2-3 key technologies mentioned in the job description",
+            "Quantify achievements with metrics (e.g., team size, project scope)",
+            "Highlight leadership or mentoring experience",
+            "Emphasize results and business impact"
+          ],
+          experience: [
+            "Start bullet points with strong action verbs (Led, Developed, Implemented)",
+            "Include specific metrics and percentages for achievements",
+            "Add relevant technologies and tools mentioned in job posting",
+            "Highlight cross-functional collaboration and teamwork",
+            "Quantify scope of work (budget, timeline, team size)"
+          ],
+          skills: [
+            "Group skills by category (Programming, Frameworks, Tools)",
+            "Include proficiency levels for key technologies",
+            "Add any missing skills from the job requirements",
+            "Remove outdated or irrelevant technologies",
+            "Highlight certifications and recent training"
+          ],
+          education: [
+            "Include relevant coursework related to the job",
+            "Add GPA if above 3.5 and recent graduate",
+            "Mention any honors, awards, or relevant projects",
+            "Include continuing education and certifications",
+            "Highlight relevant extracurricular activities"
+          ]
+        };
+        
+        const sectionKey = Object.keys(demoSuggestions).find(key => 
+          sectionName.toLowerCase().includes(key)
+        );
+        
+        return demoSuggestions[sectionKey] || demoSuggestions.summary;
+      }
+
+      const { data, error } = await supabase.functions.invoke('gemini-analyze', {
+        body: { prompt }
+      });
+
+      if (error) throw error;
+
+      // Parse response to extract suggestions array
+      const suggestions = data.analysis?.split('\n')
+        .filter((line: string) => line.trim().length > 0)
+        .map((line: string) => line.replace(/^\d+\.\s*/, '').trim())
+        .slice(0, 5) || [];
+
+      return suggestions;
+    } catch (error) {
+      console.error('Section suggestions generation error:', error);
+      throw error;
+    }
+  }
 }
 
 export const aiResumeService = new AIResumeService();

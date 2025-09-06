@@ -17,7 +17,21 @@ import {
   Code,
   Briefcase,
   Loader2,
-  Star
+  Star,
+  Edit3,
+  Wand2,
+  Eye,
+  BookOpen,
+  ChevronRight,
+  RotateCcw,
+  Save,
+  PlusCircle,
+  MinusCircle,
+  ArrowRight,
+  FileCheck,
+  MessageSquare,
+  Settings,
+  Layers
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +59,19 @@ const AIResumeAnalyzerPage = () => {
   const [activeTab, setActiveTab] = useState('input');
   const [userAnalyses, setUserAnalyses] = useState<any[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  // Enhanced interactive features
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [tailoredSections, setTailoredSections] = useState<{[key: string]: string}>({});
+  const [sectionSuggestions, setSectionSuggestions] = useState<{[key: string]: string[]}>({});
+  const [isGeneratingSection, setIsGeneratingSection] = useState<string | null>(null);
+  const [interactiveMode, setInteractiveMode] = useState(false);
+  const [resumeSections, setResumeSections] = useState<{[key: string]: string}>({});
+  const [coverLetterContent, setCoverLetterContent] = useState('');
+  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
+  const [showStepByStep, setShowStepByStep] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   
   const { toast } = useToast();
   const { user, loading } = useAuth();
@@ -340,6 +367,148 @@ BENEFITS:
     }
   };
 
+  // Parse resume into sections
+  const parseResumeIntoSections = (text: string) => {
+    const sections: {[key: string]: string} = {};
+    const lines = text.split('\n');
+    let currentSection = 'header';
+    let currentContent: string[] = [];
+    
+    const sectionHeaders = [
+      'professional summary', 'summary', 'objective',
+      'experience', 'work experience', 'employment history',
+      'education', 'academic background',
+      'skills', 'technical skills', 'core competencies',
+      'projects', 'notable projects',
+      'certifications', 'certificates',
+      'achievements', 'awards'
+    ];
+    
+    lines.forEach(line => {
+      const lowerLine = line.toLowerCase().trim();
+      const isHeader = sectionHeaders.some(header => 
+        lowerLine === header || lowerLine.includes(header)
+      );
+      
+      if (isHeader) {
+        if (currentContent.length > 0) {
+          sections[currentSection] = currentContent.join('\n').trim();
+        }
+        currentSection = lowerLine.replace(/[^a-z0-9]/g, '');
+        currentContent = [];
+      } else {
+        currentContent.push(line);
+      }
+    });
+    
+    if (currentContent.length > 0) {
+      sections[currentSection] = currentContent.join('\n').trim();
+    }
+    
+    return sections;
+  };
+
+  // Generate section-specific suggestions
+  const generateSectionSuggestions = async (sectionName: string, sectionContent: string) => {
+    if (!user) return;
+    
+    setIsGeneratingSection(sectionName);
+    try {
+      const suggestions = await aiResumeService.generateSectionSuggestions({
+        sectionName,
+        sectionContent,
+        jobDescription,
+        jobTitle
+      });
+      
+      setSectionSuggestions(prev => ({
+        ...prev,
+        [sectionName]: suggestions
+      }));
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: `Failed to generate suggestions for ${sectionName}: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingSection(null);
+    }
+  };
+
+  // Apply AI suggestion to section
+  const applySuggestionToSection = (sectionName: string, suggestion: string) => {
+    setTailoredSections(prev => ({
+      ...prev,
+      [sectionName]: suggestion
+    }));
+    
+    toast({
+      title: "Section Updated",
+      description: `${sectionName} has been enhanced with AI suggestions.`,
+    });
+  };
+
+  // Generate interactive cover letter
+  const generateInteractiveCoverLetter = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to generate cover letters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingCoverLetter(true);
+    try {
+      const { coverLetter } = await aiResumeService.generateCoverLetter({
+        resumeText: Object.values(tailoredSections).length > 0 
+          ? Object.values(tailoredSections).join('\n\n')
+          : resumeText,
+        jobDescription,
+        jobTitle,
+        companyName
+      });
+      
+      setCoverLetterContent(coverLetter);
+      setActiveTab('cover-letter');
+      
+      toast({
+        title: "Cover Letter Generated!",
+        description: "Your personalized cover letter is ready for review and editing.",
+      });
+      
+    } catch (error: any) {
+      toast({
+        title: "Generation Failed",
+        description: 'Failed to generate cover letter: ' + error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingCoverLetter(false);
+    }
+  };
+
+  // Initialize interactive mode
+  const startInteractiveMode = () => {
+    const sections = parseResumeIntoSections(resumeText);
+    setResumeSections(sections);
+    setInteractiveMode(true);
+    setShowStepByStep(true);
+    setCurrentStep(0);
+    setActiveTab('interactive');
+  };
+
+  // Step-by-step navigation helpers
+  const stepTitles = [
+    'Professional Summary',
+    'Work Experience', 
+    'Skills & Competencies',
+    'Education & Certifications',
+    'Review & Finalize'
+  ];
+
   // Show loading while checking authentication
   if (loading) {
     return (
@@ -419,7 +588,7 @@ BENEFITS:
 
       {/* Main Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-3 w-fit mx-auto">
+        <TabsList className="grid grid-cols-6 w-fit mx-auto">
           <TabsTrigger value="input" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
             Input
@@ -431,6 +600,18 @@ BENEFITS:
           <TabsTrigger value="results" className="flex items-center gap-2">
             <Target className="h-4 w-4" />
             Results
+          </TabsTrigger>
+          <TabsTrigger value="interactive" className="flex items-center gap-2">
+            <Edit3 className="h-4 w-4" />
+            Interactive
+          </TabsTrigger>
+          <TabsTrigger value="cover-letter" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Cover Letter
+          </TabsTrigger>
+          <TabsTrigger value="final" className="flex items-center gap-2">
+            <FileCheck className="h-4 w-4" />
+            Final
           </TabsTrigger>
         </TabsList>
 
@@ -591,6 +772,17 @@ BENEFITS:
             >
               <Download className="h-5 w-5 mr-2" />
               Generate Tailored Resume
+            </Button>
+
+            <Button
+              onClick={startInteractiveMode}
+              disabled={!resumeText || !jobDescription || !user}
+              variant="outline"
+              size="lg"
+              className="border-green-500 text-green-600 hover:bg-green-50"
+            >
+              <Edit3 className="h-5 w-5 mr-2" />
+              Interactive Editor
             </Button>
           </div>
 
@@ -995,6 +1187,296 @@ BENEFITS:
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Interactive Resume Editor */}
+        <TabsContent value="interactive" className="space-y-6">
+          {!interactiveMode ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <Edit3 className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Interactive Resume Builder</h3>
+                <p className="text-gray-600 mb-6">
+                  Edit your resume section by section with AI-powered suggestions and real-time optimization.
+                </p>
+                <Button 
+                  onClick={startInteractiveMode}
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={!resumeText || !jobDescription}
+                >
+                  <Wand2 className="h-5 w-5 mr-2" />
+                  Start Interactive Mode
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Step-by-step progress */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Layers className="h-6 w-6 text-blue-600" />
+                    Step-by-Step Resume Enhancement
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between mb-6">
+                    {stepTitles.map((title, index) => (
+                      <div 
+                        key={index}
+                        className={`flex items-center gap-2 ${
+                          index <= currentStep ? 'text-blue-600' : 'text-gray-400'
+                        }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                          completedSteps.has(index) 
+                            ? 'bg-green-100 text-green-600' 
+                            : index === currentStep 
+                            ? 'bg-blue-100 text-blue-600' 
+                            : 'bg-gray-100 text-gray-400'
+                        }`}>
+                          {completedSteps.has(index) ? <CheckCircle className="h-4 w-4" /> : index + 1}
+                        </div>
+                        <span className="text-sm font-medium hidden md:block">{title}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Current section editor */}
+                  {Object.entries(resumeSections).map(([sectionName, content], index) => (
+                    <div key={sectionName} className={index === currentStep ? 'block' : 'hidden'}>
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div>
+                          <Label className="text-lg font-medium mb-2 flex items-center gap-2">
+                            <BookOpen className="h-5 w-5" />
+                            {sectionName.charAt(0).toUpperCase() + sectionName.slice(1)} Section
+                          </Label>
+                          <Textarea
+                            value={tailoredSections[sectionName] || content}
+                            onChange={(e) => setTailoredSections(prev => ({
+                              ...prev,
+                              [sectionName]: e.target.value
+                            }))}
+                            className="min-h-[200px]"
+                            placeholder={`Edit your ${sectionName} section...`}
+                          />
+                          <div className="flex gap-2 mt-4">
+                            <Button
+                              onClick={() => generateSectionSuggestions(sectionName, content)}
+                              disabled={isGeneratingSection === sectionName}
+                              variant="outline"
+                            >
+                              {isGeneratingSection === sectionName ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Brain className="h-4 w-4 mr-2" />
+                              )}
+                              Get AI Suggestions
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                setTailoredSections(prev => ({
+                                  ...prev,
+                                  [sectionName]: content
+                                }));
+                              }}
+                              variant="outline"
+                            >
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                              Reset
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <Label className="text-lg font-medium mb-2 flex items-center gap-2">
+                            <Target className="h-5 w-5" />
+                            AI Suggestions
+                          </Label>
+                          {sectionSuggestions[sectionName] ? (
+                            <div className="space-y-3">
+                              {sectionSuggestions[sectionName].map((suggestion, sugIndex) => (
+                                <Card key={sugIndex} className="p-4">
+                                  <p className="text-sm text-gray-700 mb-3">{suggestion}</p>
+                                  <Button
+                                    onClick={() => applySuggestionToSection(sectionName, suggestion)}
+                                    size="sm"
+                                    variant="outline"
+                                  >
+                                    <PlusCircle className="h-4 w-4 mr-1" />
+                                    Apply
+                                  </Button>
+                                </Card>
+                              ))}
+                            </div>
+                          ) : (
+                            <Card className="p-8 text-center">
+                              <Wand2 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                              <p className="text-sm text-gray-500">
+                                Click "Get AI Suggestions" to see recommendations for this section
+                              </p>
+                            </Card>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Navigation */}
+                      <div className="flex justify-between mt-6">
+                        <Button
+                          onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                          disabled={currentStep === 0}
+                          variant="outline"
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            if (currentStep < stepTitles.length - 1) {
+                              setCurrentStep(currentStep + 1);
+                            }
+                          }}
+                          disabled={currentStep >= stepTitles.length - 1}
+                        >
+                          Next
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Cover Letter Generator */}
+        <TabsContent value="cover-letter" className="space-y-6">
+          {!coverLetterContent ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <MessageSquare className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">AI Cover Letter Generator</h3>
+                <p className="text-gray-600 mb-6">
+                  Generate a personalized cover letter tailored to your resume and the job description.
+                </p>
+                <Button 
+                  onClick={generateInteractiveCoverLetter}
+                  disabled={isGeneratingCoverLetter || !resumeText || !jobDescription}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {isGeneratingCoverLetter ? (
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  ) : (
+                    <MessageSquare className="h-5 w-5 mr-2" />
+                  )}
+                  Generate Cover Letter
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-6 w-6 text-green-600" />
+                  Your Cover Letter
+                </CardTitle>
+                <CardDescription>
+                  Review and edit your AI-generated cover letter
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={coverLetterContent}
+                  onChange={(e) => setCoverLetterContent(e.target.value)}
+                  className="min-h-[400px] font-serif"
+                  placeholder="Your cover letter will appear here..."
+                />
+                <div className="flex gap-4 mt-6">
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    <Download className="h-5 w-5 mr-2" />
+                    Download Cover Letter
+                  </Button>
+                  <Button 
+                    onClick={generateInteractiveCoverLetter}
+                    variant="outline"
+                    disabled={isGeneratingCoverLetter}
+                  >
+                    {isGeneratingCoverLetter ? (
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    ) : (
+                      <RotateCcw className="h-5 w-5 mr-2" />
+                    )}
+                    Regenerate
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Final Review */}
+        <TabsContent value="final" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileCheck className="h-6 w-6 text-purple-600" />
+                Final Review & Export
+              </CardTitle>
+              <CardDescription>
+                Review your enhanced resume and cover letter, then export them
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Resume Preview */}
+              <div>
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Enhanced Resume
+                </h4>
+                <Card className="p-4 bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-700 max-h-[300px] overflow-y-auto">
+                    {Object.values(tailoredSections).length > 0 
+                      ? Object.values(tailoredSections).join('\n\n')
+                      : resumeText
+                    }
+                  </pre>
+                </Card>
+              </div>
+
+              {/* Cover Letter Preview */}
+              {coverLetterContent && (
+                <div>
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    Cover Letter
+                  </h4>
+                  <Card className="p-4 bg-gray-50">
+                    <div className="text-sm text-gray-700 max-h-[200px] overflow-y-auto">
+                      {coverLetterContent}
+                    </div>
+                  </Card>
+                </div>
+              )}
+
+              {/* Export Options */}
+              <div className="grid md:grid-cols-3 gap-4">
+                <Button className="w-full">
+                  <Download className="h-5 w-5 mr-2" />
+                  Download Resume
+                </Button>
+                {coverLetterContent && (
+                  <Button className="w-full" variant="outline">
+                    <Download className="h-5 w-5 mr-2" />
+                    Download Cover Letter
+                  </Button>
+                )}
+                <Button className="w-full" variant="outline">
+                  <Download className="h-5 w-5 mr-2" />
+                  Download Both (ZIP)
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
