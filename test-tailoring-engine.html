@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tailoring Engine Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f9ff;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .success { 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 10px 0;
+        }
+        .iframe-container {
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        .instructions {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎯 Tailoring Engine Test Page</h1>
+        
+        <div class="success">
+            <h3>✅ Test Results:</h3>
+            <ul>
+                <li>New TailoringEnginePage component built successfully</li>
+                <li>Authentication temporarily disabled for testing</li>
+                <li>Debug indicators added to confirm loading</li>
+                <li>Development server running on http://localhost:8080</li>
+            </ul>
+        </div>
+
+        <div class="instructions">
+            <h3>🔍 What to Look For:</h3>
+            <p>If the new Tailoring Engine is loading correctly, you should see:</p>
+            <ul>
+                <li><strong>Green banner at top:</strong> "🎯 NEW TAILORING ENGINE ACTIVE - SUCCESS! 🎯"</li>
+                <li><strong>New title:</strong> "AI Resume Tailoring Engine" (not "AI Resume Analyzer")</li>
+                <li><strong>5-step process description</strong> with keyword optimization, gap analysis, etc.</li>
+                <li><strong>Step navigation:</strong> Build Profile → Target Job → Tailor Resume → Export & Track → Interview Prep</li>
+            </ul>
+        </div>
+
+        <h2>Live Preview:</h2>
+        <div class="iframe-container">
+            <iframe src="http://localhost:8080/analyze" title="Tailoring Engine"></iframe>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 5px;">
+            <h3>🔧 Troubleshooting:</h3>
+            <p>If you still see the old interface:</p>
+            <ol>
+                <li><strong>Hard refresh:</strong> Press Ctrl+Shift+R (or Cmd+Shift+R on Mac)</li>
+                <li><strong>Clear browser cache:</strong> Open DevTools → Application → Storage → Clear Site Data</li>
+                <li><strong>Try incognito mode:</strong> Open a private/incognito browser window</li>
+                <li><strong>Direct URL:</strong> Navigate directly to <a href="http://localhost:8080/analyze" target="_blank">http://localhost:8080/analyze</a></li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

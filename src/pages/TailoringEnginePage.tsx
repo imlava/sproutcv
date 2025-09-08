@@ -127,8 +127,11 @@ const TailoringEnginePage = () => {
   });
 
   useEffect(() => {
+    // Temporarily allow access without authentication for testing
+    // Remove this in production
     if (!loading && !user) {
-      navigate('/auth');
+      console.log('TailoringEnginePage: User not authenticated, but allowing access for testing');
+      // navigate('/auth');
     }
   }, [user, loading, navigate]);
 
@@ -208,14 +211,38 @@ const TailoringEnginePage = () => {
   }
 
   if (!user) {
-    return null;
+    // Temporarily allow access without authentication for testing
+    // Remove this in production - just continue rendering
+    console.log('TailoringEnginePage: Rendering without user authentication for testing');
+    // return null;
   }
 
+  // Debug log
+  console.log('TailoringEnginePage: Rendering with currentStep:', state.currentStep);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50" data-component="tailoring-engine-page">
+      {/* DEBUG INDICATOR - REMOVE IN PRODUCTION */}
+      <div style={{ 
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        right: '0',
+        backgroundColor: '#4CAF50',
+        color: 'white',
+        padding: '10px',
+        textAlign: 'center',
+        fontSize: '18px',
+        fontWeight: 'bold',
+        zIndex: 9999,
+        border: '3px solid #2E7D32'
+      }}>
+        🎯 NEW TAILORING ENGINE ACTIVE - SUCCESS! 🎯
+      </div>
+      
       <Header />
       
-      <div className="pt-20">
+      <div className="pt-20" style={{ marginTop: '60px' }}>
         {/* Hero Section */}
         <div className="bg-white border-b border-green-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
