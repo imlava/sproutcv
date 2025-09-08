@@ -218,7 +218,7 @@ const AIResumeAnalyzerPage = () => {
       description: "DOCX file created with formatting preserved and ready for download!",
     });
   };
-  const { user, loading, signOut } = useAuth();
+  const { user, userProfile, loading, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   // Handle sign out
@@ -597,6 +597,16 @@ BENEFITS:
       return;
     }
 
+    // Check if user has sufficient credits
+    if (!userProfile || userProfile.credits <= 0) {
+      toast({
+        title: "Insufficient Credits",
+        description: "You need at least 1 credit to analyze your resume. Please purchase credits to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
     setError(null);
     
@@ -615,8 +625,11 @@ BENEFITS:
       
       toast({
         title: "Analysis Complete!",
-        description: "Your resume has been successfully analyzed.",
+        description: "Your resume has been successfully analyzed. 1 credit has been deducted.",
       });
+
+      // Refresh profile to get updated credit balance
+      await refreshProfile();
 
       // Refresh history
       await loadUserAnalyses();
@@ -1027,7 +1040,7 @@ BENEFITS:
                   <div className="flex items-center space-x-2 bg-green-50 px-3 py-1 rounded-full">
                     <CreditCard className="h-4 w-4 text-green-600" />
                     <span className="text-sm font-medium text-green-700">
-                      Credits Available
+                      {userProfile?.credits || 0} Credits
                     </span>
                   </div>
                   
@@ -1444,7 +1457,7 @@ BENEFITS:
           <div className="flex flex-wrap gap-4">
             <Button
               onClick={generateAIAnalysis}
-              disabled={isAnalyzing || !resumeText || !jobDescription || !user}
+              disabled={isAnalyzing || !resumeText || !jobDescription || !user || !userProfile?.credits || userProfile.credits <= 0}
               size="lg"
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
@@ -1453,10 +1466,15 @@ BENEFITS:
                   <Loader2 className="h-5 w-5 animate-spin mr-2" />
                   Analyzing...
                 </>
+              ) : !userProfile?.credits || userProfile.credits <= 0 ? (
+                <>
+                  <CreditCard className="h-5 w-5 mr-2" />
+                  Need Credits to Analyze
+                </>
               ) : (
                 <>
                   <Brain className="h-5 w-5 mr-2" />
-                  Analyze Resume
+                  Analyze Resume (1 Credit)
                 </>
               )}
             </Button>
