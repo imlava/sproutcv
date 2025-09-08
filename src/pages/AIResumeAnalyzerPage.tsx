@@ -309,6 +309,18 @@ const AIResumeAnalyzerPage = () => {
   const processFile = async (file: File): Promise<string> => {
     const fileType = file.type;
     const fileName = file.name.toLowerCase();
+    const fileSize = file.size;
+    
+    // File size validation (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (fileSize > maxSize) {
+      throw new Error(`File too large. Maximum size is 10MB, but your file is ${(fileSize / (1024 * 1024)).toFixed(1)}MB.`);
+    }
+    
+    // File name validation
+    if (fileName.length > 255) {
+      throw new Error('File name is too long. Please rename the file to something shorter.');
+    }
     
     try {
       // Text files
@@ -316,6 +328,9 @@ const AIResumeAnalyzerPage = () => {
         const text = await file.text();
         if (!text.trim()) {
           throw new Error('The text file appears to be empty.');
+        }
+        if (text.trim().length < 50) {
+          throw new Error('The text file is too short. Please ensure it contains a complete resume.');
         }
         return text;
       }
@@ -326,15 +341,25 @@ const AIResumeAnalyzerPage = () => {
         if (!text.trim()) {
           throw new Error('The markdown file appears to be empty.');
         }
-        return text;
+        if (text.trim().length < 50) {
+          throw new Error('The markdown file is too short. Please ensure it contains a complete resume.');
+        }
+        // Basic markdown processing - remove some markdown syntax for better analysis
+        const cleanText = text
+          .replace(/^#{1,6}\s+/gm, '') // Remove headers
+          .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+          .replace(/\*(.*?)\*/g, '$1') // Remove italic
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
+          .replace(/`([^`]+)`/g, '$1'); // Remove inline code
+        return cleanText;
       }
       
       // Word documents (.docx)
       if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
-        if (!result.value || result.value.trim().length < 10) {
-          throw new Error('Could not extract text from Word document. The document might be empty or contain only images.');
+        if (!result.value || result.value.trim().length < 50) {
+          throw new Error('Could not extract sufficient text from Word document. The document might be empty, contain only images, or be corrupted.');
         }
         return result.value;
       }
@@ -350,17 +375,40 @@ const AIResumeAnalyzerPage = () => {
       }
       
       // RTF files
-      if (fileName.endsWith('.rtf')) {
+      if (fileType === 'application/rtf' || fileType === 'text/rtf' || fileName.endsWith('.rtf')) {
         const text = await file.text();
         // Basic RTF parsing - remove RTF control words
-        const cleanText = text.replace(/\\[a-z]+\d*\s?/gi, '').replace(/[{}]/g, '').trim();
-        if (!cleanText || cleanText.length < 10) {
-          throw new Error('Could not extract readable text from RTF file. Please save as .docx or copy-paste the content.');
+        const cleanText = text
+          .replace(/\\[a-z]+\d*\s?/gi, '') // Remove RTF control words
+          .replace(/[{}]/g, '') // Remove braces
+          .replace(/\\\\/g, '\\') // Handle escaped backslashes
+          .trim();
+        
+        if (!cleanText || cleanText.length < 50) {
+          throw new Error('Could not extract sufficient readable text from RTF file. Please save as .docx or copy-paste the content.');
         }
         return cleanText;
       }
       
-      throw new Error(`Unsupported file type: ${file.name}. Supported formats: .txt, .docx, .pdf, .md files. For other formats, please copy-paste the text manually.`);
+      // HTML files (sometimes people save as HTML)
+      if (fileType === 'text/html' || fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+        const text = await file.text();
+        // Basic HTML stripping
+        const cleanText = text
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove scripts
+          .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '') // Remove styles
+          .replace(/<[^>]*>/g, ' ') // Remove HTML tags
+          .replace(/&[a-z]+;/gi, ' ') // Remove HTML entities
+          .replace(/\s+/g, ' ') // Normalize whitespace
+          .trim();
+        
+        if (!cleanText || cleanText.length < 50) {
+          throw new Error('Could not extract sufficient text from HTML file. Please use a proper resume format or copy-paste the content.');
+        }
+        return cleanText;
+      }
+      
+      throw new Error(`Unsupported file type: ${file.name}. Supported formats: .pdf, .docx, .txt, .md, .rtf, .html files. For other formats, please copy-paste the text manually.`);
     } catch (error) {
       console.error('File processing error:', error);
       throw error;
@@ -429,7 +477,10 @@ const AIResumeAnalyzerPage = () => {
       'text/plain': ['.txt'],
       'text/markdown': ['.md', '.markdown'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/pdf': ['.pdf']
+      'application/pdf': ['.pdf'],
+      'application/rtf': ['.rtf'],
+      'text/rtf': ['.rtf'],
+      'text/html': ['.html', '.htm']
     },
     maxFiles: 1,
     disabled: isProcessingFile
@@ -445,12 +496,26 @@ const AIResumeAnalyzerPage = () => {
       return;
     }
     
+    // Validate LinkedIn URL format
+    const linkedinJobPattern = /^https:\/\/(www\.)?linkedin\.com\/jobs\/view\/\d+/;
+    if (!linkedinJobPattern.test(linkedinUrl)) {
+      toast({
+        title: "Invalid LinkedIn URL",
+        description: "Please enter a valid LinkedIn job URL (e.g., https://www.linkedin.com/jobs/view/1234567890)",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // For now, show a placeholder message. In production, this would use a LinkedIn scraping service
     toast({
       title: "LinkedIn Integration Coming Soon",
-      description: "Please copy the job description from LinkedIn and paste it in the text area for now.",
+      description: "Please copy the job description from LinkedIn and paste it in the text area for now. We're working on automatic extraction!",
       variant: "default"
     });
+    
+    // Set some sample data for demo purposes
+    setJobDescription("Job description from LinkedIn will appear here automatically once our integration is complete.");
   };
 
   // Initialize editable resume when analysis is complete
@@ -641,12 +706,60 @@ BENEFITS:
     }
   };
 
+  // Comprehensive input validation
+  const validateInputs = (): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    // Resume validation
+    if (!resumeText || resumeText.trim().length === 0) {
+      errors.push("Resume text is required");
+    } else if (resumeText.trim().length < 100) {
+      errors.push("Resume text is too short (minimum 100 characters)");
+    } else if (resumeText.trim().length > 50000) {
+      errors.push("Resume text is too long (maximum 50,000 characters)");
+    }
+    
+    // Job description validation
+    if (!jobDescription || jobDescription.trim().length === 0) {
+      errors.push("Job description is required");
+    } else if (jobDescription.trim().length < 50) {
+      errors.push("Job description is too short (minimum 50 characters)");
+    } else if (jobDescription.trim().length > 20000) {
+      errors.push("Job description is too long (maximum 20,000 characters)");
+    }
+    
+    // Optional field validation
+    if (jobTitle && jobTitle.length > 200) {
+      errors.push("Job title is too long (maximum 200 characters)");
+    }
+    
+    if (companyName && companyName.length > 200) {
+      errors.push("Company name is too long (maximum 200 characters)");
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  };
+
   // Generate AI analysis
   const generateAIAnalysis = async () => {
     if (!user) {
       toast({
         title: "Authentication Required",
         description: "Please sign in to analyze your resume.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate inputs
+    const validation = validateInputs();
+    if (!validation.isValid) {
+      toast({
+        title: "Input Validation Failed",
+        description: validation.errors.join(". "),
         variant: "destructive",
       });
       return;
@@ -1334,6 +1447,7 @@ BENEFITS:
                           <Badge variant="outline">.docx</Badge>
                           <Badge variant="outline">.txt</Badge>
                           <Badge variant="outline">.md</Badge>
+                          <Badge variant="outline">.rtf</Badge>
                         </div>
                       </div>
                     </div>
