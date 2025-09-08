@@ -49,7 +49,8 @@ import {
   CreditCard,
   Sprout,
   Home,
-  Shield
+  Shield,
+  User
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -1507,9 +1508,9 @@ BENEFITS:
         {/* Enhanced Analysis Tab - Split View */}
         <TabsContent value="analysis" className="space-y-6">
           {analysis ? (
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 min-h-[600px]">
               {/* Left Panel - Enhanced Resume Display with Real-time Edits */}
-              <Card className="xl:col-span-1 overflow-hidden shadow-2xl border-2 border-green-100">
+              <Card className="lg:col-span-1 overflow-hidden shadow-xl border-2 border-green-100">
                 <CardHeader className="pb-3 bg-gradient-to-r from-green-50 to-emerald-50">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -1528,7 +1529,7 @@ BENEFITS:
                   <CardDescription>Your resume with real-time AI improvements applied</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="h-[600px] overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
+                  <div className="max-h-[500px] min-h-[300px] overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
                     {/* Resume Header with Live Stats */}
                     <div className="bg-white m-4 p-6 rounded-lg shadow-sm border">
                       <div className="flex items-center justify-between mb-4">
@@ -1580,7 +1581,7 @@ BENEFITS:
               </Card>
 
               {/* Center Panel - Advanced AI Suggestions Engine */}
-              <Card className="xl:col-span-1 overflow-hidden shadow-2xl border-2 border-emerald-100">
+              <Card className="lg:col-span-1 overflow-hidden shadow-xl border-2 border-emerald-100">
                 <CardHeader className="pb-3 bg-gradient-to-r from-emerald-50 to-green-50">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Brain className="h-5 w-5 text-emerald-600" />
@@ -1589,7 +1590,7 @@ BENEFITS:
                   <CardDescription>Advanced Fortune 500-grade AI recommendations</CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="h-[600px] overflow-y-auto">
+                  <div className="max-h-[500px] min-h-[300px] overflow-y-auto">
                     
                     {/* Smart Action Dashboard */}
                     <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-b">
@@ -1902,7 +1903,7 @@ BENEFITS:
               </Card>
 
               {/* Right Panel - Advanced Analytics & Export Hub */}
-              <Card className="xl:col-span-1 overflow-hidden shadow-2xl border-2 border-green-100">
+              <Card className="lg:col-span-2 xl:col-span-1 overflow-hidden shadow-xl border-2 border-green-100">
                 <CardHeader className="pb-3 bg-gradient-to-r from-green-50 to-emerald-50">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <BarChart3 className="h-5 w-5 text-green-600" />
@@ -1967,20 +1968,23 @@ BENEFITS:
                       <Button
                         onClick={downloadResumeAsText}
                         className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-12"
-                        disabled={appliedSuggestions.length === 0}
+                        disabled={!resumeText}
                       >
                         <Download className="h-4 w-4 mr-2" />
-                        Download Optimized Resume
-                        <Badge variant="secondary" className="ml-2 bg-white text-green-700">
-                          {appliedSuggestions.length} improvements
-                        </Badge>
+                        Download Resume
+                        {appliedSuggestions.length > 0 && (
+                          <Badge variant="secondary" className="ml-2 bg-white text-green-700">
+                            {appliedSuggestions.length} improvements
+                          </Badge>
+                        )}
                       </Button>
 
                       <div className="grid grid-cols-2 gap-2">
                         <Button
                           variant="outline"
                           onClick={exportToPDF}
-                          className="h-10"
+                          className="h-10 border-green-200 text-green-700 hover:bg-green-50"
+                          disabled={!resumeText}
                         >
                           <FileText className="h-3 w-3 mr-1" />
                           PDF Export
@@ -1988,7 +1992,8 @@ BENEFITS:
                         <Button
                           variant="outline"
                           onClick={exportToWord}
-                          className="h-10"
+                          className="h-10 border-blue-200 text-blue-700 hover:bg-blue-50"
+                          disabled={!resumeText}
                         >
                           <File className="h-3 w-3 mr-1" />
                           Word Export
@@ -2217,268 +2222,393 @@ BENEFITS:
           )}
         </TabsContent>
 
-        {/* Enhanced Interactive Resume Editor - Split View */}
-        <TabsContent value="interactive" className="space-y-6">
-          <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg border">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <Edit3 className="h-5 w-5 text-orange-600" />
-                Interactive Resume Editor
-              </h2>
-              <Badge variant="outline" className="bg-orange-100 text-orange-700">
-                Live Editing Mode
-              </Badge>
+        {/* Interactive Resume Builder - Human-Centered Design */}
+        <TabsContent value="interactive" className="space-y-4">
+          {/* Simple, Clean Header */}
+          <div className="flex items-center justify-between p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div>
+              <h2 className="text-2xl font-semibold text-gray-900">Resume Builder</h2>
+              <p className="text-gray-600 mt-1">Edit and enhance your resume with smart suggestions</p>
             </div>
-            <p className="text-sm text-gray-600">Edit your resume in real-time with AI-powered suggestions on the right panel</p>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <div className="text-sm text-gray-500">Improvements Made</div>
+                <div className="text-2xl font-bold text-emerald-600">{appliedSuggestions.length}</div>
+              </div>
+              <div className="h-12 w-px bg-gray-200"></div>
+              <div className="text-right">
+                <div className="text-sm text-gray-500">ATS Score</div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {analysis ? Math.min(100, (analysis.ats_score || 70) + appliedSuggestions.length * 2) : 70}%
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-6 h-[calc(100vh-250px)]">
-            {/* Left Panel - Editable Resume */}
-            <Card className="flex flex-col shadow-2xl border-2 border-orange-100">
-              <CardHeader className="pb-3 bg-gradient-to-r from-orange-50 to-amber-50">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-orange-600" />
-                    Your Resume
-                  </CardTitle>
+          {/* Main Content Area */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            
+            {/* Resume Editor - Left Side */}
+            <div className="lg:col-span-2">
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-50 rounded-lg">
+                      <FileText className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Your Resume</h3>
+                      <p className="text-sm text-gray-500">
+                        {(editableResume || resumeText).split(' ').length} words • 
+                        {(editableResume || resumeText).split('\n').length} lines
+                      </p>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setEditableResume(resumeText)}
-                      className="text-xs"
+                      className="text-sm"
                     >
-                      <RotateCcw className="h-3 w-3 mr-1" />
+                      <RotateCcw className="h-4 w-4 mr-1" />
                       Reset
                     </Button>
                     <Button
                       size="sm"
                       onClick={downloadResumeAsText}
-                      className="text-xs bg-orange-600 hover:bg-orange-700"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-sm"
                     >
-                      <Download className="h-3 w-3 mr-1" />
-                      Save
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
                     </Button>
                   </div>
                 </div>
-                <CardDescription>Edit your resume directly. Changes are saved automatically.</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1 p-0">
-                <div className="h-full">
-                  <textarea
-                    value={editableResume || resumeText}
-                    onChange={(e) => setEditableResume(e.target.value)}
-                    className="w-full h-full p-4 text-sm font-mono leading-relaxed border-0 resize-none focus:outline-none focus:ring-0"
-                    placeholder="Start editing your resume here..."
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Right Panel - AI Generation & Suggestions */}
-            <Card className="flex flex-col shadow-2xl border-2 border-purple-100">
-              <CardHeader className="pb-3 bg-gradient-to-r from-purple-50 to-pink-50">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-purple-600" />
-                  AI Content Generator
-                </CardTitle>
-                <CardDescription>Get AI-powered suggestions and generate content for any section</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-hidden p-4">
-                <div className="h-full overflow-y-auto space-y-4">
-                  
-                  {/* Quick AI Actions */}
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-lg border">
-                    <h4 className="font-semibold text-purple-700 mb-3 flex items-center gap-2">
-                      <Zap className="h-4 w-4" />
-                      Quick AI Actions
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => generateAISection('professional_summary')}
-                        className="text-xs h-8"
-                        disabled={!analysis}
-                      >
-                        <Brain className="h-3 w-3 mr-1" />
-                        Enhance Summary
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => generateAISection('skills')}
-                        className="text-xs h-8"
-                        disabled={!analysis}
-                      >
-                        <Target className="h-3 w-3 mr-1" />
-                        Optimize Skills
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => generateAISection('experience')}
-                        className="text-xs h-8"
-                        disabled={!analysis}
-                      >
-                        <Briefcase className="h-3 w-3 mr-1" />
-                        Improve Experience
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => generateAISection('achievements')}
-                        className="text-xs h-8"
-                        disabled={!analysis}
-                      >
-                        <Award className="h-3 w-3 mr-1" />
-                        Add Achievements
-                      </Button>
-                    </div>
+                
+                <div className="p-4">
+                  <div className="relative">
+                    <textarea
+                      value={editableResume || resumeText}
+                      onChange={(e) => setEditableResume(e.target.value)}
+                      className="w-full h-[600px] p-4 text-sm leading-relaxed border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-mono"
+                      placeholder="Start typing your resume here..."
+                    />
+                    
+                    {/* Subtle Enhancement Badge */}
+                    {appliedSuggestions.length > 0 && (
+                      <div className="absolute top-3 right-3">
+                        <div className="bg-emerald-500 text-white px-2 py-1 rounded-full text-xs font-medium">
+                          {appliedSuggestions.length} enhancement{appliedSuggestions.length !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    )}
                   </div>
+                </div>
+              </div>
+            </div>
 
-                  {/* AI-Generated Content */}
-                  {Object.entries(sectionSuggestions).map(([sectionName, suggestions]) => (
-                    <div key={sectionName} className="bg-white p-4 rounded-lg border">
-                      <div className="flex items-center justify-between mb-3">
-                        <h5 className="font-semibold text-gray-800 capitalize">
-                          {sectionName.replace('_', ' ')} Suggestions
-                        </h5>
-                        <Badge variant="outline" className="text-purple-600 border-purple-300">
-                          AI Generated
-                        </Badge>
+            {/* Smart Suggestions - Right Side */}
+            <div className="lg:col-span-1">
+              <div className="space-y-4">
+                
+                {/* Quick Actions */}
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                  <div className="p-4 border-b border-gray-100">
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-blue-600" />
+                      Quick Improvements
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">One-click enhancements</p>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <Button
+                      onClick={() => generateAISection('professional_summary')}
+                      disabled={!analysis}
+                      className="w-full justify-start bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      Enhance Summary
+                    </Button>
+                    <Button
+                      onClick={() => generateAISection('skills')}
+                      disabled={!analysis}
+                      className="w-full justify-start bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200"
+                    >
+                      <Target className="h-4 w-4 mr-2" />
+                      Optimize Skills
+                    </Button>
+                    <Button
+                      onClick={() => generateAISection('experience')}
+                      disabled={!analysis}
+                      className="w-full justify-start bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200"
+                    >
+                      <Briefcase className="h-4 w-4 mr-2" />
+                      Improve Experience
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Smart Suggestions */}
+                {analysis && (
+                  <div className="space-y-4">
+                    
+                    {/* Missing Keywords */}
+                    {(analysis.missing_critical_keywords || analysis.keyword_analysis?.missing_keywords || []).length > 0 && (
+                      <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <div className="p-4 border-b border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-gray-900">Missing Keywords</h4>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                (analysis.missing_critical_keywords || analysis.keyword_analysis?.missing_keywords || [])
+                                  .slice(0, 3)
+                                  .forEach(keyword => applySuggestion('keyword', keyword));
+                              }}
+                              className="text-xs"
+                            >
+                              Add All
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="p-4 space-y-2">
+                          {(analysis.missing_critical_keywords || analysis.keyword_analysis?.missing_keywords || []).slice(0, 3).map((keyword, index) => {
+                            const isApplied = appliedSuggestions.some(s => s.type === 'keyword' && s.content === keyword);
+                            const isRejected = rejectedSuggestions.some(s => s.type === 'keyword' && s.content === keyword);
+                            
+                            return (
+                              <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${
+                                isApplied ? 'bg-green-50 border-green-200' : 
+                                isRejected ? 'bg-red-50 border-red-200' : 
+                                'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                              }`}>
+                                <span className="text-sm font-medium text-gray-700">{keyword}</span>
+                                {!isApplied && !isRejected && (
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => applySuggestion('keyword', keyword)}
+                                      className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-xs"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => rejectSuggestion('keyword', keyword)}
+                                      className="h-7 px-2 text-xs"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                                {isApplied && <Badge className="bg-green-100 text-green-700 text-xs">Added</Badge>}
+                                {isRejected && <Badge className="bg-red-100 text-red-700 text-xs">Skipped</Badge>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick Wins */}
+                    {analysis.quick_wins && analysis.quick_wins.length > 0 && (
+                      <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                        <div className="p-4 border-b border-gray-100">
+                          <h4 className="font-medium text-gray-900">Quick Wins</h4>
+                          <p className="text-sm text-gray-500">Easy improvements with high impact</p>
+                        </div>
+                        <div className="p-4 space-y-3">
+                          {analysis.quick_wins.slice(0, 2).map((win, index) => {
+                            const isApplied = appliedSuggestions.some(s => s.type === 'quick_win' && s.content === win);
+                            const isRejected = rejectedSuggestions.some(s => s.type === 'quick_win' && s.content === win);
+                            
+                            return (
+                              <div key={index} className={`p-3 rounded-lg border ${
+                                isApplied ? 'bg-green-50 border-green-200' : 
+                                isRejected ? 'bg-red-50 border-red-200' : 
+                                'bg-gray-50 border-gray-200'
+                              }`}>
+                                <p className="text-sm text-gray-700 mb-2">{win}</p>
+                                {!isApplied && !isRejected && (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => applySuggestion('quick_win', win)}
+                                      className="bg-blue-600 hover:bg-blue-700 text-xs"
+                                    >
+                                      Apply
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => rejectSuggestion('quick_win', win)}
+                                      className="text-xs"
+                                    >
+                                      Skip
+                                    </Button>
+                                  </div>
+                                )}
+                                {isApplied && <Badge className="bg-green-100 text-green-700 text-xs">Applied</Badge>}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Live Stats */}
+                <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                  <div className="p-4 border-b border-gray-100">
+                    <h4 className="font-medium text-gray-900">Progress</h4>
+                  </div>
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">ATS Compatibility</span>
+                        <span className="text-sm font-medium">
+                          {analysis ? Math.min(100, (analysis.ats_score || 70) + appliedSuggestions.length * 2) : 70}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${analysis ? Math.min(100, (analysis.ats_score || 70) + appliedSuggestions.length * 2) : 70}%` }}
+                        />
                       </div>
                       
-                      <div className="space-y-3">
-                        {suggestions.map((suggestion, index) => (
-                          <div key={index} className="p-3 bg-gray-50 rounded-lg border">
-                            <p className="text-sm text-gray-700 mb-2">{suggestion}</p>
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => applySuggestionToSection(sectionName, suggestion)}
-                                className="bg-purple-600 hover:bg-purple-700 text-xs h-7"
-                              >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Apply
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSectionSuggestions(prev => ({
-                                    ...prev,
-                                    [sectionName]: prev[sectionName].filter((_, i) => i !== index)
-                                  }));
-                                }}
-                                className="text-xs h-7"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
+                      <div className="grid grid-cols-2 gap-4 pt-2">
+                        <div className="text-center">
+                          <div className="text-lg font-semibold text-gray-900">{appliedSuggestions.length}</div>
+                          <div className="text-xs text-gray-500">Improvements</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-semibold text-gray-900">
+                            {(editableResume || resumeText).split(' ').length}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Custom AI Generation */}
-                  <div className="bg-white p-4 rounded-lg border">
-                    <h5 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                      <MessageSquare className="h-4 w-4" />
-                      Custom AI Generation
-                    </h5>
-                    <div className="space-y-3">
-                      <Input
-                        placeholder="Describe what you want to generate (e.g., 'Add bullet points for my React experience')"
-                        className="text-sm"
-                      />
-                      <Button
-                        size="sm"
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                        disabled={isGeneratingSection !== null}
-                      >
-                        {isGeneratingSection ? (
-                          <>
-                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="h-3 w-3 mr-2" />
-                            Generate AI Content
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Live Statistics */}
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border">
-                    <h5 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4" />
-                      Live Statistics
-                    </h5>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-green-600">
-                          {(editableResume || resumeText).split(' ').length}
+                          <div className="text-xs text-gray-500">Words</div>
                         </div>
-                        <div className="text-xs text-gray-600">Words</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">
-                          {(editableResume || resumeText).split('\n').length}
-                        </div>
-                        <div className="text-xs text-gray-600">Lines</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-purple-600">
-                          {appliedSuggestions.length}
-                        </div>
-                        <div className="text-xs text-gray-600">AI Changes</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-lg font-bold text-orange-600">
-                          {analysis ? Math.min(100, (analysis.ats_score || 70) + appliedSuggestions.length * 2) : 0}%
-                        </div>
-                        <div className="text-xs text-gray-600">ATS Score</div>
                       </div>
                     </div>
                   </div>
-                  
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Navigation Controls */}
-          <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
-            <Button
-              variant="outline"
-              onClick={() => setActiveTab('results')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Results
-            </Button>
-            
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Ready to create a cover letter?</p>
-              <Badge variant="outline" className="mt-1">
-                {(editableResume || resumeText).split(' ').length} words
-              </Badge>
+          {/* AI Generated Content Section */}
+          {Object.entries(sectionSuggestions).length > 0 && (
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="p-4 border-b border-gray-100">
+                <h3 className="font-semibold text-gray-900">AI Generated Content</h3>
+                <p className="text-sm text-gray-500 mt-1">Review and apply suggestions to your resume</p>
+              </div>
+              <div className="p-4 space-y-4">
+                {Object.entries(sectionSuggestions).map(([sectionName, suggestions]) => (
+                  <div key={sectionName} className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-medium text-gray-900 mb-3 capitalize">
+                      {sectionName.replace('_', ' ')} Suggestions
+                    </h4>
+                    <div className="space-y-3">
+                      {suggestions.map((suggestion, index) => (
+                        <div key={index} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                          <p className="text-sm text-gray-700 mb-3">{suggestion}</p>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => applySuggestionToSection(sectionName, suggestion)}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-xs"
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              Apply
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSectionSuggestions(prev => ({
+                                  ...prev,
+                                  [sectionName]: prev[sectionName].filter((_, i) => i !== index)
+                                }));
+                              }}
+                              className="text-xs"
+                            >
+                              <X className="h-3 w-3 mr-1" />
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            
-            <Button
-              onClick={() => setActiveTab('cover-letter')}
-              className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700"
-            >
-              Generate Cover Letter
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+          )}
+
+          {/* Custom AI Prompt */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="p-4 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900">Custom AI Assistant</h3>
+              <p className="text-sm text-gray-500 mt-1">Describe what you'd like to improve</p>
+            </div>
+            <div className="p-4">
+              <div className="space-y-4">
+                <textarea
+                  placeholder="e.g., 'Make my work experience sound more impactful' or 'Add technical skills for a software engineer role'"
+                  className="w-full p-3 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  rows={3}
+                />
+                <Button
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  disabled={isGeneratingSection !== null}
+                >
+                  {isGeneratingSection ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Generate Suggestions
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </TabsContent>
+
+        {/* Navigation Controls */}
+        <div className="flex justify-between items-center bg-white p-4 rounded-lg border shadow-sm">
+          <Button
+            variant="outline"
+            onClick={() => setActiveTab('results')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Results
+          </Button>
+          
+          <div className="text-center">
+            <p className="text-sm text-gray-600">Ready to create a cover letter?</p>
+            <Badge variant="outline" className="mt-1">
+              {(editableResume || resumeText).split(' ').length} words
+            </Badge>
+          </div>
+          
+          <Button
+            onClick={() => setActiveTab('cover-letter')}
+            className="flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700"
+          >
+            Generate Cover Letter
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
 
         {/* Cover Letter Generator */}
         <TabsContent value="cover-letter" className="space-y-6">
