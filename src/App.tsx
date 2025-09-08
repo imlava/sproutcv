@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import EnhancedAuthPage from "./components/auth/EnhancedAuthPage";
 import Dashboard from "./pages/Dashboard";
+import TailoringEnginePage from "./pages/TailoringEnginePage";
 import AIResumeAnalyzerPage from "./pages/AIResumeAnalyzerPage";
 import AnalysisDetailPage from "./pages/AnalysisDetailPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
@@ -45,11 +46,13 @@ const App = () => {
               <Route path="/auth" element={<EnhancedAuthPage />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/analyze" element={<AIResumeAnalyzerPage />} />
+              <Route path="/analyze" element={<TailoringEnginePage />} />
               <Route path="/analysis/:id" element={<AnalysisDetailPage />} />
               {/* Legacy route redirects */}
               <Route path="/ai-resume-analyzer" element={<Navigate to="/analyze" replace />} />
               <Route path="/ai-analyzer" element={<Navigate to="/analyze" replace />} />
+              {/* Backup legacy analyzer route */}
+              <Route path="/legacy-analyzer" element={<AIResumeAnalyzerPage />} />
               <Route path="/how-it-works" element={<HowItWorksPage />} />
               <Route path="/help" element={<HelpCenter />} />
               <Route path="/contact" element={<ContactUs />} />
