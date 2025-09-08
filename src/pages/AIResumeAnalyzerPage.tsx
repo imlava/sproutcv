@@ -250,15 +250,23 @@ const AIResumeAnalyzerPage = () => {
 
   // Set up PDF.js worker
   useEffect(() => {
-    // Set the worker source for PDF.js
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Set the worker source for PDF.js to use local file from public directory
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
   }, []);
 
   // Enhanced file processing functions
   const extractTextFromPDF = async (file: File): Promise<string> => {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await pdfjsLib.getDocument({ 
+        data: arrayBuffer,
+        // Add options to improve reliability
+        standardFontDataUrl: `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
+        disableFontFace: false,
+        isEvalSupported: false,
+        verbosity: 0 // Reduce console spam
+      }).promise;
+      
       let fullText = '';
 
       // Extract text from each page
@@ -272,13 +280,29 @@ const AIResumeAnalyzerPage = () => {
       }
 
       // Clean up the extracted text
-      return fullText
+      const cleanedText = fullText
         .replace(/\s+/g, ' ') // Replace multiple spaces with single space
         .replace(/\n\s*\n/g, '\n') // Replace multiple newlines with single newline
         .trim();
+
+      if (!cleanedText || cleanedText.length < 10) {
+        throw new Error('PDF appears to be empty or contains only images. Please try a text-based PDF or copy-paste the content.');
+      }
+
+      return cleanedText;
     } catch (error) {
       console.error('PDF extraction error:', error);
-      throw new Error('Failed to extract text from PDF. Please try copying and pasting the text manually.');
+      
+      // Provide more specific error messages
+      if (error.message?.includes('worker')) {
+        throw new Error('PDF processing failed due to worker configuration. Please refresh the page and try again, or use copy-paste instead.');
+      } else if (error.message?.includes('Invalid PDF')) {
+        throw new Error('This PDF file appears to be corrupted or invalid. Please try a different file or copy-paste the text.');
+      } else if (error.message?.includes('password')) {
+        throw new Error('This PDF is password protected. Please unlock it first or copy-paste the text manually.');
+      } else {
+        throw new Error('Failed to extract text from PDF. The file might contain only images or be in an unsupported format. Please try copying and pasting the text manually.');
+      }
     }
   };
 
@@ -287,25 +311,56 @@ const AIResumeAnalyzerPage = () => {
     const fileName = file.name.toLowerCase();
     
     try {
+      // Text files
       if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
-        return await file.text();
+        const text = await file.text();
+        if (!text.trim()) {
+          throw new Error('The text file appears to be empty.');
+        }
+        return text;
       }
       
+      // Markdown files
       if (fileName.endsWith('.md') || fileName.endsWith('.markdown')) {
-        return await file.text();
+        const text = await file.text();
+        if (!text.trim()) {
+          throw new Error('The markdown file appears to be empty.');
+        }
+        return text;
       }
       
+      // Word documents (.docx)
       if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
+        if (!result.value || result.value.trim().length < 10) {
+          throw new Error('Could not extract text from Word document. The document might be empty or contain only images.');
+        }
         return result.value;
       }
       
+      // Legacy Word documents (.doc)
+      if (fileType === 'application/msword' || fileName.endsWith('.doc')) {
+        throw new Error('Legacy .doc files are not supported. Please save as .docx format or copy-paste the content.');
+      }
+      
+      // PDF files
       if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
         return await extractTextFromPDF(file);
       }
       
-      throw new Error('Unsupported file type. Please use .txt, .docx, .md, .pdf files or copy-paste text.');
+      // RTF files
+      if (fileName.endsWith('.rtf')) {
+        const text = await file.text();
+        // Basic RTF parsing - remove RTF control words
+        const cleanText = text.replace(/\\[a-z]+\d*\s?/gi, '').replace(/[{}]/g, '').trim();
+        if (!cleanText || cleanText.length < 10) {
+          throw new Error('Could not extract readable text from RTF file. Please save as .docx or copy-paste the content.');
+        }
+        return cleanText;
+      }
+      
+      throw new Error(`Unsupported file type: ${file.name}. Supported formats: .txt, .docx, .pdf, .md files. For other formats, please copy-paste the text manually.`);
     } catch (error) {
       console.error('File processing error:', error);
       throw error;
