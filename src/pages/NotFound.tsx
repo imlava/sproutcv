@@ -90,7 +90,7 @@ const NotFound = () => {
                   icon: HelpCircle,
                   title: "Support Center",
                   description: "Get help and find answers",
-                  path: "/contactus",
+                  path: "https://sproutcv.app/contact",
                   color: "bg-purple-100 text-purple-600"
                 },
                 {
@@ -103,7 +103,13 @@ const NotFound = () => {
               ].map((link, index) => (
                 <button
                   key={index}
-                  onClick={() => navigate(link.path)}
+                  onClick={() => {
+                    if (link.path.startsWith('http')) {
+                      window.open(link.path, '_blank');
+                    } else {
+                      navigate(link.path);
+                    }
+                  }}
                   className="flex items-start space-x-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all duration-200 text-left group"
                 >
                   <div className={`p-2 rounded-lg ${link.color} group-hover:scale-110 transition-transform duration-200`}>
@@ -125,7 +131,7 @@ const NotFound = () => {
             <p className="text-sm text-gray-500">
               Still can't find what you're looking for?{' '}
               <button 
-                onClick={() => navigate('/contactus')}
+                onClick={() => window.open('https://sproutcv.app/contact', '_blank')}
                 className="text-green-600 hover:text-green-700 font-medium underline"
               >
                 Contact our support team
