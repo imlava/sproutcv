@@ -90,7 +90,7 @@ const NotFound = () => {
                   icon: HelpCircle,
                   title: "Support Center",
                   description: "Get help and find answers",
-                  path: "/",
+                  path: "/contactus",
                   color: "bg-purple-100 text-purple-600"
                 },
                 {
@@ -125,7 +125,7 @@ const NotFound = () => {
             <p className="text-sm text-gray-500">
               Still can't find what you're looking for?{' '}
               <button 
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/contactus')}
                 className="text-green-600 hover:text-green-700 font-medium underline"
               >
                 Contact our support team
