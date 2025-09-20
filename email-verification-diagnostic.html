@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification Diagnostic - SproutCV</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f7fafc;
+        }
+        .status-good { color: #10b981; font-weight: bold; }
+        .status-warning { color: #f59e0b; font-weight: bold; }
+        .status-error { color: #ef4444; font-weight: bold; }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            margin: 10px 5px;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .result-box {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        .diagnosis {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .fix-suggestion {
+            background: #dcfce7;
+            border: 1px solid #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📧 Email Verification Diagnostic Tool</h1>
+        <p>This tool will help diagnose why email verification is not working for user: <strong>kumarmohan7746@gmail.com</strong></p>
+
+        <div class="test-section">
+            <h2>🔍 Diagnostic Tests</h2>
+            
+            <div class="input-group">
+                <label for="testEmail">Email to Test:</label>
+                <input type="email" id="testEmail" value="kumarmohan7746@gmail.com" placeholder="Enter email address">
+            </div>
+
+            <button class="button" onclick="runComprehensiveDiagnostic()">🔬 Run Full Diagnostic</button>
+            <button class="button" onclick="checkUserStatus()">👤 Check User Status</button>
+            <button class="button" onclick="testEmailDelivery()">📤 Test Email Delivery</button>
+            <button class="button" onclick="resendVerification()">🔄 Resend Verification</button>
+            <button class="button" onclick="manuallyVerifyUser()">✅ Manually Verify User</button>
+
+            <div id="diagnosticResults" class="result-box" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🛠️ Common Issues & Solutions</h2>
+            
+            <div class="diagnosis">
+                <strong>🔍 Possible Causes:</strong>
+                <ul>
+                    <li>SMTP configuration issues in Supabase</li>
+                    <li>Email going to spam/junk folder</li>
+                    <li>Invalid email template configuration</li>
+                    <li>Supabase project email confirmation disabled</li>
+                    <li>Rate limiting preventing email delivery</li>
+                    <li>Email provider blocking/bouncing emails</li>
+                </ul>
+            </div>
+
+            <div class="fix-suggestion">
+                <strong>💡 Recommended Fixes:</strong>
+                <ul>
+                    <li>Check Supabase Auth > Settings > Email Confirmation</li>
+                    <li>Verify SMTP settings in Supabase Dashboard</li>
+                    <li>Check email templates for correct redirect URLs</li>
+                    <li>Review email delivery logs in Supabase</li>
+                    <li>Test with different email providers</li>
+                    <li>Implement custom email service as fallback</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Real-time Monitoring</h2>
+            <button class="button" onclick="monitorEmailEvents()">📈 Monitor Email Events</button>
+            <div id="emailEvents" class="result-box" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+        const SUPABASE_ANON_KEY = '***REMOVED***';
+
+        async function runComprehensiveDiagnostic() {
+            const email = document.getElementById('testEmail').value;
+            const resultDiv = document.getElementById('diagnosticResults');
+            resultDiv.style.display = 'block';
+
+            if (!email) {
+                resultDiv.innerHTML = '<div style="color: #ef4444;">Please enter an email address</div>';
+                return;
+            }
+
+            let diagnosticResults = {
+                userExists: null,
+                emailVerified: null,
+                emailDeliveryTest: null,
+                authSettings: null,
+                recentAttempts: null
+            };
+
+            try {
+                resultDiv.innerHTML = `
+                    <div style="color: #fbbf24; font-weight: bold; margin-bottom: 15px;">🔬 RUNNING COMPREHENSIVE EMAIL VERIFICATION DIAGNOSTIC</div>
+                    <div style="color: #e5e7eb;">
+                        📝 Diagnostic Details:<br>
+                        - Target Email: ${email}<br>
+                        - Timestamp: ${new Date().toISOString()}<br><br>
+                        
+                        🔄 Step 1: Checking if user exists...<br>
+                    </div>
+                `;
+
+                // Step 1: Check if user exists and their verification status
+                try {
+                    const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=eq.${email}`, {
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                        }
+                    });
+
+                    const profiles = await response.json();
+                    diagnosticResults.userExists = profiles.length > 0;
+
+                    resultDiv.innerHTML += `
+                        <div style="color: #e5e7eb;">
+                            📞 Step 1 Result: ${response.status} ${response.statusText}<br>
+                            ${profiles.length > 0 ? '✅ User profile found!' : '❌ No user profile found'}<br>
+                            ${profiles.length > 0 ? `📊 Profile Data: ID ${profiles[0].id}, Created: ${profiles[0].created_at}` : ''}<br><br>
+                            
+                            🔄 Step 2: Checking email verification status...<br>
+                        </div>
+                    `;
+
+                    if (profiles.length > 0) {
+                        diagnosticResults.emailVerified = profiles[0].email_verified || false;
+                        
+                        resultDiv.innerHTML += `
+                            <div style="color: #e5e7eb;">
+                                📞 Step 2 Result: Email verification status<br>
+                                ${profiles[0].email_verified ? '✅ Email is already verified' : '❌ Email is NOT verified'}<br><br>
+                                
+                                🔄 Step 3: Checking recent verification attempts...<br>
+                            </div>
+                        `;
+
+                        // Check recent verification attempts
+                        try {
+                            const eventsResponse = await fetch(`${SUPABASE_URL}/rest/v1/security_events?event_type=eq.verification_email_resent&metadata->>email=eq.${email}&order=created_at.desc&limit=5`, {
+                                headers: {
+                                    'apikey': SUPABASE_ANON_KEY,
+                                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                                }
+                            });
+
+                            const events = await eventsResponse.json();
+                            diagnosticResults.recentAttempts = events.length;
+
+                            resultDiv.innerHTML += `
+                                <div style="color: #e5e7eb;">
+                                    📞 Step 3 Result: Found ${events.length} recent verification attempts<br>
+                                    ${events.length > 0 ? '📋 Recent attempts: ' + events.map(e => new Date(e.created_at).toLocaleString()).join(', ') : 'No recent verification attempts found'}<br><br>
+                                    
+                                    🔄 Step 4: Testing email delivery...<br>
+                                </div>
+                            `;
+                        } catch (eventsError) {
+                            resultDiv.innerHTML += `
+                                <div style="color: #e5e7eb;">
+                                    📞 Step 3 Result: Could not check recent attempts (non-critical)<br><br>
+                                    
+                                    🔄 Step 4: Testing email delivery...<br>
+                                </div>
+                            `;
+                        }
+                    }
+                } catch (userError) {
+                    diagnosticResults.userExists = false;
+                    resultDiv.innerHTML += `
+                        <div style="color: #e5e7eb;">
+                            📞 Step 1 Result: Error checking user existence<br>
+                            ❌ ${userError.message}<br><br>
+                            
+                            🔄 Step 4: Testing email delivery anyway...<br>
+                        </div>
+                    `;
+                }
+
+                // Step 4: Test email delivery
+                try {
+                    const deliveryResponse = await fetch(`${SUPABASE_URL}/functions/v1/resend-verification-email`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ email })
+                    });
+
+                    const deliveryResult = await deliveryResponse.json();
+                    diagnosticResults.emailDeliveryTest = deliveryResponse.ok;
+
+                    resultDiv.innerHTML += `
+                        <div style="color: #e5e7eb;">
+                            📞 Step 4 Result: ${deliveryResponse.status} ${deliveryResponse.statusText}<br>
+                            ${deliveryResponse.ok ? '✅ Email delivery function works!' : `❌ Email delivery failed: ${deliveryResult.error || 'Unknown error'}`}<br><br>
+                        </div>
+                    `;
+                } catch (deliveryError) {
+                    diagnosticResults.emailDeliveryTest = false;
+                    resultDiv.innerHTML += `
+                        <div style="color: #e5e7eb;">
+                            📞 Step 4 Result: Email delivery test failed<br>
+                            ❌ ${deliveryError.message}<br><br>
+                        </div>
+                    `;
+                }
+
+                // Final Analysis
+                const overallStatus = diagnosticResults.userExists && diagnosticResults.emailDeliveryTest;
+
+                resultDiv.innerHTML += `
+                    <div style="color: ${overallStatus ? '#10b981' : '#ef4444'}; font-weight: bold; margin-top: 20px;">
+                        ${overallStatus ? 
+                            '🎉 EMAIL SYSTEM APPEARS TO BE WORKING!' : 
+                            '⚠️ EMAIL VERIFICATION ISSUES DETECTED'
+                        }<br><br>
+                        
+                        📋 Diagnostic Summary:<br>
+                        ${diagnosticResults.userExists ? '✅' : '❌'} User exists in database<br>
+                        ${diagnosticResults.emailVerified ? '✅' : '❌'} Email is verified<br>
+                        ${diagnosticResults.emailDeliveryTest ? '✅' : '❌'} Email delivery function works<br>
+                        📊 Recent attempts: ${diagnosticResults.recentAttempts || 0}<br><br>
+                        
+                        💡 Recommendations:<br>
+                        ${!diagnosticResults.userExists ? '• User needs to complete signup first<br>' : ''}
+                        ${diagnosticResults.userExists && !diagnosticResults.emailVerified ? '• Email verification needed<br>' : ''}
+                        ${!diagnosticResults.emailDeliveryTest ? '• Check Supabase email configuration<br>' : ''}
+                        ${diagnosticResults.recentAttempts > 0 ? '• Check spam/junk folder<br>' : ''}
+                        • Verify SMTP settings in Supabase Dashboard<br>
+                        • Check email template configuration<br>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="color: #ef4444;">
+                        ❌ Diagnostic Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function checkUserStatus() {
+            const email = document.getElementById('testEmail').value;
+            const resultDiv = document.getElementById('diagnosticResults');
+            resultDiv.style.display = 'block';
+
+            if (!email) {
+                resultDiv.innerHTML = '<div style="color: #ef4444;">Please enter an email address</div>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = `
+                    <div style="color: #fbbf24; font-weight: bold;">👤 CHECKING USER STATUS</div>
+                    <div style="color: #e5e7eb;">Email: ${email}<br><br></div>
+                `;
+
+                // Check profile
+                const profileResponse = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=eq.${email}`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                const profiles = await profileResponse.json();
+
+                if (profiles.length === 0) {
+                    resultDiv.innerHTML += `
+                        <div style="color: #ef4444;">
+                            ❌ No user found with email: ${email}<br>
+                            💡 User needs to complete signup first
+                        </div>
+                    `;
+                    return;
+                }
+
+                const profile = profiles[0];
+                
+                resultDiv.innerHTML += `
+                    <div style="color: #10b981;">
+                        ✅ User found!<br><br>
+                        📊 Profile Details:<br>
+                        - ID: ${profile.id}<br>
+                        - Full Name: ${profile.full_name}<br>
+                        - Email: ${profile.email}<br>
+                        - Email Verified: ${profile.email_verified ? 'Yes ✅' : 'No ❌'}<br>
+                        - Credits: ${profile.credits}<br>
+                        - Created: ${new Date(profile.created_at).toLocaleString()}<br>
+                        - Updated: ${new Date(profile.updated_at).toLocaleString()}<br>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="color: #ef4444;">
+                        ❌ Error checking user status: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function testEmailDelivery() {
+            const email = document.getElementById('testEmail').value;
+            const resultDiv = document.getElementById('diagnosticResults');
+            resultDiv.style.display = 'block';
+
+            if (!email) {
+                resultDiv.innerHTML = '<div style="color: #ef4444;">Please enter an email address</div>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = `
+                    <div style="color: #fbbf24; font-weight: bold;">📤 TESTING EMAIL DELIVERY</div>
+                    <div style="color: #e5e7eb;">Testing delivery to: ${email}<br><br></div>
+                `;
+
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/resend-verification-email`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML += `
+                        <div style="color: #10b981;">
+                            ✅ Email delivery test successful!<br>
+                            📧 ${result.message}<br><br>
+                            💡 Please check the email inbox and spam folder
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML += `
+                        <div style="color: #ef4444;">
+                            ❌ Email delivery failed<br>
+                            📧 Error: ${result.error}<br><br>
+                            💡 Check Supabase configuration
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="color: #ef4444;">
+                        ❌ Email delivery test error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function resendVerification() {
+            const email = document.getElementById('testEmail').value;
+            const resultDiv = document.getElementById('diagnosticResults');
+            resultDiv.style.display = 'block';
+
+            if (!email) {
+                resultDiv.innerHTML = '<div style="color: #ef4444;">Please enter an email address</div>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = `
+                    <div style="color: #fbbf24; font-weight: bold;">🔄 RESENDING VERIFICATION EMAIL</div>
+                    <div style="color: #e5e7eb;">Sending to: ${email}<br><br></div>
+                `;
+
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/resend-verification-email`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    if (result.alreadyVerified) {
+                        resultDiv.innerHTML += `
+                            <div style="color: #10b981;">
+                                ✅ Email is already verified!<br>
+                                👤 User can sign in normally
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML += `
+                            <div style="color: #10b981;">
+                                ✅ Verification email sent successfully!<br>
+                                📧 ${result.message}<br><br>
+                                ⏰ Email should arrive within 5 minutes<br>
+                                📁 Check spam/junk folder if not received
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML += `
+                        <div style="color: #ef4444;">
+                            ❌ Failed to resend verification email<br>
+                            📧 Error: ${result.error}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="color: #ef4444;">
+                        ❌ Resend verification error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function manuallyVerifyUser() {
+            const email = document.getElementById('testEmail').value;
+            const resultDiv = document.getElementById('diagnosticResults');
+            resultDiv.style.display = 'block';
+
+            if (!email) {
+                resultDiv.innerHTML = '<div style="color: #ef4444;">Please enter an email address</div>';
+                return;
+            }
+
+            const confirmed = confirm(`Are you sure you want to manually verify the email: ${email}?\n\nThis will bypass the normal email verification process.`);
+            
+            if (!confirmed) {
+                resultDiv.innerHTML = '<div style="color: #fbbf24;">Manual verification cancelled</div>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = `
+                    <div style="color: #fbbf24; font-weight: bold;">✅ MANUALLY VERIFYING USER</div>
+                    <div style="color: #e5e7eb;">Verifying: ${email}<br><br></div>
+                `;
+
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/fix-email-confirmation`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        email,
+                        adminPassword: 'SproutCV2024!Admin'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML += `
+                        <div style="color: #10b981;">
+                            ✅ Email verified manually!<br>
+                            👤 User: ${result.user.id}<br>
+                            📧 Email: ${result.user.email}<br>
+                            ⏰ Confirmed at: ${result.user.confirmed_at}<br><br>
+                            🎉 User can now sign in successfully!
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML += `
+                        <div style="color: #ef4444;">
+                            ❌ Manual verification failed<br>
+                            📧 Error: ${result.error}
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="color: #ef4444;">
+                        ❌ Manual verification error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function monitorEmailEvents() {
+            const email = document.getElementById('testEmail').value;
+            const resultDiv = document.getElementById('emailEvents');
+            resultDiv.style.display = 'block';
+
+            if (!email) {
+                resultDiv.innerHTML = '<div style="color: #ef4444;">Please enter an email address</div>';
+                return;
+            }
+
+            try {
+                resultDiv.innerHTML = `
+                    <div style="color: #fbbf24; font-weight: bold;">📈 MONITORING EMAIL EVENTS</div>
+                    <div style="color: #e5e7eb;">Checking recent events for: ${email}<br><br></div>
+                `;
+
+                // Check security events
+                const eventsResponse = await fetch(`${SUPABASE_URL}/rest/v1/security_events?metadata->>email=eq.${email}&order=created_at.desc&limit=10`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                const events = await eventsResponse.json();
+
+                if (events.length === 0) {
+                    resultDiv.innerHTML += `
+                        <div style="color: #fbbf24;">
+                            📭 No recent email events found for this user
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML += `
+                        <div style="color: #10b981;">
+                            📊 Found ${events.length} recent events:<br><br>
+                        </div>
+                    `;
+
+                    events.forEach((event, index) => {
+                        resultDiv.innerHTML += `
+                            <div style="color: #e5e7eb; margin: 10px 0; padding: 10px; border-left: 3px solid #10b981;">
+                                🔍 Event ${index + 1}:<br>
+                                - Type: ${event.event_type}<br>
+                                - Time: ${new Date(event.created_at).toLocaleString()}<br>
+                                - Severity: ${event.severity}<br>
+                                - Metadata: ${JSON.stringify(event.metadata, null, 2)}<br>
+                            </div>
+                        `;
+                    });
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML += `
+                    <div style="color: #ef4444;">
+                        ❌ Error monitoring events: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-run basic diagnostic on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Email Verification Diagnostic Tool loaded');
+        });
+    </script>
+</body>
+</html>

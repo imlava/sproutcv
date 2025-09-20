@@ -36,13 +36,22 @@ serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
     // Check if user exists and is not already confirmed
-    const { data: authUser, error: getUserError } = await supabaseClient.auth.admin.getUserByEmail(email);
+    const { data: authUsers, error: getUserError } = await supabaseClient.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000
+    });
 
-    if (getUserError || !authUser.user) {
+    if (getUserError) {
+      throw new Error("Error checking user existence");
+    }
+
+    const authUser = authUsers.users.find(user => user.email === email);
+
+    if (!authUser) {
       throw new Error("No account found with this email address");
     }
 
-    if (authUser.user.email_confirmed_at) {
+    if (authUser.email_confirmed_at) {
       return new Response(JSON.stringify({
         success: true,
         message: "Email is already verified",
@@ -86,7 +95,7 @@ serve(async (req) => {
     await supabaseClient
       .from("security_events")
       .insert({
-        user_id: authUser.user.id,
+        user_id: authUser.id,
         event_type: "verification_email_resent",
         metadata: {
           email: email,

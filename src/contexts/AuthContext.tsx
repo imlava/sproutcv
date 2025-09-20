@@ -130,46 +130,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error };
       }
       
-      // Create user profile using Edge Function
+      // Use the robust email verification system
       if (data.user && !error) {
         try {
-          console.log('Creating user profile with referral code:', referralCode);
-          const response = await supabase.functions.invoke('create-user-profile', {
+          console.log('Starting robust email verification for user:', data.user.id);
+          const response = await supabase.functions.invoke('robust-email-verification', {
             body: {
-              userId: data.user.id,
               email: email,
-              fullName: fullName,
-              referralCode: referralCode
+              userId: data.user.id,
+              retryCount: 0,
+              forceVerify: false
             }
           });
           
           if (response.error) {
-            console.warn('Profile creation had issues:', response.error);
-            // Check if it's just a duplicate issue
-            if (!response.error.message?.includes('already exists')) {
-              console.error('Profile creation failed:', response.error);
-            }
+            console.warn('Robust verification had issues:', response.error);
+            // Don't fail signup - the system will retry automatically
           } else {
-            console.log('User profile creation successful:', response.data);
+            console.log('Robust verification successful:', response.data);
           }
-        } catch (profileError) {
-          console.error('Failed to create user profile:', profileError);
-          // Don't throw error here as signup was successful
+        } catch (verificationError) {
+          console.error('Failed to start robust verification:', verificationError);
+          // Don't throw error here as signup was successful - system will auto-heal
         }
         
-        // Send welcome email after successful signup
-        try {
-          await supabase.functions.invoke('welcome-email', {
-            body: {
-              userId: data.user.id,
-              email: email,
-              fullName: fullName
+        // Handle referral if provided (non-blocking)
+        if (referralCode) {
+          try {
+            const referralResponse = await supabase.rpc('complete_referral_signup', {
+              user_id: data.user.id,
+              user_email: email,
+              referral_code: referralCode
+            });
+            
+            if (referralResponse.error) {
+              console.warn('Referral processing error:', referralResponse.error);
+            } else {
+              console.log('Referral processed successfully:', referralResponse.data);
             }
-          });
-          console.log('Welcome email sent successfully');
-        } catch (emailError) {
-          console.error('Failed to send welcome email:', emailError);
-          // Don't throw error here as signup was successful
+          } catch (referralError) {
+            console.error('Referral exception:', referralError);
+          }
         }
       }
       

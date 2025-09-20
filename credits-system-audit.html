@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credits System Audit</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background: #e8f5e8; border-color: #4caf50; }
+        .error { background: #ffeaea; border-color: #f44336; }
+        .warning { background: #fff3cd; border-color: #ffc107; }
+        .info { background: #e3f2fd; border-color: #2196f3; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f2f2f2; }
+        .timestamp { font-family: monospace; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <h1>🏦 Credits System Comprehensive Audit</h1>
+    
+    <div class="section info">
+        <h2>📊 Audit Overview</h2>
+        <p>This comprehensive audit examines:</p>
+        <ul>
+            <li>✅ Welcome credits allocation (exactly 5 credits)</li>
+            <li>🔄 Credit deduction for AI analysis</li>
+            <li>🚫 Duplicate prevention mechanisms</li>
+            <li>📈 Credit transaction integrity</li>
+            <li>🔒 Security and consistency checks</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🎮 Test Controls</h2>
+        <button class="btn-primary" onclick="runFullAudit()">🔍 Run Full Credits Audit</button>
+        <button class="btn-success" onclick="checkWelcomeCredits()">🎁 Check Welcome Credits</button>
+        <button class="btn-warning" onclick="auditCreditDeductions()">💳 Audit Credit Deductions</button>
+        <button class="btn-success" onclick="validateCreditIntegrity()">🔐 Validate Credit Integrity</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // Supabase configuration
+        const supabaseUrl = 'https://ddbqhrgugweolhqfbxgm.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkYnFocmd1Z3dlb2xocWZieGdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQwMzQwNTEsImV4cCI6MjA0OTYxMDA1MX0.3RqAPTVYdlhxZVYKBJvJU7EYhCrpgvs3Ygqr8SBV0kk';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        function addResult(title, content, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const section = document.createElement('div');
+            section.className = `section ${type}`;
+            section.innerHTML = `
+                <h3>${title}</h3>
+                <div>${content}</div>
+                <div class="timestamp">⏰ ${new Date().toISOString()}</div>
+            `;
+            resultsDiv.appendChild(section);
+        }
+
+        async function runFullAudit() {
+            addResult('🔍 Starting Full Credits System Audit', 'Initiating comprehensive audit...', 'info');
+            
+            try {
+                await checkWelcomeCredits();
+                await auditCreditDeductions();
+                await validateCreditIntegrity();
+                await checkDuplicatePrevention();
+                await analyzeUserCreditDistribution();
+                
+                addResult('✅ Full Audit Complete', 'All credit system components audited successfully', 'success');
+            } catch (error) {
+                addResult('❌ Audit Failed', `Error during audit: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkWelcomeCredits() {
+            addResult('🎁 Checking Welcome Credits System', 'Analyzing welcome bonus allocation...', 'info');
+            
+            try {
+                // Check credits_ledger for welcome bonuses
+                const { data: welcomeCredits, error: welcomeError } = await supabase
+                    .from('credits_ledger')
+                    .select('user_id, credits_amount, description, created_at, balance_after')
+                    .eq('transaction_type', 'bonus')
+                    .eq('description', 'Welcome bonus credits')
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (welcomeError) {
+                    throw welcomeError;
+                }
+
+                // Group by user to check for duplicates
+                const userCredits = {};
+                welcomeCredits.forEach(credit => {
+                    if (!userCredits[credit.user_id]) {
+                        userCredits[credit.user_id] = [];
+                    }
+                    userCredits[credit.user_id].push(credit);
+                });
+
+                let duplicateUsers = [];
+                let correctUsers = [];
+                let incorrectAmounts = [];
+
+                Object.entries(userCredits).forEach(([userId, credits]) => {
+                    if (credits.length > 1) {
+                        duplicateUsers.push({ userId, count: credits.length, credits });
+                    } else {
+                        if (credits[0].credits_amount === 5) {
+                            correctUsers.push(userId);
+                        } else {
+                            incorrectAmounts.push({ userId, amount: credits[0].credits_amount });
+                        }
+                    }
+                });
+
+                let report = `
+                    <h4>📊 Welcome Credits Analysis</h4>
+                    <table>
+                        <tr><th>Metric</th><th>Count</th><th>Status</th></tr>
+                        <tr><td>Total welcome credit entries</td><td>${welcomeCredits.length}</td><td>ℹ️</td></tr>
+                        <tr><td>Unique users with welcome credits</td><td>${Object.keys(userCredits).length}</td><td>ℹ️</td></tr>
+                        <tr><td>Users with exactly 5 credits</td><td>${correctUsers.length}</td><td>✅</td></tr>
+                        <tr><td>Users with duplicate welcome credits</td><td>${duplicateUsers.length}</td><td>${duplicateUsers.length > 0 ? '⚠️' : '✅'}</td></tr>
+                        <tr><td>Users with incorrect credit amounts</td><td>${incorrectAmounts.length}</td><td>${incorrectAmounts.length > 0 ? '❌' : '✅'}</td></tr>
+                    </table>
+                `;
+
+                if (duplicateUsers.length > 0) {
+                    report += '<h4>⚠️ Duplicate Welcome Credits Found:</h4><pre>' + JSON.stringify(duplicateUsers, null, 2) + '</pre>';
+                }
+
+                if (incorrectAmounts.length > 0) {
+                    report += '<h4>❌ Incorrect Welcome Credit Amounts:</h4><pre>' + JSON.stringify(incorrectAmounts, null, 2) + '</pre>';
+                }
+
+                const type = duplicateUsers.length > 0 || incorrectAmounts.length > 0 ? 'warning' : 'success';
+                addResult('🎁 Welcome Credits Audit Results', report, type);
+
+            } catch (error) {
+                addResult('❌ Welcome Credits Check Failed', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function auditCreditDeductions() {
+            addResult('💳 Auditing Credit Deductions', 'Analyzing AI analysis credit consumption...', 'info');
+            
+            try {
+                // Check usage transactions
+                const { data: usageCredits, error: usageError } = await supabase
+                    .from('credits_ledger')
+                    .select('user_id, credits_amount, description, created_at, balance_after, related_analysis_id')
+                    .eq('transaction_type', 'usage')
+                    .order('created_at', { ascending: false })
+                    .limit(50);
+
+                if (usageError) {
+                    throw usageError;
+                }
+
+                // Analyze usage patterns
+                let correctDeductions = 0;
+                let incorrectDeductions = 0;
+                let analysisDeductions = 0;
+
+                usageCredits.forEach(credit => {
+                    if (credit.credits_amount === -1) {
+                        correctDeductions++;
+                        if (credit.related_analysis_id) {
+                            analysisDeductions++;
+                        }
+                    } else {
+                        incorrectDeductions++;
+                    }
+                });
+
+                let report = `
+                    <h4>📊 Credit Deduction Analysis</h4>
+                    <table>
+                        <tr><th>Metric</th><th>Count</th><th>Status</th></tr>
+                        <tr><td>Total usage transactions</td><td>${usageCredits.length}</td><td>ℹ️</td></tr>
+                        <tr><td>Correct deductions (-1 credit)</td><td>${correctDeductions}</td><td>✅</td></tr>
+                        <tr><td>Incorrect deduction amounts</td><td>${incorrectDeductions}</td><td>${incorrectDeductions > 0 ? '❌' : '✅'}</td></tr>
+                        <tr><td>Analysis-related deductions</td><td>${analysisDeductions}</td><td>ℹ️</td></tr>
+                    </table>
+                    
+                    <h4>📈 Recent Credit Usage:</h4>
+                    <table>
+                        <tr><th>User ID</th><th>Amount</th><th>Balance After</th><th>Analysis ID</th><th>Date</th></tr>
+                `;
+
+                usageCredits.slice(0, 10).forEach(credit => {
+                    report += `
+                        <tr>
+                            <td>${credit.user_id.substring(0, 8)}...</td>
+                            <td>${credit.credits_amount}</td>
+                            <td>${credit.balance_after}</td>
+                            <td>${credit.related_analysis_id ? credit.related_analysis_id.substring(0, 8) + '...' : 'N/A'}</td>
+                            <td>${new Date(credit.created_at).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+
+                report += '</table>';
+
+                const type = incorrectDeductions > 0 ? 'warning' : 'success';
+                addResult('💳 Credit Deduction Audit Results', report, type);
+
+            } catch (error) {
+                addResult('❌ Credit Deduction Check Failed', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function validateCreditIntegrity() {
+            addResult('🔐 Validating Credit Integrity', 'Checking credit balance consistency...', 'info');
+            
+            try {
+                // Check profile credits vs ledger balance
+                const { data: profiles, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('id, credits, email')
+                    .not('credits', 'is', null)
+                    .limit(20);
+
+                if (profileError) {
+                    throw profileError;
+                }
+
+                let integrityResults = [];
+                
+                for (const profile of profiles) {
+                    // Get latest ledger entry for this user
+                    const { data: latestLedger, error: ledgerError } = await supabase
+                        .from('credits_ledger')
+                        .select('balance_after, created_at')
+                        .eq('user_id', profile.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    if (ledgerError) {
+                        console.error('Ledger error for user', profile.id, ledgerError);
+                        continue;
+                    }
+
+                    const profileCredits = profile.credits;
+                    const ledgerBalance = latestLedger?.[0]?.balance_after;
+                    
+                    integrityResults.push({
+                        userId: profile.id,
+                        email: profile.email,
+                        profileCredits,
+                        ledgerBalance,
+                        consistent: profileCredits === ledgerBalance,
+                        lastLedgerUpdate: latestLedger?.[0]?.created_at
+                    });
+                }
+
+                const consistent = integrityResults.filter(r => r.consistent).length;
+                const inconsistent = integrityResults.filter(r => !r.consistent).length;
+
+                let report = `
+                    <h4>🔐 Credit Integrity Analysis</h4>
+                    <table>
+                        <tr><th>Metric</th><th>Count</th><th>Status</th></tr>
+                        <tr><td>Profiles checked</td><td>${integrityResults.length}</td><td>ℹ️</td></tr>
+                        <tr><td>Consistent balances</td><td>${consistent}</td><td>✅</td></tr>
+                        <tr><td>Inconsistent balances</td><td>${inconsistent}</td><td>${inconsistent > 0 ? '❌' : '✅'}</td></tr>
+                    </table>
+                    
+                    <h4>📊 Sample Balance Comparison:</h4>
+                    <table>
+                        <tr><th>User Email</th><th>Profile Credits</th><th>Ledger Balance</th><th>Status</th></tr>
+                `;
+
+                integrityResults.slice(0, 10).forEach(result => {
+                    const status = result.consistent ? '✅' : '❌';
+                    report += `
+                        <tr>
+                            <td>${result.email || 'N/A'}</td>
+                            <td>${result.profileCredits}</td>
+                            <td>${result.ledgerBalance || 'N/A'}</td>
+                            <td>${status}</td>
+                        </tr>
+                    `;
+                });
+
+                report += '</table>';
+
+                const type = inconsistent > 0 ? 'warning' : 'success';
+                addResult('🔐 Credit Integrity Results', report, type);
+
+            } catch (error) {
+                addResult('❌ Credit Integrity Check Failed', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkDuplicatePrevention() {
+            addResult('🚫 Checking Duplicate Prevention', 'Analyzing duplicate credit prevention mechanisms...', 'info');
+            
+            try {
+                // Check for users with multiple welcome bonuses
+                const { data: duplicateWelcome, error: duplicateError } = await supabase
+                    .rpc('get_duplicate_welcome_credits');
+
+                if (duplicateError && !duplicateError.message.includes('function get_duplicate_welcome_credits')) {
+                    throw duplicateError;
+                }
+
+                // Manual check for duplicates
+                const { data: allWelcome, error: welcomeError } = await supabase
+                    .from('credits_ledger')
+                    .select('user_id, created_at')
+                    .eq('transaction_type', 'bonus')
+                    .eq('description', 'Welcome bonus credits');
+
+                if (welcomeError) {
+                    throw welcomeError;
+                }
+
+                const userCounts = {};
+                allWelcome.forEach(entry => {
+                    userCounts[entry.user_id] = (userCounts[entry.user_id] || 0) + 1;
+                });
+
+                const duplicateUsers = Object.entries(userCounts)
+                    .filter(([userId, count]) => count > 1)
+                    .map(([userId, count]) => ({ userId, count }));
+
+                let report = `
+                    <h4>🚫 Duplicate Prevention Analysis</h4>
+                    <table>
+                        <tr><th>Metric</th><th>Count</th><th>Status</th></tr>
+                        <tr><td>Total users with welcome credits</td><td>${Object.keys(userCounts).length}</td><td>ℹ️</td></tr>
+                        <tr><td>Users with single welcome bonus</td><td>${Object.keys(userCounts).length - duplicateUsers.length}</td><td>✅</td></tr>
+                        <tr><td>Users with duplicate welcome bonuses</td><td>${duplicateUsers.length}</td><td>${duplicateUsers.length > 0 ? '⚠️' : '✅'}</td></tr>
+                    </table>
+                `;
+
+                if (duplicateUsers.length > 0) {
+                    report += '<h4>⚠️ Users with Duplicate Welcome Credits:</h4><pre>' + JSON.stringify(duplicateUsers, null, 2) + '</pre>';
+                }
+
+                const type = duplicateUsers.length > 0 ? 'warning' : 'success';
+                addResult('🚫 Duplicate Prevention Results', report, type);
+
+            } catch (error) {
+                addResult('❌ Duplicate Prevention Check Failed', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function analyzeUserCreditDistribution() {
+            addResult('📈 Analyzing Credit Distribution', 'Examining user credit patterns...', 'info');
+            
+            try {
+                // Get credit distribution
+                const { data: profiles, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('credits')
+                    .not('credits', 'is', null);
+
+                if (profileError) {
+                    throw profileError;
+                }
+
+                const creditCounts = {};
+                profiles.forEach(profile => {
+                    const credits = profile.credits;
+                    creditCounts[credits] = (creditCounts[credits] || 0) + 1;
+                });
+
+                const sortedCredits = Object.entries(creditCounts)
+                    .sort(([a], [b]) => parseInt(a) - parseInt(b));
+
+                let report = `
+                    <h4>📈 Credit Distribution Analysis</h4>
+                    <p>Total users with credits: ${profiles.length}</p>
+                    
+                    <table>
+                        <tr><th>Credit Amount</th><th>User Count</th><th>Percentage</th></tr>
+                `;
+
+                sortedCredits.forEach(([credits, count]) => {
+                    const percentage = ((count / profiles.length) * 100).toFixed(1);
+                    report += `
+                        <tr>
+                            <td>${credits}</td>
+                            <td>${count}</td>
+                            <td>${percentage}%</td>
+                        </tr>
+                    `;
+                });
+
+                report += '</table>';
+
+                // Analysis insights
+                const zeroCredits = creditCounts['0'] || 0;
+                const fiveCredits = creditCounts['5'] || 0;
+                const hasCredits = profiles.length - zeroCredits;
+
+                report += `
+                    <h4>💡 Key Insights:</h4>
+                    <ul>
+                        <li>Users with 0 credits: ${zeroCredits} (${((zeroCredits/profiles.length)*100).toFixed(1)}%)</li>
+                        <li>Users with 5 credits (likely new): ${fiveCredits} (${((fiveCredits/profiles.length)*100).toFixed(1)}%)</li>
+                        <li>Users with remaining credits: ${hasCredits} (${((hasCredits/profiles.length)*100).toFixed(1)}%)</li>
+                    </ul>
+                `;
+
+                addResult('📈 Credit Distribution Results', report, 'info');
+
+            } catch (error) {
+                addResult('❌ Credit Distribution Analysis Failed', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run a quick audit on page load
+        window.onload = function() {
+            addResult('🏦 Credits System Audit Tool Loaded', 'Ready to analyze your credits system. Click "Run Full Credits Audit" to begin comprehensive analysis.', 'info');
+        };
+    </script>
+</body>
+</html>
