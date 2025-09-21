@@ -267,75 +267,69 @@ const EnhancedFeaturesSection = () => {
               dashboardInView ? 'animate-fade-in-scale' : 'animate-on-scroll'
             }`}>
               {/* Animated background pattern */}
-              <div className="absolute inset-0 bg-grid-green-100 bg-[size:30px_30px] opacity-20 animate-pulse" />
               
               {/* Main score display */}
-              <div className="relative text-center mb-10">
-                <div className="relative inline-block">
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full blur-lg opacity-50 animate-pulse" />
-                  <div className="relative inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full mb-6 shadow-2xl">
-                    <span className="text-4xl font-black text-white animate-pulse">
+              <div className="relative text-center mb-8">
+                <div className="relative inline-block mb-6">
+                  <div className="inline-flex items-center justify-center w-24 h-24 bg-green-600 rounded-full shadow-lg">
+                    <span className="text-3xl font-bold text-white">
                       {dashboardInView ? <AnimatedCounter end={94} /> : '0'}
                     </span>
-                    {/* Orbiting elements */}
-                    <div className="absolute w-3 h-3 bg-white/80 rounded-full top-2 left-1/2 transform -translate-x-1/2 animate-spin" style={{animationDuration: '3s'}} />
-                    <div className="absolute w-2 h-2 bg-white/60 rounded-full bottom-3 right-6 animate-spin" style={{animationDuration: '4s', animationDirection: 'reverse'}} />
                   </div>
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-3">Resume Score</h3>
-                <p className="text-gray-600 text-lg">Optimized for maximum impact!</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Resume Score</h3>
+                <p className="text-gray-600">Optimized for maximum impact</p>
                 
                 {/* Achievement badges */}
-                <div className="flex justify-center space-x-2 mt-6">
-                  <Badge className="bg-green-100 text-green-800 px-3 py-1 animate-bounce">🎯 ATS Ready</Badge>
-                  <Badge className="bg-blue-100 text-blue-800 px-3 py-1 animate-bounce animation-delay-300">🚀 Interview Ready</Badge>
-                  <Badge className="bg-purple-100 text-purple-800 px-3 py-1 animate-bounce animation-delay-600">💼 HR Approved</Badge>
+                <div className="flex flex-wrap justify-center gap-2 mt-4">
+                  <Badge className="bg-green-100 text-green-800 px-3 py-1">ATS Ready</Badge>
+                  <Badge className="bg-emerald-100 text-emerald-800 px-3 py-1">Interview Ready</Badge>
+                  <Badge className="bg-green-100 text-green-700 px-3 py-1">HR Approved</Badge>
                 </div>
               </div>
               
-              {/* Enhanced metrics with counting animations */}
-              <div className="space-y-8">
+              {/* Simplified metrics */}
+              <div className="space-y-4">
                 {[
-                  { name: "Keyword Match", score: 96, color: "from-green-500 to-emerald-500", icon: "🎯" },
-                  { name: "ATS Compatibility", score: 94, color: "from-blue-500 to-cyan-500", icon: "🤖" },
-                  { name: "Skills Alignment", score: 92, color: "from-purple-500 to-pink-500", icon: "⚡" },
-                  { name: "Experience Match", score: 89, color: "from-orange-500 to-red-500", icon: "📈" }
+                  { name: "Keyword Match", score: 96, color: "bg-green-500", icon: "🎯" },
+                  { name: "ATS Compatibility", score: 94, color: "bg-emerald-500", icon: "✓" },
+                  { name: "Skills Alignment", score: 92, color: "bg-green-600", icon: "⚡" },
+                  { name: "Experience Match", score: 89, color: "bg-emerald-600", icon: "📈" }
                 ].map((metric, index) => (
-                  <div key={index} className="space-y-3 group">
+                  <div key={index} className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-xl group-hover:scale-110 transition-transform duration-300">{metric.icon}</span>
-                        <span className="text-base font-semibold text-gray-700 group-hover:text-gray-900 transition-colors duration-300">{metric.name}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm">{metric.icon}</span>
+                        <span className="text-sm font-medium text-gray-700">{metric.name}</span>
                       </div>
-                      <span className="text-lg font-bold text-gray-900 group-hover:scale-110 transition-transform duration-300 metric-counter">
-                        {dashboardInView ? <AnimatedCounter end={metric.score} delay={index * 200} /> : '0'}%
+                      <span className="text-sm font-semibold text-gray-900">
+                        {dashboardInView ? <AnimatedCounter end={metric.score} delay={index * 100} /> : '0'}%
                       </span>
                     </div>
-                    <div className="relative w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
                       <div 
-                        className={`absolute inset-0 bg-gradient-to-r ${metric.color} h-4 rounded-full progress-bar-animate ${
+                        className={`${metric.color} h-2 rounded-full transition-all duration-1000 ease-out ${
                           dashboardInView ? 'w-full' : 'w-0'
                         }`}
                         style={{ 
-                          transitionDelay: `${index * 200}ms`
+                          transitionDelay: `${index * 100}ms`,
+                          width: dashboardInView ? `${metric.score}%` : '0%'
                         }}
                       />
-                      {/* Shine effect */}
-                      <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent h-4 rounded-full translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out`} />
                     </div>
                   </div>
                 ))}
               </div>
               
               {/* AI Insights preview */}
-              <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-100/50">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">AI</span>
+              <div className="mt-6 p-4 bg-green-50 rounded-xl border border-green-100">
+                <div className="flex items-center space-x-2 mb-2">
+                  <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">AI</span>
                   </div>
-                  <span className="font-semibold text-gray-800">Latest AI Insight</span>
+                  <span className="font-medium text-gray-800 text-sm">Latest AI Insight</span>
                 </div>
-                <p className="text-sm text-gray-600 italic">"Add 3 more technical skills to increase ATS compatibility by 12%"</p>
+                <p className="text-xs text-gray-600">"Add 3 more technical skills to increase ATS compatibility by 12%"</p>
               </div>
             </Card>
           </div>
