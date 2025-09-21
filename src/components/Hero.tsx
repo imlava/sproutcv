@@ -201,70 +201,58 @@ const EnhancedFeaturesSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-          <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div className="space-y-6">
             {[
               { 
                 icon: Target, 
                 title: "Smart Keyword Optimization", 
-                desc: "AI identifies and suggests the exact keywords recruiters are looking for",
-                gradient: "from-blue-500 to-cyan-500",
-                bgGradient: "from-blue-50 to-cyan-50",
-                delay: "animation-delay-200"
+                desc: "AI identifies exact keywords recruiters are looking for in your industry",
+                accent: "text-green-600",
+                bgColor: "bg-green-50/80"
               },
               { 
                 icon: FileCheck, 
                 title: "ATS Compatibility Check", 
-                desc: "Ensure your resume passes through applicant tracking systems flawlessly",
-                gradient: "from-green-500 to-emerald-500",
-                bgGradient: "from-green-50 to-emerald-50",
-                delay: "animation-delay-400"
+                desc: "Ensure your resume passes through applicant tracking systems",
+                accent: "text-emerald-600", 
+                bgColor: "bg-emerald-50/80"
               },
               { 
                 icon: TrendingUp, 
                 title: "Impact Quantification", 
-                desc: "Transform weak bullet points into powerful, metrics-driven achievements",
-                gradient: "from-purple-500 to-pink-500",
-                bgGradient: "from-purple-50 to-pink-50",
-                delay: "animation-delay-600"
+                desc: "Transform bullet points into powerful, metrics-driven achievements",
+                accent: "text-green-700",
+                bgColor: "bg-green-50/80"
               },
               { 
                 icon: Zap, 
                 title: "Instant Analysis", 
-                desc: "Get comprehensive feedback and optimization suggestions in under 30 seconds",
-                gradient: "from-orange-500 to-red-500",
-                bgGradient: "from-orange-50 to-red-50",
-                delay: "animation-delay-800"
+                desc: "Get comprehensive feedback and optimization in under 30 seconds",
+                accent: "text-emerald-700",
+                bgColor: "bg-emerald-50/80"
               }
             ].map((feature, index) => (
               <div 
                 key={index} 
-                className={`group relative p-8 bg-white/70 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105 feature-card ${
+                className={`group relative p-6 ${feature.bgColor} rounded-2xl border border-green-100/50 hover:border-green-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 ${
                   featuresInView ? 'animate-fade-in-up' : 'animate-on-scroll'
-                } ${feature.delay} border border-white/50`}
-                style={{ animationDelay: `${index * 200}ms` }}
+                }`}
+                style={{ animationDelay: `${index * 150}ms` }}
               >
-                {/* Gradient background on hover */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.bgGradient} opacity-0 group-hover:opacity-100 rounded-3xl transition-opacity duration-500`} />
-                
-                {/* Animated border */}
-                <div className={`absolute inset-0 bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-20 rounded-3xl blur-xl transition-opacity duration-500`} />
-                
-                <div className="relative flex items-start space-x-6">
-                  <div className={`relative p-4 rounded-2xl bg-gradient-to-br ${feature.gradient} shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110`}>
-                    <feature.icon className="h-8 w-8 text-white" />
-                    {/* Glow effect */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-md opacity-0 group-hover:opacity-50 transition-opacity duration-300`} />
+                <div className="flex items-start space-x-4">
+                  <div className="flex-shrink-0 p-3 bg-white rounded-xl shadow-sm group-hover:shadow-md transition-shadow duration-300">
+                    <feature.icon className={`h-6 w-6 ${feature.accent}`} />
                   </div>
-                  <div className="flex-1">
-                    <h4 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-gray-800 transition-colors duration-300">{feature.title}</h4>
-                    <p className="text-gray-600 leading-relaxed text-lg group-hover:text-gray-700 transition-colors duration-300">{feature.desc}</p>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-green-800 transition-colors duration-300">
+                      {feature.title}
+                    </h4>
+                    <p className="text-gray-600 leading-relaxed group-hover:text-gray-700 transition-colors duration-300">
+                      {feature.desc}
+                    </p>
                   </div>
                 </div>
-                
-                {/* Floating particles effect */}
-                <div className="absolute top-4 right-4 w-2 h-2 bg-gradient-to-r from-green-400 to-blue-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping transition-opacity duration-300" />
-                <div className="absolute bottom-6 right-8 w-1 h-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping animation-delay-1000 transition-opacity duration-300" />
               </div>
             ))}
           </div>
