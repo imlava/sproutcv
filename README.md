@@ -71,3 +71,17 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Project Structure
+
+The project is organized as follows:
+
+- `src/`: Main source code (React components, pages, hooks, etc.)
+- `docs/`: Project documentation and guides
+- `scripts/`: Shell and utility scripts for deployment and maintenance
+- `database/scripts/`: SQL migration and setup scripts
+- `tests/`: Test files and diagnostic tools
+- `config/`: Configuration examples
+- `env/`: Environment variable files (configured in `vite.config.ts`)
+- `public/`: Static assets
+- `supabase/`: Supabase configuration and functions

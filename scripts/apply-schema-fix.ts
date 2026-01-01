@@ -17,7 +17,7 @@ async function applyMigration() {
     console.log('🔧 Applying payment_transactions schema fix...');
     
     // Read the SQL migration file
-    const migrationSql = readFileSync(join(__dirname, 'fix-payment-transactions-schema.sql'), 'utf8');
+    const migrationSql = readFileSync(join(__dirname, '../database/scripts/fix-payment-transactions-schema.sql'), 'utf8');
     
     // Split into individual statements and execute them
     const statements = migrationSql
