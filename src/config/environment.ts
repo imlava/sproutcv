@@ -1,8 +1,9 @@
 // Environment configuration for AI Resume Analyzer
+// SECURITY: All sensitive values must come from environment variables
 export const config = {
-  // Supabase configuration
-  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://yucdpvnmcuokemhqpnvz.supabase.co',
-  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '***REMOVED***',
+  // Supabase configuration - NO FALLBACK VALUES FOR SECURITY
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
+  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   
   // Feature flags
   enableAIAnalysis: true,

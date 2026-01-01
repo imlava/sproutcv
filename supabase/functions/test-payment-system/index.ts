@@ -5,6 +5,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// SECURITY: Use environment variables
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
 // Test all SproutCV products
 const TEST_PRODUCTS = [
   { credits: 1, amount: 150, planType: 'single', name: 'Single Credit' },
@@ -32,11 +36,11 @@ serve(async (req) => {
       
       try {
         // Call the payment function directly
-        const paymentResponse = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/create-payment-dynamic', {
+        const paymentResponse = await fetch(`${SUPABASE_URL}/functions/v1/create-payment-dynamic`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ***REMOVED***'
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
           },
           body: JSON.stringify({
             credits: product.credits,

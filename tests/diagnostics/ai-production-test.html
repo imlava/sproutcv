@@ -146,7 +146,7 @@
             try {
                 const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/rest/v1/', {
                     headers: {
-                        'apikey': '***REMOVED***'
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1Y2Rwdm5tY3Vva2VtaHFwbnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMDg3OTksImV4cCI6MjA2OTY4NDc5OX0.slvx1sMBHmGrlFuLltvePeA417SFTWhZGCJIJZeYIgQ'
                     }
                 });
                 if (response.ok) {
@@ -165,7 +165,7 @@
                 const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/gemini-analyze', {
                     method: 'POST',
                     headers: {
-                        'Authorization': 'Bearer ***REMOVED***',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1Y2Rwdm5tY3Vva2VtaHFwbnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMDg3OTksImV4cCI6MjA2OTY4NDc5OX0.slvx1sMBHmGrlFuLltvePeA417SFTWhZGCJIJZeYIgQ',
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
@@ -203,7 +203,7 @@
                 const response = await fetch('https://yucdpvnmcuokemhqpnvz.supabase.co/functions/v1/gemini-analyze', {
                     method: 'POST',
                     headers: {
-                        'Authorization': 'Bearer ***REMOVED***',
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1Y2Rwdm5tY3Vva2VtaHFwbnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMDg3OTksImV4cCI6MjA2OTY4NDc5OX0.slvx1sMBHmGrlFuLltvePeA417SFTWhZGCJIJZeYIgQ',
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ prompt: testPrompt })

@@ -65,8 +65,8 @@ netlify deploy --prod --dir=dist
 **Required Environment Variables:**
 ```bash
 # Supabase Configuration
-VITE_SUPABASE_URL=https://yucdpvnmcuokemhqpnvz.supabase.co
-VITE_SUPABASE_ANON_KEY=***REMOVED***
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
 # Dodo Payments (Optional - for real payments)
 DODO_PAYMENTS_API_KEY=your_dodo_api_key_here

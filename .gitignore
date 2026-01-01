@@ -1,33 +1,88 @@
-# Logs
-logs
-*.log
+# ===========================================
+# SproutCV - Security-First .gitignore
+# ===========================================
+
+# ===== ENVIRONMENT & SECRETS =====
+# NEVER commit these files
+.env
+.env.*
+!.env.example
+env/.env
+env/.env.*
+!env/.env.example
+*.local
+.secrets
+secrets/
+*.pem
+*.key
+*.cert
+
+# ===== API KEYS & CREDENTIALS =====
+config.js
+config.json
+config.local.*
+credentials.json
+service-account*.json
+*-credentials.json
+*.credentials
+
+# ===== NODE =====
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.pnpm-store/
 
-node_modules
-dist
-dist-ssr
-*.local
+# ===== BUILD OUTPUT =====
+dist/
+dist-ssr/
+build/
+.next/
+out/
+*.tsbuildinfo
 
-# Environment Variables
-env/.env
-env/.env.*
-!env/.env.example
+# ===== LOGS =====
+logs/
+*.log
+*.log.*
 
-# Editor directories and files
+# ===== EDITOR & IDE =====
 .vscode/*
 !.vscode/extensions.json
-.idea
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
 
-# Configuration files with secrets
-config.js
-config.json
+# ===== TESTING =====
+coverage/
+.nyc_output/
+*.lcov
+
+# ===== TEMPORARY FILES =====
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ===== MISC =====
+.cache/
+*.tgz
+.turbo/
+
+# ===== DIAGNOSTIC FILES =====
+# These may contain sensitive data
+tests/diagnostics/*.html
+_backup/
+
+# ===== INTERNAL DOCS (contain project-specific URLs) =====
+# Keep docs/ but review before committing
+docs/*.md
+!docs/README.md

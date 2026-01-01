@@ -8,9 +8,19 @@ set -e
 
 echo "🚀 Setting up Robust Email Verification Automation..."
 
-# Configuration
-SUPABASE_URL="https://yucdpvnmcuokemhqpnvz.supabase.co"
-SUPABASE_ANON_KEY="***REMOVED***"
+# Configuration - Load from environment variables
+# SECURITY: Never hardcode credentials in scripts
+if [ -z "$SUPABASE_URL" ]; then
+    echo "❌ Error: SUPABASE_URL environment variable is not set"
+    echo "Please set it: export SUPABASE_URL=your_supabase_url"
+    exit 1
+fi
+
+if [ -z "$SUPABASE_ANON_KEY" ]; then
+    echo "❌ Error: SUPABASE_ANON_KEY environment variable is not set"
+    echo "Please set it: export SUPABASE_ANON_KEY=your_supabase_anon_key"
+    exit 1
+fi
 
 # Function to call the auto-verify processor
 call_auto_processor() {
@@ -58,9 +68,12 @@ setup_cron() {
     cat > /tmp/auto-verify-cron.sh << 'EOF'
 #!/bin/bash
 # Auto-verification cron job - runs every 5 minutes
+# SECURITY: Load credentials from environment or secure storage
 
-SUPABASE_URL="https://yucdpvnmcuokemhqpnvz.supabase.co"
-SUPABASE_ANON_KEY="***REMOVED***"
+if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+    echo "Error: Missing environment variables" >> /tmp/auto-verify.log
+    exit 1
+fi
 
 # Run auto-processor
 curl -s -X POST "${SUPABASE_URL}/functions/v1/auto-verify-processor" \

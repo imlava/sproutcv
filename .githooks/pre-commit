@@ -1,0 +1,52 @@
+#!/bin/bash
+# Pre-commit hook to prevent committing secrets
+
+echo "🔒 Checking for secrets..."
+
+# Patterns that indicate secrets
+PATTERNS=(
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'  # JWT tokens
+    'sk_live_'                               # Stripe live keys
+    'sk_test_'                               # Stripe test keys
+    'AKIA[0-9A-Z]{16}'                       # AWS Access Keys
+    'password\s*=\s*["\x27][^"\x27]+'       # Hardcoded passwords
+    'secret\s*=\s*["\x27][^"\x27]+'         # Hardcoded secrets
+    'api[_-]?key\s*=\s*["\x27][a-zA-Z0-9]'  # API keys
+)
+
+# Files to check (staged files)
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|json|md|sh|env)$')
+
+if [ -z "$FILES" ]; then
+    echo "✅ No relevant files to check"
+    exit 0
+fi
+
+FOUND_SECRETS=0
+
+for pattern in "${PATTERNS[@]}"; do
+    MATCHES=$(echo "$FILES" | xargs grep -l -E "$pattern" 2>/dev/null | grep -v '.env.example' | grep -v 'node_modules')
+    if [ -n "$MATCHES" ]; then
+        echo "❌ Potential secret found matching pattern: $pattern"
+        echo "   In files: $MATCHES"
+        FOUND_SECRETS=1
+    fi
+done
+
+# Check for .env files being committed
+ENV_FILES=$(git diff --cached --name-only | grep -E '^\.env$|^env/\.env$|\.env\.local$|\.env\.production$')
+if [ -n "$ENV_FILES" ]; then
+    echo "❌ Attempting to commit environment files: $ENV_FILES"
+    FOUND_SECRETS=1
+fi
+
+if [ $FOUND_SECRETS -eq 1 ]; then
+    echo ""
+    echo "🚫 COMMIT BLOCKED: Potential secrets detected!"
+    echo "   Please remove secrets and use environment variables instead."
+    echo "   If this is a false positive, use: git commit --no-verify"
+    exit 1
+fi
+
+echo "✅ No secrets detected"
+exit 0

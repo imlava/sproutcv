@@ -2,8 +2,14 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://yucdpvnmcuokemhqpnvz.supabase.co';
+// SECURITY: All credentials must come from environment variables
+const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl) {
+  console.error('❌ SUPABASE_URL environment variable is required');
+  process.exit(1);
+}
 
 if (!supabaseServiceKey) {
   console.error('❌ SUPABASE_SERVICE_ROLE_KEY environment variable is required');

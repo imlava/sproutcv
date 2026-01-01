@@ -6,9 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// HARDCODED VALUES FOR BULLETPROOF OPERATION
-const SUPABASE_URL = "https://yucdpvnmcuokemhqpnvz.supabase.co";
-const SUPABASE_ANON_KEY = "***REMOVED***";
+// SECURITY: Use environment variables for Supabase configuration
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
