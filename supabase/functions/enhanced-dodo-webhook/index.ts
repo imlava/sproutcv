@@ -157,86 +157,78 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
   console.log(`🔄 Processing payment success: ${payload.payment_id}`);
   
   try {
-    // Multiple fallback strategies for finding payment
-    let payment: any = null;
-    
-    // Strategy 1: Direct lookup by provider ID
-    const { data: directPayment } = await supabase
+    // SECURITY: Only allow EXACT match by provider ID - NO fuzzy matching
+    // Fuzzy matching is a critical security vulnerability
+    const { data: payment, error: lookupError } = await supabase
       .from("payments")
       .select("*")
       .eq("payment_provider_id", payload.payment_id)
-      .eq("status", "pending")
       .single();
     
-    if (directPayment) {
-      payment = directPayment;
-      console.log(`✅ Found payment by provider ID: ${payment.id}`);
-    } else {
-      console.log("⚠️ Payment not found by provider ID, trying fuzzy lookup...");
+    if (lookupError || !payment) {
+      // SECURITY: Do NOT attempt fuzzy matching - this can be exploited
+      console.error(`❌ Payment not found for provider ID: ${payload.payment_id}`);
+      console.error("⚠️ SECURITY: Refusing fuzzy match - payment must have exact provider_id");
       
-      // Strategy 2: Fuzzy lookup by amount and recent timestamp (narrower window)
-      const { data: fuzzyPayment } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("amount", payload.amount)
-        .eq("status", "pending")
-        .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString()) // Last 10 minutes only
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (fuzzyPayment) {
-        console.log(`🔍 Potential fuzzy match found: ${fuzzyPayment.id}, validating...`);
-        
-        // Additional validation: check customer email alignment
-        const { data: userProfile } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("id", fuzzyPayment.user_id)
-          .single();
-        
-        if (!userProfile) {
-          console.log(`❌ User profile not found for payment ${fuzzyPayment.id}`);
-          // payment remains null
-        } else if (userProfile.email !== payload.customer.email) {
-          console.log(`❌ Email mismatch: payment user ${userProfile.email} ≠ webhook customer ${payload.customer.email}`);
-          // payment remains null
-        } else {
-          // Additional metadata validation if available
-          let metadataValid = true;
-          
-          if (payload.metadata.user_id && fuzzyPayment.user_id !== payload.metadata.user_id) {
-            console.log(`❌ User ID mismatch: payment ${fuzzyPayment.user_id} ≠ webhook ${payload.metadata.user_id}`);
-            metadataValid = false;
-          }
-          
-          if (payload.metadata.customer_id && fuzzyPayment.metadata?.customer_id && 
-              fuzzyPayment.metadata.customer_id !== payload.metadata.customer_id) {
-            console.log(`❌ Customer ID mismatch: payment ${fuzzyPayment.metadata.customer_id} ≠ webhook ${payload.metadata.customer_id}`);
-            metadataValid = false;
-          }
-          
-          if (metadataValid) {
-            payment = fuzzyPayment;
-            console.log(`✅ Fuzzy match validated: ${payment.id} (email: ${userProfile.email})`);
-            
-            // Update with correct provider ID
-            await supabase
-              .from("payments")
-              .update({ payment_provider_id: payload.payment_id })
-              .eq("id", fuzzyPayment.id);
-          }
+      // Log this as a potential security event
+      await supabase.from("security_events").insert({
+        event_type: "payment_lookup_failed",
+        metadata: {
+          payment_id: payload.payment_id,
+          customer_email: payload.customer?.email,
+          amount: payload.amount,
+          timestamp: new Date().toISOString(),
+          reason: "No exact match found - fuzzy matching disabled for security"
         }
-      }
+      }).catch(() => {});
+      
+      throw new Error(`Payment not found for provider ID: ${payload.payment_id}. Ensure payment_provider_id is set when creating payment.`);
     }
     
-    if (!payment) {
-      throw new Error(`Payment not found for provider ID: ${payload.payment_id}`);
+    // SECURITY: Verify payment is in valid state for completion
+    if (payment.status === 'completed') {
+      console.log(`✅ Payment ${payment.id} already completed - idempotent response`);
+      return { 
+        success: true, 
+        message: "Payment already processed (idempotent)",
+        paymentId: payment.id
+      };
+    }
+    
+    if (payment.status !== 'pending' && payment.status !== 'processing') {
+      console.error(`❌ Invalid payment state: ${payment.status}`);
+      throw new Error(`Cannot complete payment in state: ${payment.status}`);
+    }
+    
+    // SECURITY: Validate customer email matches (additional verification)
+    if (payload.customer?.email) {
+      const { data: userProfile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", payment.user_id)
+        .single();
+      
+      if (userProfile && userProfile.email !== payload.customer.email) {
+        console.error(`❌ SECURITY: Email mismatch! Payment user: ${userProfile.email}, Webhook: ${payload.customer.email}`);
+        
+        await supabase.from("security_events").insert({
+          user_id: payment.user_id,
+          event_type: "payment_email_mismatch",
+          metadata: {
+            payment_id: payload.payment_id,
+            expected_email: userProfile.email,
+            webhook_email: payload.customer.email,
+            amount: payload.amount
+          }
+        }).catch(() => {});
+        
+        throw new Error("Customer email mismatch - potential fraud attempt");
+      }
     }
     
     console.log(`🔄 Processing payment ${payment.id} for user ${payment.user_id}`);
     
-    // Get current credits before processing
+    // Get current credits before processing (for logging only)
     const { data: profileBefore } = await supabase
       .from("profiles")
       .select("credits")
@@ -246,7 +238,8 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
     const creditsBefore = profileBefore?.credits || 0;
     console.log(`💰 User credits before payment: ${creditsBefore}`);
     
-    // Process payment using the enhanced function
+    // SECURITY: Process payment ONLY through the secure RPC function
+    // This function has proper authorization checks and atomic updates
     const { data: success, error: processError } = await supabase.rpc(
       "process_successful_payment",
       {
@@ -256,53 +249,31 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
     );
     
     if (processError) {
-      console.error("❌ Process error:", processError);
+      console.error("❌ Payment processing failed:", processError);
       
-      // FALLBACK: Direct credit allocation if RPC fails
-      console.log("🔄 Attempting direct credit allocation fallback...");
-      const newCredits = creditsBefore + payment.credits_purchased;
+      // SECURITY: Do NOT use direct fallback - this bypasses authorization
+      // Log the error and fail gracefully - webhook will be retried
+      await supabase.from("security_events").insert({
+        user_id: payment.user_id,
+        event_type: "payment_processing_error",
+        metadata: {
+          payment_id: payload.payment_id,
+          error: processError.message,
+          timestamp: new Date().toISOString()
+        }
+      }).catch(() => {});
       
-      const { error: directUpdateError } = await supabase
-        .from("profiles")
-        .update({ 
-          credits: newCredits,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", payment.user_id);
-      
-      if (directUpdateError) {
-        console.error("❌ Direct update also failed:", directUpdateError);
-        throw processError;
-      }
-      
-      // Log to credits ledger
-      await supabase
-        .from("credits_ledger")
-        .insert({
-          user_id: payment.user_id,
-          transaction_type: "purchase",
-          credits_amount: payment.credits_purchased,
-          balance_after: newCredits,
-          description: `Payment ${payload.payment_id} - direct fallback`,
-          related_payment_id: payment.id
-        });
-      
-      // Update payment status
-      await supabase
-        .from("payments")
-        .update({ 
-          status: "completed",
-          payment_provider_id: payload.payment_id,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", payment.id);
-      
-      console.log("✅ Credits added via direct fallback");
+      throw new Error(`Payment processing failed: ${processError.message}`);
+    }
+    
+    if (!success) {
+      console.error("❌ process_successful_payment returned false");
+      throw new Error("Payment processing returned unsuccessful");
     }
     
     console.log(`🎉 Payment processed successfully: ${payment.id}`);
     
-    // Verify credits were actually added
+    // Verify credits were actually added (for logging only - no forced updates)
     const { data: updatedProfile } = await supabase
       .from("profiles")
       .select("credits")
@@ -312,18 +283,25 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
     const creditsAfter = updatedProfile?.credits || 0;
     console.log(`💰 User credits after payment: ${creditsAfter} (was: ${creditsBefore})`);
     
-    // CRITICAL: Verify credits were actually added
+    // SECURITY: Log if credits weren't added but DO NOT force update
+    // If the RPC succeeded but credits weren't added, there's a database issue
     if (creditsAfter <= creditsBefore) {
-      console.error("⚠️ Credits may not have been added properly!");
+      console.error("⚠️ ALERT: Credits may not have been added - investigate RPC function");
       
-      // Force credit update as final fallback
-      const forcedCredits = creditsBefore + payment.credits_purchased;
-      await supabase
-        .from("profiles")
-        .update({ credits: forcedCredits })
-        .eq("id", payment.user_id);
+      await supabase.from("security_events").insert({
+        user_id: payment.user_id,
+        event_type: "credit_mismatch_after_payment",
+        metadata: {
+          payment_id: payload.payment_id,
+          credits_before: creditsBefore,
+          credits_after: creditsAfter,
+          expected_credits: payment.credits_purchased,
+          timestamp: new Date().toISOString()
+        }
+      }).catch(() => {});
       
-      console.log(`🔧 Forced credit update to: ${forcedCredits}`);
+      // DO NOT force update - this could be exploited
+      // Instead, alert and let manual review handle it
     }
     
     // Send success email notification
@@ -331,9 +309,9 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
       paymentId: payload.payment_id,
       amount: payment.amount,
       credits: payment.credits_purchased,
-      customerEmail: payload.customer.email,
+      customerEmail: payload.customer?.email,
       creditsBefore,
-      creditsAfter: creditsAfter > creditsBefore ? creditsAfter : creditsBefore + payment.credits_purchased
+      creditsAfter
     });
 
     return { 
@@ -341,7 +319,7 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
       message: "Payment processed successfully",
       creditsAdded: payment.credits_purchased,
       creditsBefore,
-      creditsAfter: updatedProfile?.credits,
+      creditsAfter,
       paymentId: payment.id
     };
     

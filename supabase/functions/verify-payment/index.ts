@@ -116,20 +116,48 @@ serve(async (req) => {
       credits: payment.credits_purchased
     });
 
-    // Optional: Verify payment with Dodo API for additional security
+    // SECURITY: Determine payment status from DATABASE or DODO API, not client
+    // The client-provided status parameter should NOT be trusted for success
+    let verifiedStatus = payment.status;
+    
+    // If payment is already completed, return immediately (idempotent)
+    if (payment.status === 'completed') {
+      console.log("✓ Payment already completed - returning cached result");
+      return createSuccessResponse('success', payment, paymentId, 'Payment already completed');
+    }
+    
+    // SECURITY: Verify with Dodo API before allowing any credit allocation
     if (dodoApiKey && payment.payment_method === "dodo_payments") {
       try {
-        await verifyWithDodoAPI(paymentId, dodoApiKey);
-        console.log("✓ Payment verified with Dodo API");
+        const dodoStatus = await verifyWithDodoAPI(paymentId, dodoApiKey);
+        console.log("✓ Dodo API verified status:", dodoStatus);
+        
+        // SECURITY: Use Dodo API status, not client-provided status
+        if (dodoStatus === 'succeeded' || dodoStatus === 'completed') {
+          verifiedStatus = 'completed';
+        } else if (dodoStatus === 'failed' || dodoStatus === 'cancelled') {
+          verifiedStatus = dodoStatus;
+        }
+        // If Dodo says pending, trust that over client
       } catch (dodoError) {
         console.warn("Dodo API verification failed:", dodoError);
-        // Continue without failing - webhook is primary verification
+        // SECURITY: If we can't verify with Dodo, don't process success
+        // Return current payment status - let webhook handle the completion
+        return createSuccessResponse(payment.status, payment, paymentId, 
+          'Payment pending Dodo verification - webhook will complete');
+      }
+    } else {
+      // SECURITY: Non-Dodo payments or missing API key
+      // Only allow processing if status is already 'completed' in database
+      if (payment.status !== 'completed') {
+        console.log("⚠️ Cannot verify non-Dodo payment status - returning current DB status");
+        return createSuccessResponse(payment.status, payment, paymentId, 
+          `Payment status from database: ${payment.status}`);
       }
     }
 
-    // Process based on status
-    switch (status.toLowerCase()) {
-      case 'success':
+    // Process based on VERIFIED status (not client-provided)
+    switch (verifiedStatus) {
       case 'completed':
       case 'succeeded':
         return await handleSuccessfulPayment(supabaseAdmin, payment, user, paymentId);
@@ -315,12 +343,10 @@ async function verifyWithDodoAPI(paymentId: string, apiKey: string) {
   }
 
   const paymentData = await response.json();
+  console.log("Dodo API response:", paymentData.status);
   
-  if (paymentData.status !== "completed" && paymentData.status !== "succeeded") {
-    throw new Error(`Payment not completed in Dodo: ${paymentData.status}`);
-  }
-
-  return paymentData;
+  // Return the status from Dodo API for the caller to evaluate
+  return paymentData.status;
 }
 
 // Helper function to create standardized success responses

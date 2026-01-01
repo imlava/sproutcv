@@ -133,40 +133,12 @@ serve(async (req) => {
         console.warn('Credits ledger entry may already exist (non-critical):', ledgerError);
       }
     } else {
-      // Profile exists - VERIFY credits are allocated
+      // Profile exists - do NOT give additional credits
       console.log(`✅ Profile exists for: ${authUser.id}, Credits: ${userProfile.credits}`);
       
-      // If user has 0 credits and no ledger entries, this might be a glitch - add welcome credits
-      if (userProfile.credits === 0) {
-        const { count } = await supabaseClient
-          .from('credits_ledger')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', authUser.id);
-        
-        if (count === 0) {
-          console.log(`🔧 User has 0 credits and no ledger entries - adding welcome credits`);
-          
-          // Add welcome credits
-          const { error: creditError } = await supabaseClient
-            .from('profiles')
-            .update({ credits: WELCOME_CREDITS })
-            .eq('id', authUser.id);
-          
-          if (!creditError) {
-            await supabaseClient
-              .from('credits_ledger')
-              .insert({
-                user_id: authUser.id,
-                transaction_type: 'bonus',
-                credits_amount: WELCOME_CREDITS,
-                balance_after: WELCOME_CREDITS,
-                description: 'Welcome bonus credits (recovery)'
-              });
-            userProfile.credits = WELCOME_CREDITS;
-            console.log(`✅ Welcome credits recovered for user`);
-          }
-        }
-      }
+      // SECURITY: Removed "recovery" logic that could be exploited
+      // Users should contact support if they believe they're missing welcome credits
+      // This prevents abuse where users drain credits and re-request welcome bonus
     }
 
     // Step 3: Check if already verified

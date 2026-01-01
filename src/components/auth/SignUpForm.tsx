@@ -32,12 +32,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
     confirmPassword: ''
   });
 
-  // Public overrides via query params: ?sitekey=...&hl=...
-  const query = new URLSearchParams(window.location.search);
-  const hcaptchaSitekey = query.get('sitekey') || '849a7ce6-a714-49c2-8cb8-b12002a4b76a';
-  const hcaptchaLang = query.get('hl') || undefined;
+  // SECURITY: Hardcoded production sitekey - never allow URL override
+  const HCAPTCHA_SITEKEY = '849a7ce6-a714-49c2-8cb8-b12002a4b76a';
   
-  // Check for referral code in URL
+  // Check for referral code in URL (safe parameter)
+  const query = new URLSearchParams(window.location.search);
   const referralCode = query.get('ref');
   
   console.log('Referral code from URL:', referralCode);
@@ -236,8 +235,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
       <div className="space-y-4">
         <HCaptcha
           ref={captchaRef}
-          sitekey={hcaptchaSitekey}
-          languageOverride={hcaptchaLang}
+          sitekey={HCAPTCHA_SITEKEY}
           onVerify={(token) => {
             setCaptchaToken(token);
           }}
