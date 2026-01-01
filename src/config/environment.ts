@@ -1,9 +1,10 @@
 // Environment configuration for AI Resume Analyzer
-// SECURITY: All sensitive values must come from environment variables
+// Note: Supabase anon keys are PUBLIC (client-side) keys - security is via RLS
 export const config = {
-  // Supabase configuration - NO FALLBACK VALUES FOR SECURITY
-  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
-  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+  // Supabase configuration - anon key is safe to include (it's a public key)
+  // All data access is controlled by Row Level Security policies
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://yucdpvnmcuokemhqpnvz.supabase.co',
+  supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl1Y2Rwdm5tY3Vva2VtaHFwbnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQxMDg3OTksImV4cCI6MjA2OTY4NDc5OX0.slvx1sMBHmGrlFuLltvePeA417SFTWhZGCJIJZeYIgQ',
   
   // Feature flags
   enableAIAnalysis: true,

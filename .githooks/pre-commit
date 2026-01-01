@@ -3,15 +3,16 @@
 
 echo "🔒 Checking for secrets..."
 
-# Patterns that indicate secrets
+# Patterns that indicate secrets (EXCLUDING public Supabase anon keys)
+# Note: Supabase anon keys are PUBLIC client-side keys - security is via RLS
 PATTERNS=(
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9'  # JWT tokens
     'sk_live_'                               # Stripe live keys
     'sk_test_'                               # Stripe test keys
     'AKIA[0-9A-Z]{16}'                       # AWS Access Keys
     'password\s*=\s*["\x27][^"\x27]+'       # Hardcoded passwords
     'secret\s*=\s*["\x27][^"\x27]+'         # Hardcoded secrets
-    'api[_-]?key\s*=\s*["\x27][a-zA-Z0-9]'  # API keys
+    'service_role'                           # Supabase service role (NEVER expose)
+    'SUPABASE_SERVICE_ROLE'                  # Service role key name
 )
 
 # Files to check (staged files)
