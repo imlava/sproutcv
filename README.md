@@ -278,36 +278,36 @@ The email system is designed for **100% autonomous operation** with zero manual 
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     EMAIL AUTOMATION FLOW                        │
+│                     EMAIL AUTOMATION FLOW                       │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  ┌──────────┐    ┌──────────────────┐    ┌──────────────────┐   │
 │  │  User    │───▶│  Database        │───▶│  Edge Function   │   │
 │  │  Signup  │    │  Trigger         │    │  (Verification)  │   │
 │  └──────────┘    └──────────────────┘    └────────┬─────────┘   │
-│                                                    │             │
-│                         ┌──────────────────────────┘             │
-│                         ▼                                        │
-│              ┌─────────────────────┐                             │
-│              │   Email Delivery    │                             │
-│              │   Attempt           │                             │
-│              └──────────┬──────────┘                             │
-│                         │                                        │
+│                                                   │             │
+│                        ┌──────────────────────────┘             │
+│                        ▼                                        │
+│              ┌─────────────────────┐                            │
+│              │   Email Delivery    │                            │
+│              │   Attempt           │                            │
+│              └──────────┬──────────┘                            │
+│                         │                                       │
 │           ┌─────────────┴─────────────┐                         │
-│           ▼                           ▼                          │
+│           ▼                           ▼                         │
 │  ┌────────────────┐         ┌────────────────┐                  │
 │  │  ✅ Success    │         │  ❌ Failed     │                  │
 │  │  Mark Verified │         │  Queue Retry   │                  │
 │  └────────────────┘         └───────┬────────┘                  │
-│                                     │                            │
-│                                     ▼                            │
-│                    ┌────────────────────────────┐                │
-│                    │  Auto-Processor (Cron)     │                │
-│                    │  • Retry with backoff      │                │
-│                    │  • Auto-verify after 24h   │                │
-│                    │  • Heal broken states      │                │
-│                    └────────────────────────────┘                │
-│                                                                  │
+│                                     │                           │
+│                                     ▼                           │
+│                    ┌────────────────────────────┐               │
+│                    │  Auto-Processor (Cron)     │               │
+│                    │  • Retry with backoff      │               │
+│                    │  • Auto-verify after 24h   │               │
+│                    │  • Heal broken states      │               │
+│                    └────────────────────────────┘               │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -354,9 +354,9 @@ The admin support system implements a **threaded conversation model** with email
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     SUPPORT SYSTEM ARCHITECTURE                      │
+│                     SUPPORT SYSTEM ARCHITECTURE                     │
 ├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
+│                                                                     │
 │  ┌────────────┐         ┌────────────────────────────────────────┐  │
 │  │   User     │         │          Admin Dashboard               │  │
 │  │  Contact   │         │  ┌──────────────────────────────────┐  │  │
@@ -387,7 +387,7 @@ The admin support system implements a **threaded conversation model** with email
 │               │  Email Notification │                               │
 │               │  to User (Resend)   │                               │
 │               └─────────────────────┘                               │
-│                                                                      │
+│                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -439,39 +439,39 @@ CREATE TABLE message_replies (
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     SECURITY LAYERS                              │
+│                     SECURITY LAYERS                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Layer 1: Client Protection                                      │
+│                                                                 │
+│  Layer 1: Client Protection                                     │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  • hCaptcha bot protection                               │   │
 │  │  • Input sanitization                                    │   │
 │  │  • XSS prevention                                        │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Layer 2: Authentication                                         │
+│                                                                 │
+│  Layer 2: Authentication                                        │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  • Supabase Auth with JWT                                │   │
 │  │  • Email verification required                           │   │
 │  │  • Failed login attempt tracking                         │   │
 │  │  • Account lockout after threshold                       │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Layer 3: Authorization                                          │
+│                                                                 │
+│  Layer 3: Authorization                                         │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  • Row Level Security (RLS) policies                     │   │
 │  │  • Role-based access control                             │   │
 │  │  • Resource-level permissions                            │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  Layer 4: Data Protection                                        │
+│                                                                 │
+│  Layer 4: Data Protection                                       │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  • Environment variable encryption                       │   │
 │  │  • No hardcoded secrets                                  │   │
 │  │  • Pre-commit secret detection                           │   │
 │  │  • Git history cleaned of credentials                    │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
