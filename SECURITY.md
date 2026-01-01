@@ -8,7 +8,7 @@ We take security seriously at SproutCV. If you discover a security vulnerability
 
 **DO NOT** create a public GitHub issue for security vulnerabilities.
 
-Instead, please email us at: **security@sproutcv.com**
+Instead, please email us at: **hello@sproutcv.app**
 
 Include the following information:
 - Description of the vulnerability
