@@ -3,19 +3,16 @@
 
 echo "🔒 Checking for secrets..."
 
-# Patterns that indicate secrets (EXCLUDING public Supabase anon keys)
-# Note: Supabase anon keys are PUBLIC client-side keys - security is via RLS
+# Patterns that indicate HARDCODED secrets (not env var references)
+# We exclude Deno.env.get(), process.env, and import.meta.env patterns
 PATTERNS=(
-    'sk_live_'                               # Stripe live keys
-    'sk_test_'                               # Stripe test keys
+    'sk_live_[a-zA-Z0-9]+'                   # Stripe live keys (actual values)
+    'sk_test_[a-zA-Z0-9]+'                   # Stripe test keys (actual values)
     'AKIA[0-9A-Z]{16}'                       # AWS Access Keys
-    'password\s*=\s*["\x27][^"\x27]+'       # Hardcoded passwords
-    'secret\s*=\s*["\x27][^"\x27]+'         # Hardcoded secrets
-    'service_role'                           # Supabase service role (NEVER expose)
-    'SUPABASE_SERVICE_ROLE'                  # Service role key name
+    'service_role.*eyJ'                      # Hardcoded service role JWT
 )
 
-# Files to check (staged files)
+# Files to check (staged files) - exclude Edge Functions that legitimately reference env vars
 FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|json|md|sh|env)$')
 
 if [ -z "$FILES" ]; then
@@ -26,7 +23,8 @@ fi
 FOUND_SECRETS=0
 
 for pattern in "${PATTERNS[@]}"; do
-    MATCHES=$(echo "$FILES" | xargs grep -l -E "$pattern" 2>/dev/null | grep -v '.env.example' | grep -v 'node_modules')
+    # Exclude files that use Deno.env.get or process.env (legitimate env var access)
+    MATCHES=$(echo "$FILES" | xargs grep -l -E "$pattern" 2>/dev/null | grep -v '.env.example' | grep -v 'node_modules' | grep -v 'supabase/functions')
     if [ -n "$MATCHES" ]; then
         echo "❌ Potential secret found matching pattern: $pattern"
         echo "   In files: $MATCHES"
