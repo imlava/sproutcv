@@ -18,6 +18,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import AuthCallback from "./pages/AuthCallback";
 import AdminPage from "./pages/AdminPage";
 import SecuritySettingsPage from "./pages/SecuritySettingsPage";
 import PaymentsPagePerfect from "./pages/PaymentsPagePerfect";
@@ -44,6 +45,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<EnhancedAuthPage />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/analyze" element={<TailoringEnginePage />} />

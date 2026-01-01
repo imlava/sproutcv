@@ -69,7 +69,7 @@ interface CreditTransaction {
 const EnhancedPaymentsPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading, refreshProfile, syncCredits } = useAuth();
   const { toast } = useToast();
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus | null>(null);
   const [processing, setProcessing] = useState(false);
@@ -274,30 +274,105 @@ const EnhancedPaymentsPage = () => {
   };
 
   const verifyAndProcessPayment = async (paymentId: string) => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payment`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ paymentId })
-      });
-
-      const data = await response.json();
+    console.log('💳 Starting payment verification:', paymentId);
+    let verificationAttempts = 0;
+    const maxVerificationAttempts = 3;
+    
+    const attemptVerification = async (): Promise<boolean> => {
+      verificationAttempts++;
+      console.log(`🔄 Verification attempt ${verificationAttempts}/${maxVerificationAttempts}`);
       
-      if (data.success) {
-        // Refresh credit balance and history
-        await loadCurrentCredits();
-        await loadCreditHistory();
-        await loadPaymentHistory();
+      try {
+        // Get current session token for authenticated verification
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY;
         
-        // Send confirmation email
-        await sendConfirmationEmail(paymentId);
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-payment`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            paymentId,
+            status: 'success',
+            amount: paymentStatus?.amount,
+            credits: paymentStatus?.credits
+          })
+        });
+
+        const data = await response.json();
+        console.log('📦 Verification response:', data);
+        
+        if (data.status === 'success' || data.success) {
+          console.log('✅ Payment verified successfully');
+          return true;
+        }
+        
+        // If pending, wait and retry
+        if (data.status === 'pending' && verificationAttempts < maxVerificationAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          return attemptVerification();
+        }
+        
+        return false;
+      } catch (error) {
+        console.error('❌ Verification error:', error);
+        if (verificationAttempts < maxVerificationAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return attemptVerification();
+        }
+        return false;
       }
+    };
+    
+    try {
+      const verified = await attemptVerification();
+      
+      // Always sync credits from database (source of truth)
+      console.log('💰 Syncing credits from database...');
+      
+      // Multiple sync strategies for reliability
+      let creditsLoaded = false;
+      
+      // Strategy 1: Use syncCredits from AuthContext
+      if (typeof syncCredits === 'function') {
+        const newCredits = await syncCredits();
+        if (newCredits > 0) {
+          setCurrentCredits(newCredits);
+          creditsLoaded = true;
+          console.log('✅ Credits synced via AuthContext:', newCredits);
+        }
+      }
+      
+      // Strategy 2: Direct database query
+      if (!creditsLoaded) {
+        await loadCurrentCredits();
+        console.log('✅ Credits loaded directly from database');
+      }
+      
+      // Refresh all data
+      await Promise.all([
+        loadCreditHistory(),
+        loadPaymentHistory(),
+        refreshProfile ? refreshProfile() : Promise.resolve()
+      ]);
+      
+      // Show success notification with updated credits
+      if (verified) {
+        toast({
+          title: "🎉 Credits Added Successfully!",
+          description: `Your credits have been added. Current balance: ${currentCredits} credits.`,
+          duration: 8000,
+        });
+      }
+      
     } catch (error) {
-      console.error('Payment verification error:', error);
+      console.error('❌ Payment verification error:', error);
+      // Even on error, try to sync credits as a fallback
+      await loadCurrentCredits();
     }
+  };
   };
 
   const sendConfirmationEmail = async (paymentId: string) => {

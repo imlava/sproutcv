@@ -75,8 +75,8 @@ serve(async (req) => {
       throw new Error("Too many verification emails sent. Please wait before requesting another.");
     }
 
-    // Resend verification email
-    const redirectUrl = `${Deno.env.get("SUPABASE_URL")?.replace('/supabase.co', '.supabase.co') || 'https://sproutcv.app'}/dashboard`;
+    // Resend verification email with proper callback URL
+    const redirectUrl = `https://sproutcv.app/auth/callback`;
     
     const { error: resendError } = await supabaseClient.auth.admin.generateLink({
       type: 'signup',

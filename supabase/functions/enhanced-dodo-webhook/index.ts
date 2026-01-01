@@ -236,6 +236,16 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
     
     console.log(`🔄 Processing payment ${payment.id} for user ${payment.user_id}`);
     
+    // Get current credits before processing
+    const { data: profileBefore } = await supabase
+      .from("profiles")
+      .select("credits")
+      .eq("id", payment.user_id)
+      .single();
+    
+    const creditsBefore = profileBefore?.credits || 0;
+    console.log(`💰 User credits before payment: ${creditsBefore}`);
+    
     // Process payment using the enhanced function
     const { data: success, error: processError } = await supabase.rpc(
       "process_successful_payment",
@@ -247,7 +257,47 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
     
     if (processError) {
       console.error("❌ Process error:", processError);
-      throw processError;
+      
+      // FALLBACK: Direct credit allocation if RPC fails
+      console.log("🔄 Attempting direct credit allocation fallback...");
+      const newCredits = creditsBefore + payment.credits_purchased;
+      
+      const { error: directUpdateError } = await supabase
+        .from("profiles")
+        .update({ 
+          credits: newCredits,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", payment.user_id);
+      
+      if (directUpdateError) {
+        console.error("❌ Direct update also failed:", directUpdateError);
+        throw processError;
+      }
+      
+      // Log to credits ledger
+      await supabase
+        .from("credits_ledger")
+        .insert({
+          user_id: payment.user_id,
+          transaction_type: "purchase",
+          credits_amount: payment.credits_purchased,
+          balance_after: newCredits,
+          description: `Payment ${payload.payment_id} - direct fallback`,
+          related_payment_id: payment.id
+        });
+      
+      // Update payment status
+      await supabase
+        .from("payments")
+        .update({ 
+          status: "completed",
+          payment_provider_id: payload.payment_id,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", payment.id);
+      
+      console.log("✅ Credits added via direct fallback");
     }
     
     console.log(`🎉 Payment processed successfully: ${payment.id}`);
@@ -259,20 +309,39 @@ async function handlePaymentSuccess(supabase: any, payload: DodoWebhookPayload) 
       .eq("id", payment.user_id)
       .single();
     
-    console.log(`💰 User credits after payment: ${updatedProfile?.credits}`);
+    const creditsAfter = updatedProfile?.credits || 0;
+    console.log(`💰 User credits after payment: ${creditsAfter} (was: ${creditsBefore})`);
+    
+    // CRITICAL: Verify credits were actually added
+    if (creditsAfter <= creditsBefore) {
+      console.error("⚠️ Credits may not have been added properly!");
+      
+      // Force credit update as final fallback
+      const forcedCredits = creditsBefore + payment.credits_purchased;
+      await supabase
+        .from("profiles")
+        .update({ credits: forcedCredits })
+        .eq("id", payment.user_id);
+      
+      console.log(`🔧 Forced credit update to: ${forcedCredits}`);
+    }
     
     // Send success email notification
     await sendPaymentEmail(supabase, payment.user_id, "success", {
       paymentId: payload.payment_id,
       amount: payment.amount,
       credits: payment.credits_purchased,
-      customerEmail: payload.customer.email
+      customerEmail: payload.customer.email,
+      creditsBefore,
+      creditsAfter: creditsAfter > creditsBefore ? creditsAfter : creditsBefore + payment.credits_purchased
     });
 
     return { 
       success: true, 
       message: "Payment processed successfully",
       creditsAdded: payment.credits_purchased,
+      creditsBefore,
+      creditsAfter: updatedProfile?.credits,
       paymentId: payment.id
     };
     

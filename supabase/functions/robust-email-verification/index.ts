@@ -52,13 +52,15 @@ serve(async (req) => {
 
     console.log(`✅ Found auth user: ${authUser.id}`);
 
-    // Step 2: Check/Create user profile
+    // Step 2: Check/Create user profile with GUARANTEED CREDITS
     let { data: userProfile } = await supabaseClient
       .from('profiles')
       .select('*')
       .eq('id', authUser.id)
       .single();
 
+    const WELCOME_CREDITS = 5;
+    
     if (!userProfile) {
       console.log(`🔧 Creating missing profile for user: ${authUser.id}`);
       
@@ -67,49 +69,104 @@ serve(async (req) => {
         return Math.random().toString(36).substring(2, 10).toUpperCase();
       };
 
-      // Create profile automatically
+      // Create profile automatically with GUARANTEED welcome credits
       const { data: newProfile, error: profileError } = await supabaseClient
         .from('profiles')
         .insert({
           id: authUser.id,
           email: authUser.email,
           full_name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'User',
-          credits: 5,
+          credits: WELCOME_CREDITS,
           email_verified: false,
           referral_code: generateReferralCode(),
           subscription_tier: 'free',
-          status: 'active'
+          status: 'active',
+          is_active: true
         })
         .select()
         .single();
 
       if (profileError) {
-        console.error(`❌ Failed to create profile:`, profileError);
-        throw new Error(`Profile creation failed: ${profileError.message}`);
+        // Handle duplicate key (profile was created by concurrent process)
+        if (profileError.code === '23505') {
+          console.log(`⚠️ Profile created by concurrent process, fetching...`);
+          const { data: existingProfile } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+          userProfile = existingProfile;
+        } else {
+          console.error(`❌ Failed to create profile:`, profileError);
+          throw new Error(`Profile creation failed: ${profileError.message}`);
+        }
+      } else {
+        userProfile = newProfile;
+        console.log(`✅ Profile created with ${WELCOME_CREDITS} welcome credits`);
       }
 
-      userProfile = newProfile;
+      // Create user role (ignore duplicate errors)
+      try {
+        await supabaseClient
+          .from('user_roles')
+          .insert({
+            user_id: authUser.id,
+            role: 'user'
+          });
+      } catch (roleError) {
+        console.log('User role may already exist (non-critical)');
+      }
 
-      // Create user role
-      await supabaseClient
-        .from('user_roles')
-        .insert({
-          user_id: authUser.id,
-          role: 'user'
-        });
-
-      // Add initial credits to ledger
-      await supabaseClient
-        .from('credits_ledger')
-        .insert({
-          user_id: authUser.id,
-          transaction_type: 'bonus',
-          credits_amount: 5,
-          balance_after: 5,
-          description: 'Welcome bonus credits'
-        });
-
-      console.log(`✅ Profile created successfully for: ${authUser.id}`);
+      // Add initial credits to ledger (guaranteed logging)
+      try {
+        await supabaseClient
+          .from('credits_ledger')
+          .insert({
+            user_id: authUser.id,
+            transaction_type: 'bonus',
+            credits_amount: WELCOME_CREDITS,
+            balance_after: WELCOME_CREDITS,
+            description: 'Welcome bonus credits (signup)'
+          });
+        console.log(`✅ Credits ledger entry created`);
+      } catch (ledgerError) {
+        console.warn('Credits ledger entry may already exist (non-critical):', ledgerError);
+      }
+    } else {
+      // Profile exists - VERIFY credits are allocated
+      console.log(`✅ Profile exists for: ${authUser.id}, Credits: ${userProfile.credits}`);
+      
+      // If user has 0 credits and no ledger entries, this might be a glitch - add welcome credits
+      if (userProfile.credits === 0) {
+        const { count } = await supabaseClient
+          .from('credits_ledger')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', authUser.id);
+        
+        if (count === 0) {
+          console.log(`🔧 User has 0 credits and no ledger entries - adding welcome credits`);
+          
+          // Add welcome credits
+          const { error: creditError } = await supabaseClient
+            .from('profiles')
+            .update({ credits: WELCOME_CREDITS })
+            .eq('id', authUser.id);
+          
+          if (!creditError) {
+            await supabaseClient
+              .from('credits_ledger')
+              .insert({
+                user_id: authUser.id,
+                transaction_type: 'bonus',
+                credits_amount: WELCOME_CREDITS,
+                balance_after: WELCOME_CREDITS,
+                description: 'Welcome bonus credits (recovery)'
+              });
+            userProfile.credits = WELCOME_CREDITS;
+            console.log(`✅ Welcome credits recovered for user`);
+          }
+        }
+      }
     }
 
     // Step 3: Check if already verified
@@ -136,7 +193,8 @@ serve(async (req) => {
     try {
       console.log(`📧 Attempting email link verification for: ${email}`);
       
-      const redirectUrl = `https://sproutcv.app/dashboard?verified=true`;
+      // Use /auth/callback to properly handle email confirmation tokens
+      const redirectUrl = `https://sproutcv.app/auth/callback`;
       
       const { error: linkError } = await supabaseClient.auth.admin.generateLink({
         type: 'signup',

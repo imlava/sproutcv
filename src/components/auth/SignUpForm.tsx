@@ -89,27 +89,37 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSwitchToSignIn }) => {
     setLoading(true);
 
     try {
-      console.log('Starting signup process for:', formData.email);
+      console.log('🚀 Starting signup process for:', formData.email);
       
-      const { error } = await signUp(formData.email, formData.password, formData.fullName, captchaToken, referralCode);
+      const { error } = await signUp(formData.email, formData.password, formData.fullName, captchaToken, referralCode || undefined);
       
       if (error) {
-        console.error('Signup error:', error);
+        console.error('❌ Signup error:', error);
         throw error;
       }
 
-      console.log('Signup successful, showing success message');
+      console.log('✅ Signup successful, showing success message');
       
       toast({
-        title: "Account created successfully!",
-        description: "Please check your email to verify your account and get started with 5 free credits.",
+        title: "🎉 Account created successfully!",
+        description: "You've received 5 free credits to get started! Please check your email to verify your account.",
+        duration: 10000,
       });
+      
+      // Show additional welcome message
+      setTimeout(() => {
+        toast({
+          title: "💰 Welcome Credits Added!",
+          description: "Your 5 free credits are ready. Use them to analyze your resume and get personalized feedback.",
+          duration: 8000,
+        });
+      }, 2000);
       
       setShowResendVerification(true);
       // Don't navigate immediately - let user verify email first
       // navigate('/dashboard');
     } catch (error: any) {
-      console.error('Signup exception:', error);
+      console.error('❌ Signup exception:', error);
       
       // Reset captcha on error
       if (captchaRef.current) {
