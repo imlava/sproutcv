@@ -38,18 +38,18 @@ SproutCV demonstrates **production-ready full-stack architecture** with emphasis
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT LAYER                                    │
+│                              CLIENT LAYER                                   │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
 │  │   React 18  │  │  TypeScript │  │ Tailwind +  │  │  Real-time State    │ │
 │  │   + Vite    │  │   Strict    │  │  shadcn/ui  │  │  Management         │ │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘ │
-└─────────┼────────────────┼────────────────┼───────────────────┼────────────┘
+└─────────┼────────────────┼────────────────┼───────-────────────┼────────────┘
           │                │                │                    │
           ▼                ▼                ▼                    ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           API & BUSINESS LOGIC                               │
+│                           API & BUSINESS LOGIC                              │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                    80+ Supabase Edge Functions                         │  │
+│  │                    80+ Supabase Edge Functions                        │  │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐  │  │
 │  │  │   Gemini    │ │   Payment   │ │    Email    │ │     Admin       │  │  │
 │  │  │  Analyzer   │ │  Processor  │ │ Automation  │ │    Functions    │  │  │
@@ -59,7 +59,7 @@ SproutCV demonstrates **production-ready full-stack architecture** with emphasis
           │                │                │                    │
           ▼                ▼                ▼                    ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            DATA & SERVICES                                   │
+│                            DATA & SERVICES                                  │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
 │  │  PostgreSQL │  │   Google    │  │    Dodo     │  │     Resend          │ │
 │  │  + RLS      │  │   Gemini    │  │  Payments   │  │  Email Service      │ │
