@@ -295,8 +295,8 @@ The email system is designed for **100% autonomous operation** with zero manual 
 │                         │                                       │
 │           ┌─────────────┴─────────────┐                         │
 │           ▼                           ▼                         │
-│  ┌────────────────┐         ┌────────────────┐                  │
-│  │  ✅ Success    │         │  ❌ Failed     │                  │
+│  ┌─────────────-───┐        ┌────────────────┐                  │
+│  │  ✅ Success    │         │   ❌ Failed   │                  |
 │  │  Mark Verified │         │  Queue Retry   │                  │
 │  └────────────────┘         └───────┬────────┘                  │
 │                                     │                           │
