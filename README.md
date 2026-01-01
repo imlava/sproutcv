@@ -138,7 +138,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- 📧 Email: hello@sproutcv.app
+- 📧 Email: support@sproutcv.app
 - 🐛 Issues: [GitHub Issues](https://github.com/imlava/sproutcv/issues)
 
 ---
