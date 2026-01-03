@@ -83,6 +83,10 @@ See [SECURITY.md](SECURITY.md) for responsible disclosure.
 
 Feel free to open a discussion or reach out at support@sproutcv.com
 
+## Contributors
+
+Thanks to all the amazing contributors who help make SproutCV better! 🙌
+
 ---
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
