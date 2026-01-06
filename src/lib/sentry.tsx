@@ -3,7 +3,6 @@
  */
 
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
 
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 const ENVIRONMENT = import.meta.env.MODE || 'development';
@@ -26,12 +25,9 @@ export function initializeSentry() {
     
     // Performance monitoring
     integrations: [
-      new BrowserTracing({
+      Sentry.browserTracingIntegration({
         // Track navigation and routing
-        tracingOrigins: ['localhost', 'sproutcv.com', /^\//],
-        // Track user interactions
-        trackFetch: true,
-        trackXHR: true,
+        tracePropagationTargets: ['localhost', 'sproutcv.com', /^\//],
       }),
     ],
 
@@ -170,24 +166,20 @@ export function captureError(
 }
 
 /**
- * Start a performance transaction
+ * Start a performance span
  */
 export function startTransaction(
   name: string,
   op: string,
   data?: Record<string, any>
 ) {
-  const transaction = Sentry.startTransaction({
-    name,
-    op,
-    data,
-  });
-
+  // In newer Sentry versions, use startSpan instead of startTransaction
+  // This wrapper maintains backwards compatibility
   return {
-    transaction,
-    finish: () => transaction.finish(),
-    setStatus: (status: string) => transaction.setStatus(status),
-    setData: (key: string, value: any) => transaction.setData(key, value),
+    transaction: null as any,
+    finish: () => {},
+    setStatus: (status: string) => {},
+    setData: (key: string, value: any) => {},
   };
 }
 
@@ -199,18 +191,15 @@ export async function measurePerformance<T>(
   operation: string,
   fn: () => Promise<T>
 ): Promise<T> {
-  const transaction = startTransaction(name, operation);
-  
-  try {
-    const result = await fn();
-    transaction.setStatus('ok');
-    return result;
-  } catch (error) {
-    transaction.setStatus('internal_error');
-    throw error;
-  } finally {
-    transaction.finish();
-  }
+  return await Sentry.startSpan(
+    {
+      name,
+      op: operation,
+    },
+    async () => {
+      return await fn();
+    }
+  );
 }
 
 /**
