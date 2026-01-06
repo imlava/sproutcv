@@ -6,7 +6,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import PQueue from 'p-queue';
 import CircuitBreaker from 'opossum';
-import { createParser, ParsedEvent } from 'eventsource-parser';
+import { createParser } from 'eventsource-parser';
 import {
   validateAnalysisResult,
   validateStreamingChunk,
@@ -52,7 +52,6 @@ export class EnhancedAIService {
       interval: 1000, // 1 second
       intervalCap: 5, // Max 5 requests per second
       timeout: 60000, // 60 second timeout
-      throwOnTimeout: true,
     });
 
     // Configure circuit breaker for resilience
@@ -171,10 +170,11 @@ export class EnhancedAIService {
 
       let finalResult: AnalysisResult | null = null;
 
-      const parser = createParser((event: ParsedEvent) => {
-        if (event.type === 'event') {
-          try {
-            const chunk: StreamingChunk = validateStreamingChunk(JSON.parse(event.data));
+      const parser = createParser({
+        onEvent: (event) => {
+          if (event.type === 'event') {
+            try {
+              const chunk: StreamingChunk = validateStreamingChunk(JSON.parse(event.data));
 
             switch (chunk.type) {
               case 'progress':
@@ -220,7 +220,7 @@ export class EnhancedAIService {
           } catch (parseError) {
             console.error('Failed to parse streaming chunk:', parseError);
           }
-        }
+        },
       });
 
       fetch(streamUrl, {
