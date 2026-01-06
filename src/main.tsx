@@ -23,6 +23,10 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/toaster";
 
+// Initialize Sentry for error tracking and performance monitoring
+import { initializeSentry } from "./lib/sentry";
+initializeSentry();
+
 function App() {
   console.log('App component rendered');
   
