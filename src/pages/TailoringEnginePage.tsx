@@ -36,8 +36,9 @@ import TailorResumeStep from '@/components/tailoring/TailorResumeStep';
 import ExportTrackStep from '@/components/tailoring/ExportTrackStep';
 import InterviewPrepStep from '@/components/tailoring/InterviewPrepStep';
 import TailoringEngineFeatures from '@/components/tailoring/TailoringEngineFeatures';
-import Header from '@/components/Header';
+import AuthenticatedHeader from '@/components/AuthenticatedHeader';
 import Footer from '@/components/Footer';
+import DodoPaymentModal from '@/components/dashboard/DodoPaymentModal';
 
 interface TailoringState {
   currentStep: number;
@@ -81,9 +82,10 @@ interface TailoringState {
 }
 
 const TailoringEnginePage = () => {
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const [state, setState] = useState<TailoringState>({
     currentStep: 1,
@@ -213,9 +215,9 @@ const TailoringEnginePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
-      <Header />
+      <AuthenticatedHeader onBuyCredits={() => setShowPaymentModal(true)} />
       
-      <div className="pt-20">
+      <div className="pt-4">
         {/* Hero Section */}
         <div className="bg-white border-b border-green-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -397,6 +399,13 @@ const TailoringEnginePage = () => {
       </div>
 
       <Footer />
+
+      {/* Payment Modal */}
+      <DodoPaymentModal 
+        isOpen={showPaymentModal} 
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={refreshProfile}
+      />
     </div>
   );
 };
