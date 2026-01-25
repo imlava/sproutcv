@@ -261,7 +261,7 @@ const FastModePage: React.FC = () => {
     
     try {
       const resumeData: ResumeData = {
-        name: 'Your Name',
+        name: userProfile?.full_name || 'Your Name',
         email: user?.email || '',
         phone: '',
         location: '',
@@ -270,11 +270,14 @@ const FastModePage: React.FC = () => {
         ],
       };
 
-      await resumeExportService.exportResume(resumeData, {
-        format,
+      // Export the resume to blob
+      const blob = await resumeExportService.export(resumeData, format, {
         template: 'professional',
-        includeContactHeader: true,
       });
+
+      // Download the file
+      const filename = `resume_optimized.${format}`;
+      resumeExportService.download(blob, filename);
 
       toast({
         title: "Download Started",

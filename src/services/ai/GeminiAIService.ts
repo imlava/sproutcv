@@ -471,13 +471,44 @@ Keep response concise for real-time feedback.`;
     console.log('⚡ Starting Fast Mode quick analysis');
 
     try {
+      // Build prompt for Gemini API
+      const prompt = `Analyze this resume and provide a JSON response with scores and improvements.
+
+RESUME:
+${resumeText.substring(0, 4000)}
+
+${jobDescription ? `JOB DESCRIPTION:\n${jobDescription.substring(0, 1500)}` : ''}
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "scores": {
+    "atsCompatibility": <number 0-100>,
+    "keywordMatch": <number 0-100>,
+    "impactScore": <number 0-100>,
+    "formatQuality": <number 0-100>
+  },
+  "improvements": [
+    {
+      "id": "1",
+      "category": "Impact|Keywords|ATS|Format",
+      "priority": "high|medium|low",
+      "original": "brief description of issue",
+      "improved": "specific suggestion for improvement",
+      "impact": "+X% Score Name"
+    }
+  ]
+}
+
+Analyze for: ATS compatibility, keyword relevance, quantified achievements, action verbs, formatting quality.
+Provide 3-5 specific, actionable improvements prioritized by impact.`;
+
       // Try to use Gemini API for analysis
       const { data, error } = await supabase.functions.invoke('gemini-analyze', {
         body: {
-          resumeText: resumeText.substring(0, 5000), // Limit for speed
-          jobDescription: jobDescription.substring(0, 2000),
-          analysisType: 'fast_mode',
-          userId
+          prompt,
+          type: 'json',
+          temperature: 0.3,
+          maxTokens: 2048
         }
       });
 
@@ -486,16 +517,43 @@ Keep response concise for real-time feedback.`;
         return this.performLocalFastAnalysis(resumeText, jobDescription, startTime);
       }
 
-      if (data?.success && data?.data) {
+      if (data?.success && data?.analysis) {
         const processingTime = Date.now() - startTime;
         console.log(`✅ Fast Mode analysis completed in ${processingTime}ms`);
         
-        return {
-          scores: data.data.scores || this.calculateLocalScores(resumeText, jobDescription),
-          improvements: data.data.improvements || this.generateLocalImprovements(resumeText),
-          processingTime,
-          timestamp: new Date().toISOString()
-        };
+        try {
+          // Parse the AI response
+          const aiResult = typeof data.analysis === 'string' 
+            ? JSON.parse(data.analysis.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim())
+            : data.analysis;
+          
+          // Calculate overall score and grade
+          const scores = aiResult.scores || this.calculateLocalScores(resumeText, jobDescription);
+          const overallScore = Math.round(
+            (scores.atsCompatibility + scores.keywordMatch + scores.impactScore + scores.formatQuality) / 4
+          );
+          
+          let overallGrade: 'A' | 'B' | 'C' | 'D' | 'F';
+          if (overallScore >= 85) overallGrade = 'A';
+          else if (overallScore >= 70) overallGrade = 'B';
+          else if (overallScore >= 55) overallGrade = 'C';
+          else if (overallScore >= 40) overallGrade = 'D';
+          else overallGrade = 'F';
+
+          return {
+            scores: {
+              ...scores,
+              overallScore,
+              overallGrade
+            },
+            improvements: aiResult.improvements || this.generateLocalImprovements(resumeText),
+            processingTime,
+            timestamp: new Date().toISOString()
+          };
+        } catch (parseError) {
+          console.warn('Failed to parse AI response, using local analysis:', parseError);
+          return this.performLocalFastAnalysis(resumeText, jobDescription, startTime);
+        }
       }
 
       // Fallback to local analysis
@@ -698,26 +756,14 @@ Keep response concise for real-time feedback.`;
   ): Promise<string> {
     console.log('🔧 Applying Fast Mode improvements');
 
-    try {
-      const { data, error } = await supabase.functions.invoke('gemini-analyze', {
-        body: {
-          resumeText,
-          improvements: improvements.filter(i => i.priority === 'high' || i.priority === 'medium'),
-          action: 'apply_improvements',
-          userId
-        }
-      });
-
-      if (error || !data?.success) {
-        console.warn('Could not apply improvements via API');
-        return resumeText;
-      }
-
-      return data.data.improvedResume || resumeText;
-
-    } catch (error) {
-      console.error('Apply improvements error:', error);
-      return resumeText;
-    }
+    // For now, return the original text since improvements are suggestions
+    // In a full implementation, this would use AI to rewrite sections
+    // The improvements are displayed to the user for manual application
+    
+    // Note: Applying text improvements automatically requires complex
+    // text manipulation. For now, we track that improvements were reviewed.
+    console.log(`User reviewed ${improvements.length} improvements`);
+    
+    return resumeText;
   }
 }
