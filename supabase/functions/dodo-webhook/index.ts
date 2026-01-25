@@ -30,6 +30,89 @@ interface DodoWebhookPayload {
   timestamp: number;
 }
 
+// Strict input validation for webhook payload
+function validateWebhookPayload(payload: unknown): { valid: boolean; error?: string; data?: DodoWebhookPayload } {
+  if (!payload || typeof payload !== 'object') {
+    return { valid: false, error: 'Payload must be a non-null object' };
+  }
+
+  const p = payload as Record<string, unknown>;
+
+  // Required: event_type
+  if (typeof p.event_type !== 'string' || p.event_type.length === 0) {
+    return { valid: false, error: 'Missing or invalid event_type' };
+  }
+
+  // Validate event_type format (should be like "payment.succeeded")
+  const validEventTypes = [
+    'payment.succeeded', 'payment.completed', 'payment.failed', 
+    'payment.cancelled', 'payment.canceled', 'payment.pending',
+    'subscription.created', 'subscription.updated', 'subscription.cancelled'
+  ];
+  if (!validEventTypes.includes(p.event_type as string)) {
+    return { valid: false, error: `Invalid event_type: ${p.event_type}` };
+  }
+
+  // Required: data object
+  if (!p.data || typeof p.data !== 'object') {
+    return { valid: false, error: 'Missing or invalid data object' };
+  }
+
+  const data = p.data as Record<string, unknown>;
+
+  // Required: data.id (payment ID)
+  if (typeof data.id !== 'string' || data.id.length === 0 || data.id.length > 255) {
+    return { valid: false, error: 'Missing or invalid payment ID' };
+  }
+
+  // Validate ID format - should be alphanumeric with possible dashes/underscores
+  if (!/^[a-zA-Z0-9_-]+$/.test(data.id)) {
+    return { valid: false, error: 'Invalid payment ID format' };
+  }
+
+  // Required: data.status
+  if (typeof data.status !== 'string') {
+    return { valid: false, error: 'Missing payment status' };
+  }
+
+  // Required: data.amount (must be positive integer in cents)
+  if (typeof data.amount !== 'number' || data.amount < 0 || !Number.isInteger(data.amount)) {
+    return { valid: false, error: 'Invalid amount - must be positive integer' };
+  }
+
+  // Sanity check: amount shouldn't be absurdly high (prevent overflow attacks)
+  if (data.amount > 100000000) { // Max $1M
+    return { valid: false, error: 'Amount exceeds maximum allowed value' };
+  }
+
+  // Validate metadata if present
+  if (data.metadata && typeof data.metadata === 'object') {
+    const metadata = data.metadata as Record<string, unknown>;
+    
+    // user_id validation (UUID format)
+    if (metadata.user_id) {
+      if (typeof metadata.user_id !== 'string') {
+        return { valid: false, error: 'Invalid user_id type' };
+      }
+      // UUID format check
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(metadata.user_id)) {
+        return { valid: false, error: 'Invalid user_id format - must be UUID' };
+      }
+    }
+
+    // credits validation
+    if (metadata.credits) {
+      const credits = parseInt(metadata.credits as string);
+      if (isNaN(credits) || credits < 0 || credits > 10000) {
+        return { valid: false, error: 'Invalid credits value' };
+      }
+    }
+  }
+
+  return { valid: true, data: payload as DodoWebhookPayload };
+}
+
 // Enhanced webhook signature verification with multiple formats
 const verifyWebhookSignature = async (payload: string, signature: string, secret: string, timestamp?: string): Promise<boolean> => {
   try {
@@ -144,16 +227,36 @@ serve(async (req) => {
       console.warn("⚠️ No signature provided - proceeding without verification (development mode)");
     }
 
-    // Parse payload
+    // Parse and validate payload with strict schema validation
     let payload: DodoWebhookPayload;
     try {
-      payload = JSON.parse(rawBody) as DodoWebhookPayload;
+      const parsedBody = JSON.parse(rawBody);
+      
+      // Strict validation
+      const validation = validateWebhookPayload(parsedBody);
+      if (!validation.valid || !validation.data) {
+        console.error("Webhook validation failed:", validation.error);
+        return new Response(JSON.stringify({ 
+          error: "Invalid webhook payload",
+          details: validation.error 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+      
+      payload = validation.data;
     } catch (parseError) {
       console.error("Failed to parse webhook payload:", parseError);
-      throw new Error("Invalid JSON payload");
+      return new Response(JSON.stringify({ 
+        error: "Invalid JSON payload" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
     }
 
-    console.log("Webhook payload received:", { 
+    console.log("Webhook payload validated:", { 
       event_type: payload.event_type, 
       payment_id: payload.data?.id,
       status: payload.data?.status,
