@@ -251,6 +251,9 @@ const ResumeReportCard: React.FC<ResumeReportCardProps> = ({ scores, isImproved 
         <p className="text-xs text-gray-500 text-center">
           💡 Apply the suggested improvements to boost your score by up to 20 points
         </p>
+        <p className="text-xs text-gray-400 text-center mt-1">
+          Powered by SproutCV AI
+        </p>
       </div>
     </Card>
   );
