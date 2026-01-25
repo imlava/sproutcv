@@ -75,7 +75,7 @@ async function getCreditBalance(supabase: any, req: Request) {
 
   // Get current balance
   const { data: profile, error: profileError } = await supabase
-    .from("user_profiles")
+    .from("profiles")
     .select("credits, credits_frozen")
     .eq("id", userId)
     .single();
@@ -172,7 +172,7 @@ async function processCreditTransaction(supabase: any, req: Request) {
 
   // Begin transaction
   const { data: profile, error: profileError } = await supabase
-    .from("user_profiles")
+    .from("profiles")
     .select("credits, credits_frozen")
     .eq("id", transaction.userId)
     .single();
@@ -214,7 +214,7 @@ async function processCreditTransaction(supabase: any, req: Request) {
 
   // Update user profile
   const { error: updateError } = await supabase
-    .from("user_profiles")
+    .from("profiles")
     .update({ 
       credits: newCredits,
       credits_frozen: newFrozen,
@@ -277,7 +277,7 @@ async function recordCreditUsage(supabase: any, req: Request) {
 
   // Check if user has enough credits
   const { data: profile, error: profileError } = await supabase
-    .from("user_profiles")
+    .from("profiles")
     .select("credits")
     .eq("id", userId)
     .single();

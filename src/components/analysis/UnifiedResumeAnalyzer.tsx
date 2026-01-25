@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,8 @@ import {
   Shield,
   Eye,
   RefreshCw,
-  Trophy
+  Trophy,
+  Image
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +34,10 @@ import { Warning, ValidationResult } from '@/types/validation';
 import { WarningDisplay } from '@/components/analysis/WarningDisplay';
 import ContextualHelp from '@/components/help/ContextualHelp';
 import ScoreDashboard from '@/components/ScoreDashboard';
+import { DocumentProcessor, SUPPORTED_EXTENSIONS, MAX_FILE_SIZE } from '@/services/document/DocumentProcessor';
+
+// Initialize document processor
+const documentProcessor = new DocumentProcessor();
 
 interface AnalysisState {
   step: 'upload' | 'job' | 'validation' | 'analysis' | 'results';
@@ -77,46 +82,76 @@ const UnifiedResumeAnalyzer: React.FC = () => {
     await new Promise(resolve => setTimeout(resolve, 500));
   };
 
-  const extractTextFromFile = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const text = reader.result as string;
-        resolve(text);
+  // Use proper document processor for text extraction
+  const extractTextFromFile = useCallback(async (
+    file: File, 
+    onProgress?: (progress: number, stage: string) => void
+  ): Promise<{ text: string; metadata?: any }> => {
+    try {
+      const result = await documentProcessor.extractTextWithMetadata(file, {
+        enableOCR: true, // Enable OCR for scanned documents
+        onProgress: onProgress,
+      });
+      
+      return {
+        text: result.text,
+        metadata: result.metadata,
       };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsText(file);
-    });
-  };
+    } catch (error) {
+      console.error('Document extraction error:', error);
+      throw error;
+    }
+  }, []);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf' && !file.type.includes('text')) {
+    // Validate file using document processor
+    const validation = documentProcessor.validateFile(file);
+    if (!validation.valid) {
       toast({
         title: "Unsupported File Type",
-        description: "Please upload a PDF or text file.",
+        description: validation.error || "Please upload a supported file format (PDF, DOCX, TXT, or image).",
         variant: "destructive",
       });
       return;
     }
 
+    // Start processing
+    updateState({ processing: true, currentStep: 'Extracting text from document...' });
+
     try {
-      const text = await extractTextFromFile(file);
-      updateState({ 
-        resumeFile: file, 
-        resumeText: text 
+      const result = await extractTextFromFile(file, (progress, stage) => {
+        updateState({ progress: progress, currentStep: stage });
       });
       
+      if (!result.text || result.text.trim().length < 50) {
+        throw new Error('Unable to extract sufficient text from the document. Please try a different file or paste your resume text manually.');
+      }
+
+      updateState({ 
+        resumeFile: file, 
+        resumeText: result.text,
+        processing: false,
+        progress: 0,
+        currentStep: '',
+      });
+      
+      const wordCount = result.metadata?.wordCount || result.text.split(/\s+/).length;
+      const extractionMethod = result.metadata?.method === 'ocr' ? ' (via OCR)' : '';
+      
       toast({
-        title: "Resume Uploaded",
-        description: `Successfully uploaded ${file.name}`,
+        title: "Resume Processed Successfully",
+        description: `Extracted ${wordCount} words from ${file.name}${extractionMethod}`,
       });
     } catch (error) {
+      console.error('File upload error:', error);
+      updateState({ processing: false, progress: 0, currentStep: '' });
+      
       toast({
-        title: "Upload Failed", 
-        description: "Failed to process the file",
+        title: "Processing Failed", 
+        description: error instanceof Error ? error.message : "Failed to process the file. Please try again or paste your resume text manually.",
         variant: "destructive",
       });
     }
@@ -411,40 +446,91 @@ const UnifiedResumeAnalyzer: React.FC = () => {
             <div className="flex items-center justify-center w-full">
               <label
                 htmlFor="resume-upload"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted-foreground rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors"
+                className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${
+                  state.processing 
+                    ? 'border-primary bg-primary/5 cursor-wait' 
+                    : 'border-muted-foreground bg-muted/30 hover:bg-muted/50 hover:border-primary/50'
+                }`}
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <FileText className="w-8 h-8 mb-2 text-muted-foreground" />
-                  <p className="mb-2 text-sm text-muted-foreground">
-                    <span className="font-semibold">Click to upload</span> or drag and drop
-                  </p>
-                  <p className="text-xs text-muted-foreground">PDF or TXT files only</p>
+                  {state.processing ? (
+                    <>
+                      <Loader2 className="w-10 h-10 mb-3 text-primary animate-spin" />
+                      <p className="text-sm font-medium text-primary mb-1">
+                        {state.currentStep || 'Processing document...'}
+                      </p>
+                      <Progress value={state.progress} className="w-48 h-2" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 mb-3">
+                        <FileText className="w-8 h-8 text-muted-foreground" />
+                        <Image className="w-7 h-7 text-muted-foreground" />
+                      </div>
+                      <p className="mb-2 text-sm text-muted-foreground">
+                        <span className="font-semibold">Click to upload</span> or drag and drop
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-1 mb-2">
+                        <Badge variant="outline" className="text-xs">PDF</Badge>
+                        <Badge variant="outline" className="text-xs">DOCX</Badge>
+                        <Badge variant="outline" className="text-xs">TXT</Badge>
+                        <Badge variant="outline" className="text-xs">PNG/JPG</Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Supports scanned documents with OCR • Max {(MAX_FILE_SIZE / (1024 * 1024)).toFixed(0)}MB
+                      </p>
+                    </>
+                  )}
                 </div>
                 <input
                   id="resume-upload"
                   type="file"
                   className="hidden"
-                  accept=".pdf,.txt"
+                  accept={SUPPORTED_EXTENSIONS.join(',')}
                   onChange={handleFileUpload}
+                  disabled={state.processing}
                 />
               </label>
             </div>
           </div>
         </div>
 
-        {state.resumeFile && (
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>
-              Successfully uploaded: {state.resumeFile.name}
+        {state.resumeFile && state.resumeText && (
+          <Alert className="bg-success/10 border-success/30">
+            <CheckCircle className="h-4 w-4 text-success" />
+            <AlertDescription className="text-success-foreground">
+              <div className="flex flex-col">
+                <span className="font-medium">Successfully processed: {state.resumeFile.name}</span>
+                <span className="text-xs mt-1">
+                  {state.resumeText.split(/\s+/).length} words extracted • Ready for analysis
+                </span>
+              </div>
             </AlertDescription>
           </Alert>
         )}
 
+        {/* Manual text input option */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-muted" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">Or paste your resume</span>
+          </div>
+        </div>
+
+        <Textarea
+          placeholder="Paste your resume text here if you prefer not to upload a file..."
+          value={state.resumeText}
+          onChange={(e) => updateState({ resumeText: e.target.value, resumeFile: null })}
+          rows={6}
+          className="resize-none"
+        />
+
         <div className="flex justify-end">
           <Button
             onClick={() => updateState({ step: 'job' })}
-            disabled={!state.resumeFile}
+            disabled={!state.resumeText || state.processing}
             className="flex items-center gap-2"
           >
             Next: Job Details

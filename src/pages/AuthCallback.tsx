@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Mail, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 /**
  * AuthCallback Page
@@ -22,6 +23,37 @@ const AuthCallback: React.FC = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verifying your email...');
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [resendEmail, setResendEmail] = useState('');
+  const [isResending, setIsResending] = useState(false);
+
+  // Handle resend verification email
+  const handleResendEmail = async () => {
+    if (!resendEmail || !resendEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: resendEmail,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast.error(error.message || 'Failed to resend verification email');
+      } else {
+        toast.success('Verification email sent! Check your inbox and spam folder.');
+      }
+    } catch (err) {
+      toast.error('Failed to resend email. Please try again.');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -31,25 +63,33 @@ const AuthCallback: React.FC = () => {
         console.log('🔗 Hash:', window.location.hash);
         console.log('❓ Search params:', Object.fromEntries(searchParams.entries()));
 
-        // Check for error in URL params (e.g., expired link)
-        const error = searchParams.get('error');
-        const errorDescription = searchParams.get('error_description');
+        // Check for tokens/errors in hash fragment (Supabase default)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        // Check for error in BOTH query params AND hash fragment
+        const error = searchParams.get('error') || hashParams.get('error');
+        const errorDescription = searchParams.get('error_description') || hashParams.get('error_description');
+        const errorCode = searchParams.get('error_code') || hashParams.get('error_code');
         
         if (error) {
-          console.error('❌ Auth error from URL:', error, errorDescription);
+          console.error('❌ Auth error from URL:', error, errorCode, errorDescription);
           setStatus('error');
-          setErrorDetail(errorDescription || error);
           
-          if (error === 'access_denied' && errorDescription?.includes('expired')) {
+          // Provide user-friendly error messages
+          if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
             setMessage('Email confirmation link has expired');
+            setErrorDetail('Confirmation links are valid for 1 hour. Please request a new one from the sign-in page.');
+          } else if (error === 'access_denied') {
+            setMessage('Access denied');
+            setErrorDetail(errorDescription || 'The link is invalid or has already been used.');
           } else {
             setMessage('Email verification failed');
+            setErrorDetail(errorDescription || error);
           }
           return;
         }
 
-        // Check for tokens in hash fragment (Supabase default)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        // Check for tokens in hash fragment
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
@@ -203,7 +243,35 @@ const AuthCallback: React.FC = () => {
               </p>
             )}
             
-            <div className="flex flex-col gap-3 mt-6">
+            {/* Resend verification email section */}
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-700 mb-3">
+                Request a new verification link:
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={resendEmail}
+                  onChange={(e) => setResendEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+                <button
+                  onClick={handleResendEmail}
+                  disabled={isResending}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isResending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                  Resend
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-3 mt-4">
               <button
                 onClick={() => navigate('/auth')}
                 className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2"
