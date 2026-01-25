@@ -181,7 +181,14 @@ const EnhancedMessageCenter = () => {
   };
 
   const sendReply = async () => {
-    if (!selectedMessage || !replyContent.trim() || !user?.id) return;
+    if (!selectedMessage || !replyContent.trim() || !user?.id) {
+      toast({
+        variant: "destructive",
+        title: "Cannot Send Reply",
+        description: !selectedMessage ? "No message selected" : !replyContent.trim() ? "Please enter a reply" : "User not authenticated",
+      });
+      return;
+    }
 
     setSendingReply(true);
     try {
@@ -192,12 +199,16 @@ const EnhancedMessageCenter = () => {
       const { data: result, error: replyError } = await supabase.functions.invoke('admin-message-reply', {
         body: {
           contactMessageId: selectedMessage.id,
-          replyContent: replyContent,
+          replyContent: replyContent.trim(),
           sendEmail: true
         }
       });
 
       if (replyError) {
+        // Check if it's an auth error
+        if (replyError.message?.includes('Admin access required')) {
+          throw new Error('You do not have admin privileges to send replies');
+        }
         throw replyError;
       }
 
@@ -206,7 +217,7 @@ const EnhancedMessageCenter = () => {
       setShowMessageDialog(false);
       
       const emailStatus = result?.emailResult?.error ? 
-        "Reply saved but email failed to send" : 
+        "Reply saved but email failed to send (check RESEND_API_KEY)" : 
         "Reply sent and email delivered successfully";
       
       toast({
@@ -217,12 +228,73 @@ const EnhancedMessageCenter = () => {
       // Reload messages to show the new reply
       loadMessagesWithReplies();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error sending reply:', error);
+      
+      // Provide helpful error messages
+      let errorMessage = error.message || 'Unknown error occurred';
+      if (errorMessage.includes('FunctionsHttpError')) {
+        errorMessage = 'Edge function error. Make sure admin-message-reply is deployed.';
+      } else if (errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Network error. Check your connection and try again.';
+      }
+      
       toast({
         variant: "destructive",
         title: "Failed to Send Reply",
-        description: `Could not send reply: ${error.message}`,
+        description: errorMessage,
+      });
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
+  // Direct database reply fallback (if Edge Function fails)
+  const sendReplyDirect = async () => {
+    if (!selectedMessage || !replyContent.trim() || !user?.id) return;
+
+    setSendingReply(true);
+    try {
+      // Insert reply directly into database
+      const { data: reply, error: insertError } = await supabase
+        .from('message_replies')
+        .insert({
+          contact_message_id: selectedMessage.id,
+          admin_user_id: user.id,
+          reply_content: replyContent.trim(),
+          is_email_sent: false,
+          email_status: 'not_sent'
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      // Update message status
+      await supabase
+        .from('contact_messages')
+        .update({
+          status: 'replied',
+          responded_by: user.id,
+          responded_at: new Date().toISOString()
+        })
+        .eq('id', selectedMessage.id);
+
+      setReplyContent('');
+      setShowMessageDialog(false);
+      
+      toast({
+        title: "✅ Reply Saved",
+        description: "Reply saved to database (email not sent - use Edge Function for emails)",
+      });
+
+      loadMessagesWithReplies();
+    } catch (error: any) {
+      console.error('Direct reply error:', error);
+      toast({
+        variant: "destructive",
+        title: "Failed to Save Reply",
+        description: error.message || 'Database error',
       });
     } finally {
       setSendingReply(false);
@@ -519,26 +591,39 @@ const EnhancedMessageCenter = () => {
                       rows={5}
                     />
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setShowMessageDialog(false)}>
-                      Close
-                    </Button>
+                  <div className="flex justify-between items-center">
                     <Button 
-                      onClick={sendReply} 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={sendReplyDirect}
                       disabled={!replyContent.trim() || sendingReply}
+                      className="text-xs text-gray-500"
+                      title="Save reply to database without sending email"
                     >
-                      {sendingReply ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4 mr-2" />
-                          Send Reply
-                        </>
-                      )}
+                      Save without email
                     </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setShowMessageDialog(false)}>
+                        Close
+                      </Button>
+                      <Button 
+                        onClick={sendReply} 
+                        disabled={!replyContent.trim() || sendingReply}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        {sendingReply ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-4 h-4 mr-2" />
+                            Send Reply & Email
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
