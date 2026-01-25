@@ -1,32 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Upload, 
-  FileText, 
   Target, 
   Edit3, 
   Download, 
-  Brain, 
-  Zap,
-  TrendingUp,
   CheckCircle,
-  AlertTriangle,
   ArrowRight,
-  ArrowLeft,
-  RefreshCw,
-  Eye,
   Users,
-  MessageSquare,
-  BarChart3,
-  Clock,
-  Award,
   Sparkles
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -35,7 +19,6 @@ import TargetJobStep from '@/components/tailoring/TargetJobStep';
 import TailorResumeStep from '@/components/tailoring/TailorResumeStep';
 import ExportTrackStep from '@/components/tailoring/ExportTrackStep';
 import InterviewPrepStep from '@/components/tailoring/InterviewPrepStep';
-import TailoringEngineFeatures from '@/components/tailoring/TailoringEngineFeatures';
 import AuthenticatedHeader from '@/components/AuthenticatedHeader';
 import Footer from '@/components/Footer';
 import DodoPaymentModal from '@/components/dashboard/DodoPaymentModal';
@@ -218,73 +201,59 @@ const TailoringEnginePage = () => {
       <AuthenticatedHeader onBuyCredits={() => setShowPaymentModal(true)} />
       
       <div className="pt-4">
-        {/* Hero Section */}
+        {/* Compact Header */}
         <div className="bg-white border-b border-green-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div className="text-center">
-              <div className="flex items-center justify-center mb-6">
-                <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-xl">
-                  <Sparkles className="h-12 w-12 text-white" />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                  <Sparkles className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    AI Resume Tailoring
+                  </h1>
+                  <p className="text-sm text-gray-600">
+                    Transform your resume with AI-powered optimization
+                  </p>
                 </div>
               </div>
-              <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                AI Resume Tailoring Engine
-              </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-                Transform your resume for every job application with AI-powered keyword matching, gap analysis, and one-click rewriting
-              </p>
-              
-              {/* Tailoring Engine Features */}
-              <TailoringEngineFeatures />
-            </div>
-          </div>
-        </div>
-
-        {/* Step Progress */}
-        <div className="bg-white border-b border-green-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold text-gray-900">Tailoring Process</h2>
-              <div className="flex items-center space-x-2">
-                <Badge variant="outline" className="text-green-600 border-green-200">
+              <div className="flex items-center space-x-3">
+                <Badge variant="outline" className="text-green-600 border-green-200 px-4 py-1">
                   Step {state.currentStep} of 5
                 </Badge>
-                <Progress value={(state.currentStep / 5) * 100} className="w-32" />
+                <Progress value={(state.currentStep / 5) * 100} className="w-24" />
               </div>
             </div>
             
-            {/* Step Navigation */}
-            <div className="flex justify-between items-center mb-8">
-              {steps.map((step, index) => {
+            {/* Compact Step Navigation */}
+            <div className="flex justify-between items-center mt-6 pt-4 border-t border-green-100">
+              {steps.map((step) => {
                 const Icon = step.icon;
                 const isActive = state.currentStep === step.id;
                 const isCompleted = state.currentStep > step.id;
                 
                 return (
-                  <div key={step.id} className="flex flex-col items-center">
+                  <div key={step.id} className="flex items-center space-x-2">
                     <div 
-                      className={`p-3 rounded-full border-2 mb-3 transition-all duration-200 ${
+                      className={`p-2 rounded-full transition-all duration-200 ${
                         isActive 
-                          ? `${step.bgColor} ${step.color} border-current shadow-lg scale-110` 
+                          ? `${step.bgColor} ${step.color} shadow-md` 
                           : isCompleted
-                          ? 'bg-green-100 text-green-600 border-green-300'
-                          : 'bg-gray-100 text-gray-400 border-gray-300'
+                          ? 'bg-green-100 text-green-600'
+                          : 'bg-gray-100 text-gray-400'
                       }`}
                     >
                       {isCompleted ? (
-                        <CheckCircle className="h-6 w-6" />
+                        <CheckCircle className="h-5 w-5" />
                       ) : (
-                        <Icon className="h-6 w-6" />
+                        <Icon className="h-5 w-5" />
                       )}
                     </div>
-                    <div className="text-center">
-                      <h3 className={`font-semibold ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
-                        {step.title}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-1 max-w-20">
-                        {step.description}
-                      </p>
-                    </div>
+                    <span className={`text-sm font-medium hidden md:inline ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
+                      {step.title}
+                    </span>
+                    {step.id < 5 && <ArrowRight className="h-4 w-4 text-gray-300 hidden lg:inline" />}
                   </div>
                 );
               })}
@@ -360,41 +329,6 @@ const TailoringEnginePage = () => {
             )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-              <Brain className="h-8 w-8 text-blue-600 mb-4" />
-              <h3 className="text-lg font-semibold text-blue-800 mb-2">AI Analysis</h3>
-              <p className="text-blue-700 text-sm mb-4">
-                Advanced keyword matching and gap analysis for perfect job fit
-              </p>
-              <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
-                Learn More
-              </Button>
-            </Card>
-
-            <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-              <Zap className="h-8 w-8 text-green-600 mb-4" />
-              <h3 className="text-lg font-semibold text-green-800 mb-2">One-Click Rewriting</h3>
-              <p className="text-green-700 text-sm mb-4">
-                Instantly improve sections with AI-powered content suggestions
-              </p>
-              <Button variant="outline" className="border-green-200 text-green-600 hover:bg-green-50">
-                Try Now
-              </Button>
-            </Card>
-
-            <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
-              <TrendingUp className="h-8 w-8 text-purple-600 mb-4" />
-              <h3 className="text-lg font-semibold text-purple-800 mb-2">Success Tracking</h3>
-              <p className="text-purple-700 text-sm mb-4">
-                Monitor application success and interview conversion rates
-              </p>
-              <Button variant="outline" className="border-purple-200 text-purple-600 hover:bg-purple-50">
-                View Stats
-              </Button>
-            </Card>
-          </div>
         </div>
       </div>
 
