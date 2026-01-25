@@ -128,16 +128,16 @@ const UserDashboard = () => {
   };
 
   const setupPaymentMonitoring = () => {
-    // Check for pending payments in localStorage
-    const storedPayment = localStorage.getItem('pending_payment');
-    if (storedPayment) {
+    // Check for pending payments in sessionStorage (secure approach)
+    const storedRef = sessionStorage.getItem('_pref');
+    if (storedRef) {
       try {
-        const paymentData = JSON.parse(storedPayment);
-        setPendingPayment(paymentData.paymentId);
-        startPaymentPolling(paymentData.paymentId, paymentData.credits);
+        const paymentData = JSON.parse(atob(storedRef));
+        setPendingPayment(paymentData.id);
+        startPaymentPolling(paymentData.id, paymentData.cr);
       } catch (error) {
-        console.error('Error parsing stored payment:', error);
-        localStorage.removeItem('pending_payment');
+        console.error('Error parsing stored payment reference:', error);
+        sessionStorage.removeItem('_pref');
       }
     }
 
@@ -193,7 +193,7 @@ const UserDashboard = () => {
         pollingTimeoutRef.current = null;
       }
       setPendingPayment(null);
-      localStorage.removeItem('pending_payment');
+      sessionStorage.removeItem('_pref');
     };
     
     const scheduleNextPoll = (delay: number) => {

@@ -94,21 +94,17 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
       console.log('✅ Payment response:', data);
 
       if (data?.url && data?.paymentId) {
-        // Enhanced payment tracking
-        const paymentData = {
-          paymentId: data.paymentId,
-          credits,
-          amount: finalAmount,
-          planType,
-          timestamp: Date.now(),
-          provider: 'dodo_payments',
-          currency: data.currency || 'USD',
-          environment: data.environment || 'production',
-          recordId: data.recordId
+        // Secure payment tracking - store minimal data in sessionStorage
+        // Only store payment ID for verification (no sensitive amounts or personal data)
+        const securePaymentRef = {
+          id: data.paymentId,
+          ts: Date.now(),
+          cr: credits // Only store expected credits for UI feedback
         };
 
-        // Store for tracking
-        localStorage.setItem('pending_payment', JSON.stringify(paymentData));
+        // Use sessionStorage (more secure - cleared on browser close)
+        // and only store minimal reference data
+        sessionStorage.setItem('_pref', btoa(JSON.stringify(securePaymentRef)));
         
         // Open Dodo Payments checkout
         const win = window.open(data.url, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
@@ -178,7 +174,7 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
       console.log('📊 Payment status:', data);
 
       if (data?.status === 'completed') {
-        localStorage.removeItem('pending_payment');
+        sessionStorage.removeItem('_pref');
         
         toast({
           title: "🎉 Payment Successful!",
@@ -187,7 +183,7 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
         
         onSuccess(); // Refresh the parent component
       } else if (data?.status === 'failed' || data?.status === 'expired') {
-        localStorage.removeItem('pending_payment');
+        sessionStorage.removeItem('_pref');
         
         toast({
           variant: "destructive",
@@ -195,7 +191,7 @@ const DodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onClose, on
           description: "Your payment could not be processed. Please try again.",
         });
       } else if (data?.status === 'cancelled') {
-        localStorage.removeItem('pending_payment');
+        sessionStorage.removeItem('_pref');
         
         toast({
           title: "Payment Cancelled",

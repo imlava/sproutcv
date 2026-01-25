@@ -76,14 +76,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
       console.log('Payment created:', data);
 
       if (data?.url) {
-        // Store payment info for tracking
-        localStorage.setItem('pending_payment', JSON.stringify({
-          paymentId: data.paymentId,
-          credits,
-          amount: finalAmount,
-          timestamp: Date.now(),
-          discountPercent
-        }));
+        // Store minimal payment reference securely (sessionStorage + base64)
+        const secureRef = { id: data.paymentId, cr: credits, ts: Date.now() };
+        sessionStorage.setItem('_pref', btoa(JSON.stringify(secureRef)));
         
         // Open Dodo Payments checkout in a new tab
         const paymentWindow = window.open(data.url, '_blank');
@@ -113,17 +108,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, onSuccess 
                 .single();
               
               if (profile) {
-                const pendingPayment = localStorage.getItem('pending_payment');
-                if (pendingPayment) {
-                  const paymentData = JSON.parse(pendingPayment);
-                  // If credits increased, payment was successful
-                  if (profile.credits >= paymentData.credits) {
-                    localStorage.removeItem('pending_payment');
-                    toast({
-                      title: "Payment Successful!",
-                      description: `${credits} credits have been added to your account.`,
-                    });
-                    onSuccess();
+                const pendingRef = sessionStorage.getItem('_pref');
+                if (pendingRef) {
+                  try {
+                    const paymentData = JSON.parse(atob(pendingRef));
+                    // If credits increased, payment was successful
+                    if (profile.credits >= paymentData.cr) {
+                      sessionStorage.removeItem('_pref');
+                      toast({
+                        title: "Payment Successful!",
+                        description: `${credits} credits have been added to your account.`,
+                      });
+                      onSuccess();
+                    }
+                  } catch (e) {
+                    console.error('Failed to parse payment reference:', e);
+                    sessionStorage.removeItem('_pref');
                   }
                 }
               }

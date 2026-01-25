@@ -97,7 +97,8 @@ serve(async (req) => {
 
     console.log("✓ Selected product:", productToUse);
 
-    // STEP 4: **BULLETPROOF AUTHENTICATION** (supports both ANON and USER tokens)
+    // STEP 4: **SECURE AUTHENTICATION** - ONLY accepts authenticated user tokens
+    // SECURITY: Anonymous tokens are NOT accepted for payment creation
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return createErrorResponse("Invalid authorization header", "AUTH_INVALID", 401);
@@ -107,37 +108,45 @@ serve(async (req) => {
     let user;
 
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const now = Math.floor(Date.now() / 1000);
+      // Verify the token using Supabase client
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
       
-      if (payload.exp < now) {
-        throw new Error("Token expired");
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error("Server configuration error");
       }
-      
-      // Handle both ANON tokens (no sub) and USER tokens (with sub)
-      if (payload.sub) {
-        // Real user token
-        user = {
-          id: payload.sub,
-          email: payload.email || payload.user_metadata?.email || 'customer@example.com',
-          user_metadata: payload.user_metadata || {}
-        };
-        console.log("✅ USER token authentication successful:", user.id);
-      } else if (payload.role === 'anon') {
-        // Anonymous token (for testing)
-        user = {
-          id: `anon_${Date.now()}`,
-          email: 'test@sproutcv.app',
-          user_metadata: {}
-        };
-        console.log("✅ ANON token authentication successful:", user.id);
-      } else {
-        throw new Error("Invalid token: no sub and not anon role");
+
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !authUser) {
+        console.error("✗ Supabase auth error:", authError);
+        throw new Error("Invalid or expired token");
       }
+
+      // SECURITY: Reject anonymous/service tokens - require real user authentication
+      if (!authUser.id || authUser.role === 'anon' || !authUser.email) {
+        console.error("✗ Anonymous tokens not allowed for payments");
+        return createErrorResponse(
+          "Payment creation requires authenticated user account. Please sign in.", 
+          "AUTH_REQUIRED", 
+          401
+        );
+      }
+
+      user = {
+        id: authUser.id,
+        email: authUser.email,
+        user_metadata: authUser.user_metadata || {}
+      };
+      console.log("✅ Authenticated user verified:", user.id);
       
     } catch (authError) {
       console.error("✗ Authentication failed:", authError);
-      return createErrorResponse("Authentication failed", "AUTH_FAILED", 401);
+      return createErrorResponse("Authentication failed - please sign in", "AUTH_FAILED", 401);
     }
 
     // STEP 5: Get Dodo API key

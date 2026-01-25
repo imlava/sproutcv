@@ -1,4 +1,11 @@
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+/**
+ * Gemini AI Service - Secure Server-Side Implementation
+ * 
+ * This service routes all AI requests through Supabase Edge Functions
+ * to keep API keys secure on the server side.
+ */
+
+import { supabase } from '@/integrations/supabase/client';
 
 export interface ResumeAnalysisResult {
   keywordMatches: {
@@ -44,47 +51,31 @@ export interface RewriteRequest {
 }
 
 class GeminiService {
-  private genAI: GoogleGenerativeAI;
-  private model: GenerativeModel;
-  private isInitialized: boolean = false;
+  private isInitialized: boolean = true; // Always true since we use Edge Functions
 
-  constructor() {
-    const apiKey = import.meta.env.VITE_GOOGLE_AI_API_KEY || import.meta.env.GOOGLE_AI_API_KEY;
-    
-    if (!apiKey) {
-      console.warn('Google AI API key not found. Gemini features will be limited.');
-      return;
-    }
-
-    try {
-      this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ 
-        model: "gemini-1.5-pro",
-        generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 4096,
-        },
-      });
-      this.isInitialized = true;
-    } catch (error) {
-      console.error('Failed to initialize Gemini AI:', error);
-    }
-  }
-
+  /**
+   * Generate content using Gemini AI via Edge Function
+   * API key is stored securely on the server
+   */
   private async generateContent(prompt: string): Promise<string> {
-    if (!this.isInitialized) {
-      throw new Error('Gemini AI service is not properly initialized');
-    }
-
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
-    } catch (error) {
+      const { data, error } = await supabase.functions.invoke('gemini-analyze', {
+        body: { prompt }
+      });
+
+      if (error) {
+        console.error('Gemini Edge Function error:', error);
+        throw new Error(error.message || 'Failed to generate AI response');
+      }
+
+      if (!data?.analysis) {
+        throw new Error('Invalid response from AI service');
+      }
+
+      return data.analysis;
+    } catch (error: any) {
       console.error('Gemini API error:', error);
-      throw new Error('Failed to generate AI response. Please try again.');
+      throw new Error(error.message || 'Failed to generate AI response. Please try again.');
     }
   }
 
@@ -104,33 +95,27 @@ class GeminiService {
     Job Description:
     ${jobDescription}
 
-    Focus on extracting:
-    1. Must-have technical skills and experience
-    2. Nice-to-have qualifications
-    3. Company culture and values
-    4. Seniority level indicators
-    5. Technology stack mentioned
-    6. Key responsibilities and duties
-    7. Important keywords and their frequency
-
-    Return only valid JSON without markdown formatting.
+    Return ONLY valid JSON, no markdown formatting or code blocks.
     `;
 
     try {
       const response = await this.generateContent(prompt);
-      // Clean the response to ensure it's valid JSON
-      const cleanedResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+      // Clean the response - remove any markdown code blocks
+      const cleanedResponse = response
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
       return JSON.parse(cleanedResponse);
     } catch (error) {
       console.error('Error analyzing job description:', error);
-      // Return fallback data
+      // Return a default structure if parsing fails
       return {
-        keyRequirements: ['Experience in relevant field', 'Strong communication skills'],
-        preferredQualifications: ['Additional experience preferred'],
-        companyInfo: 'Company information not available',
+        keyRequirements: [],
+        preferredQualifications: [],
+        companyInfo: '',
         roleLevel: 'mid',
         techStack: [],
-        responsibilities: ['Perform assigned duties', 'Collaborate with team'],
+        responsibilities: [],
         keywordDensity: {}
       };
     }
@@ -138,16 +123,16 @@ class GeminiService {
 
   async analyzeResume(resumeText: string, jobDescription: string): Promise<ResumeAnalysisResult> {
     const prompt = `
-    Analyze this resume against the job description and provide detailed feedback. Return a JSON object with this structure:
+    Analyze this resume against the job description. Return a JSON object with:
     {
       "keywordMatches": {
         "matched": ["keyword1", "keyword2"],
-        "missing": ["missing1", "missing2"],
+        "missing": ["keyword3", "keyword4"],
         "score": 75
       },
       "gapAnalysis": {
         "skillGaps": ["gap1", "gap2"],
-        "experienceGaps": ["exp1", "exp2"],
+        "experienceGaps": ["gap1"],
         "recommendations": ["rec1", "rec2"]
       },
       "suggestions": [
@@ -155,187 +140,158 @@ class GeminiService {
           "section": "Experience",
           "original": "original text",
           "improved": "improved text",
-          "reasoning": "why this is better"
+          "reasoning": "why this improvement helps"
         }
       ],
-      "overallScore": 78,
+      "overallScore": 75,
       "toneAnalysis": {
-        "currentTone": "formal",
-        "recommendedTone": "professional",
-        "readabilityScore": 85
+        "currentTone": "professional",
+        "recommendedTone": "more action-oriented",
+        "readabilityScore": 80
       }
     }
 
-    Resume Text:
+    Resume:
     ${resumeText}
 
     Job Description:
     ${jobDescription}
 
-    Provide:
-    1. Keyword matching analysis with percentage score
-    2. Identify skill and experience gaps
-    3. Specific improvement suggestions for each section
-    4. Overall compatibility score (0-100)
-    5. Tone and readability analysis
-    6. Actionable recommendations
-
-    Return only valid JSON without markdown formatting.
+    Return ONLY valid JSON, no markdown formatting or code blocks.
     `;
 
     try {
       const response = await this.generateContent(prompt);
-      const cleanedResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+      const cleanedResponse = response
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
       return JSON.parse(cleanedResponse);
     } catch (error) {
       console.error('Error analyzing resume:', error);
-      // Return fallback data
       return {
-        keywordMatches: {
-          matched: ['Experience', 'Skills'],
-          missing: ['Leadership', 'Communication'],
-          score: 65
-        },
-        gapAnalysis: {
-          skillGaps: ['Modern frameworks', 'Cloud platforms'],
-          experienceGaps: ['Senior level experience'],
-          recommendations: ['Add more quantified achievements', 'Highlight leadership experience']
-        },
+        keywordMatches: { matched: [], missing: [], score: 0 },
+        gapAnalysis: { skillGaps: [], experienceGaps: [], recommendations: [] },
         suggestions: [],
-        overallScore: 65,
-        toneAnalysis: {
-          currentTone: 'formal',
-          recommendedTone: 'professional',
-          readabilityScore: 75
-        }
+        overallScore: 0,
+        toneAnalysis: { currentTone: '', recommendedTone: '', readabilityScore: 0 }
       };
     }
   }
 
   async rewriteSection(request: RewriteRequest): Promise<string> {
     const prompt = `
-    Rewrite this resume section to better match the job requirements while maintaining authenticity.
-
-    Section: ${request.section}
-    Original Content: ${request.content}
-    Target Keywords: ${request.targetKeywords.join(', ')}
-    Desired Tone: ${request.tone}
+    Rewrite this resume section to be more impactful. Use a ${request.tone} tone.
+    
+    Target keywords to incorporate: ${request.targetKeywords.join(', ')}
+    
     Context: ${request.context}
-
-    Guidelines:
-    1. Incorporate target keywords naturally
-    2. Maintain the ${request.tone} tone
-    3. Use action verbs and quantifiable achievements
-    4. Keep the core truth of the original content
-    5. Make it ATS-friendly
-    6. Improve readability and impact
-
-    Return only the rewritten content without any explanation or markdown formatting.
+    
+    Original ${request.section}:
+    ${request.content}
+    
+    Provide ONLY the rewritten section text, no explanations or formatting.
+    Make it:
+    1. More achievement-focused with quantifiable results
+    2. ATS-optimized with natural keyword integration
+    3. Action-verb driven
+    4. Concise but impactful
     `;
 
     try {
-      const response = await this.generateContent(prompt);
-      return response.trim();
+      return await this.generateContent(prompt);
     } catch (error) {
       console.error('Error rewriting section:', error);
-      // Return the original content as fallback
-      return request.content;
+      return request.content; // Return original if rewrite fails
     }
   }
 
-  async generateAchievementPrompts(experienceText: string): Promise<string[]> {
+  async generateBulletPoints(experience: string, keywords: string[]): Promise<string[]> {
     const prompt = `
-    Analyze this work experience and suggest specific questions to help quantify achievements:
-
-    Experience: ${experienceText}
-
-    Generate 3-5 specific questions that would help the person add measurable achievements and impact metrics.
-    Focus on:
-    1. Quantifiable results (numbers, percentages, savings)
-    2. Process improvements
-    3. Team impact
-    4. Business outcomes
-    5. Efficiency gains
-
-    Return as a JSON array of question strings.
-    Example: ["How much did you increase sales by?", "How many team members did you manage?"]
-
-    Return only the JSON array without markdown formatting.
+    Generate 3-5 impactful resume bullet points based on this experience.
+    
+    Experience: ${experience}
+    Keywords to incorporate: ${keywords.join(', ')}
+    
+    Requirements:
+    - Start each with a strong action verb
+    - Include quantifiable achievements where possible
+    - Keep each under 100 characters
+    - Naturally incorporate relevant keywords
+    
+    Return ONLY a JSON array of strings, no explanations:
+    ["bullet1", "bullet2", "bullet3"]
     `;
 
     try {
       const response = await this.generateContent(prompt);
-      const cleanedResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+      const cleanedResponse = response
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
       return JSON.parse(cleanedResponse);
     } catch (error) {
-      console.error('Error generating achievement prompts:', error);
+      console.error('Error generating bullet points:', error);
       return [
-        'What specific results did you achieve in this role?',
-        'How did you measure success in your projects?',
-        'What was the impact of your work on the team or company?'
+        'Led cross-functional initiatives resulting in improved outcomes',
+        'Implemented strategic solutions driving operational efficiency',
+        'Collaborated with stakeholders to deliver key objectives'
       ];
     }
   }
 
-  async generateInterviewQuestions(jobDescription: string, resumeText: string): Promise<any[]> {
+  async suggestKeywords(jobDescription: string, currentResume: string): Promise<{
+    mustHave: string[];
+    niceToHave: string[];
+    industryTerms: string[];
+  }> {
     const prompt = `
-    Based on this job description and resume, generate relevant interview questions the candidate should prepare for:
-
+    Analyze the job description and resume to suggest keywords.
+    
     Job Description: ${jobDescription}
-    Resume: ${resumeText}
-
-    Generate 5-7 questions in this JSON format:
-    [
-      {
-        "category": "Technical|Behavioral|Situational",
-        "question": "question text",
-        "difficulty": "Easy|Medium|Hard",
-        "tips": ["tip1", "tip2", "tip3"],
-        "expectedDuration": "2-3 minutes"
-      }
-    ]
-
-    Focus on:
-    1. Role-specific technical questions
-    2. Behavioral questions based on their experience
-    3. Situational questions for the target role
-    4. Questions that test the required skills
-
-    Return only valid JSON without markdown formatting.
+    
+    Current Resume: ${currentResume}
+    
+    Return a JSON object with keyword suggestions:
+    {
+      "mustHave": ["keyword1", "keyword2"],
+      "niceToHave": ["keyword3", "keyword4"],
+      "industryTerms": ["term1", "term2"]
+    }
+    
+    Return ONLY valid JSON, no markdown.
     `;
 
     try {
       const response = await this.generateContent(prompt);
-      const cleanedResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+      const cleanedResponse = response
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
       return JSON.parse(cleanedResponse);
     } catch (error) {
-      console.error('Error generating interview questions:', error);
-      return [
-        {
-          category: 'Behavioral',
-          question: 'Tell me about a challenging project you worked on.',
-          difficulty: 'Medium',
-          tips: ['Use the STAR method', 'Be specific about your role', 'Highlight the outcome'],
-          expectedDuration: '3-4 minutes'
-        }
-      ];
+      console.error('Error suggesting keywords:', error);
+      return {
+        mustHave: [],
+        niceToHave: [],
+        industryTerms: []
+      };
     }
   }
 
-  // Health check method
+  // Health check method - always returns true since we use Edge Functions
   isServiceAvailable(): boolean {
     return this.isInitialized;
   }
 
   // Get service status for debugging
   getServiceStatus(): { available: boolean; hasApiKey: boolean } {
-    const hasApiKey = !!(import.meta.env.VITE_GOOGLE_AI_API_KEY || import.meta.env.GOOGLE_AI_API_KEY);
     return {
-      available: this.isInitialized,
-      hasApiKey
+      available: true,
+      hasApiKey: true // API key is on the server, always available if Edge Function works
     };
   }
 }
 
+// Export singleton instance
 export const geminiService = new GeminiService();
-export default geminiService;

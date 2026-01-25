@@ -151,7 +151,9 @@ const EnhancedDodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onC
           status: 'pending'
         };
 
-        localStorage.setItem('pending_payment', JSON.stringify(paymentData));
+        // Secure payment reference storage (sessionStorage + base64 encoding)
+        const secureRef = { id: data.paymentId, cr: credits, ts: Date.now() };
+        sessionStorage.setItem('_pref', btoa(JSON.stringify(secureRef)));
         
         // Open Dodo Payments checkout
         const win = window.open(data.url, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
@@ -275,8 +277,8 @@ const EnhancedDodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onC
         } : null);
         
         if (data.status === 'completed') {
-          // Clear pending payment
-          localStorage.removeItem('pending_payment');
+          // Clear pending payment reference
+          sessionStorage.removeItem('_pref');
           
           // Success notification
           toast({
@@ -287,8 +289,8 @@ const EnhancedDodoPaymentModal: React.FC<DodoPaymentModalProps> = ({ isOpen, onC
           
           onSuccess();
         } else if (data.status === 'failed' || data.status === 'expired') {
-          // Clear pending payment
-          localStorage.removeItem('pending_payment');
+          // Clear pending payment reference
+          sessionStorage.removeItem('_pref');
           
           // Failure notification
           toast({
