@@ -21,7 +21,19 @@ const CouponSystem: React.FC<CouponSystemProps> = ({ onCouponApplied, className 
       discount: 20,
       description: '20% Launch Discount',
       maxUses: 1,
-      validUntil: '2025-12-31'
+      validUntil: '2026-12-31'
+    },
+    'SPROUT10': {
+      discount: 10,
+      description: '10% Off Your First Purchase',
+      maxUses: 1,
+      validUntil: '2026-12-31'
+    },
+    'PREMIUM30': {
+      discount: 30,
+      description: '30% Off Premium Plans',
+      maxUses: 1,
+      validUntil: '2026-06-30'
     }
   };
 
