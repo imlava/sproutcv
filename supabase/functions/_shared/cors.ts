@@ -11,7 +11,9 @@ const ALLOWED_ORIGINS = [
   'https://www.sproutcv.app',
   'http://localhost:5173',  // Vite dev server
   'http://localhost:3000',  // Alternative dev server
+  'http://localhost:8080',  // Vite dev server (alternate port)
   'http://127.0.0.1:5173',
+  'http://127.0.0.1:8080',
 ];
 
 /**

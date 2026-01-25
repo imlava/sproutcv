@@ -8,7 +8,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { DocumentProcessor } from '@/services/document/DocumentProcessor';
+import * as pdfjs from 'pdfjs-dist';
+import mammoth from 'mammoth';
 import { 
   Upload, 
   FileText, 
@@ -25,6 +26,9 @@ import {
   Copy,
   X
 } from 'lucide-react';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 interface BuildProfileStepProps {
   state: {
@@ -46,7 +50,6 @@ const BuildProfileStep: React.FC<BuildProfileStepProps> = ({ state, onUpdate, on
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const documentProcessor = new DocumentProcessor();
 
   const templates = [
     { id: 'modern', name: 'Modern', description: 'Clean, contemporary design' },
@@ -54,6 +57,70 @@ const BuildProfileStep: React.FC<BuildProfileStepProps> = ({ state, onUpdate, on
     { id: 'creative', name: 'Creative', description: 'Bold, innovative styling' },
     { id: 'minimal', name: 'Minimal', description: 'Simple, elegant approach' }
   ];
+
+  // Supported file types
+  const SUPPORTED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.md', '.rtf', '.html'];
+  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+
+  const validateFile = (file: File): { valid: boolean; error?: string } => {
+    if (!file || file.size === 0) {
+      return { valid: false, error: 'File is empty' };
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return { valid: false, error: `File too large. Maximum size is 15MB.` };
+    }
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!SUPPORTED_EXTENSIONS.includes(ext)) {
+      return { valid: false, error: `Unsupported file type. Please use PDF, DOCX, or TXT files.` };
+    }
+    return { valid: true };
+  };
+
+  // Direct PDF extraction using PDF.js
+  const extractFromPDF = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      setUploadProgress(30 + Math.round((i / pdf.numPages) * 50));
+      setUploadStage(`Extracting page ${i} of ${pdf.numPages}...`);
+      
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n\n';
+    }
+    
+    return fullText.trim();
+  };
+
+  // Direct DOCX extraction using Mammoth
+  const extractFromDOCX = async (file: File): Promise<string> => {
+    setUploadProgress(50);
+    setUploadStage('Parsing Word document...');
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    
+    setUploadProgress(80);
+    setUploadStage('Processing text...');
+    
+    return result.value.trim();
+  };
+
+  // Plain text extraction
+  const extractFromText = async (file: File): Promise<string> => {
+    setUploadProgress(50);
+    setUploadStage('Reading text file...');
+    
+    const text = await file.text();
+    
+    setUploadProgress(80);
+    return text.trim();
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -64,8 +131,8 @@ const BuildProfileStep: React.FC<BuildProfileStepProps> = ({ state, onUpdate, on
     setUploadProgress(0);
     setUploadStage('Validating file...');
 
-    // Validate file using DocumentProcessor
-    const validation = documentProcessor.validateFile(file);
+    // Validate file
+    const validation = validateFile(file);
     if (!validation.valid) {
       setUploadError(validation.error || 'Invalid file');
       toast({
@@ -81,22 +148,32 @@ const BuildProfileStep: React.FC<BuildProfileStepProps> = ({ state, onUpdate, on
     setUploadStage('Reading file...');
     
     try {
-      // Use the document processor with progress callback
-      setUploadProgress(30);
-      setUploadStage('Extracting text...');
+      let extractedText = '';
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
       
-      const extractedText = await documentProcessor.extractText(file, {
-        enableOCR: true,
-        onProgress: (progress, stage) => {
-          setUploadProgress(30 + (progress * 0.6)); // 30-90%
-          setUploadStage(stage);
-        }
-      });
+      setUploadProgress(20);
+      setUploadStage('Detecting file type...');
+
+      // Route to appropriate extraction method
+      if (ext === 'pdf') {
+        extractedText = await extractFromPDF(file);
+      } else if (ext === 'docx') {
+        extractedText = await extractFromDOCX(file);
+      } else {
+        // txt, md, rtf, html - read as text
+        extractedText = await extractFromText(file);
+      }
       
-      setUploadProgress(95);
+      setUploadProgress(90);
       setUploadStage('Finalizing...');
 
-      if (!extractedText || extractedText.trim().length < 50) {
+      // Clean up the text
+      extractedText = extractedText
+        .replace(/\s+/g, ' ')
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+        .trim();
+
+      if (!extractedText || extractedText.length < 50) {
         throw new Error('Could not extract sufficient text from the file. Please try pasting your resume text manually.');
       }
       
@@ -130,6 +207,8 @@ const BuildProfileStep: React.FC<BuildProfileStepProps> = ({ state, onUpdate, on
       console.error('Document processing error:', error);
       const errorMessage = error instanceof Error ? error.message : "Failed to process your resume.";
       setUploadError(errorMessage);
+      setUploadProgress(0);
+      setUploadStage('');
       toast({
         title: "Processing Failed",
         description: errorMessage + " Try pasting your resume text manually.",
@@ -277,7 +356,7 @@ const BuildProfileStep: React.FC<BuildProfileStepProps> = ({ state, onUpdate, on
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept={documentProcessor.getAcceptString()}
+                  accept=".pdf,.docx,.txt,.md,.rtf,.html"
                   onChange={handleFileUpload}
                   className="hidden"
                   disabled={uploading}

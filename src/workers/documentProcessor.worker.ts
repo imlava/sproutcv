@@ -4,6 +4,7 @@
  * Uses Comlink for seamless communication with main thread
  */
 
+import { expose } from 'comlink';
 import { createWorker } from 'tesseract.js';
 import * as pdfjsLib from 'pdfjs-dist';
 import * as mammoth from 'mammoth';
@@ -350,4 +351,8 @@ class DocumentProcessor implements DocumentProcessorAPI {
 
 // Export the processor instance for Comlink
 const processor = new DocumentProcessor();
+
+// Expose the processor API for Comlink
+expose(processor);
+
 export default processor;
