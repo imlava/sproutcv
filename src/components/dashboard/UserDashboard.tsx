@@ -5,7 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, Target, Zap, Gift, Brain, Home, Shield } from 'lucide-react';
+import { 
+  CreditCard, FileText, History, LogOut, Plus, Sprout, TrendingUp, 
+  Target, Zap, Gift, Brain, Shield, Palette, Settings, HelpCircle,
+  ChevronRight, Star, Sparkles, LayoutDashboard, Users, ExternalLink
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import DodoPaymentModal from './DodoPaymentModal';
@@ -38,7 +42,6 @@ const UserDashboard = () => {
     const cleanupPaymentMonitoring = setupPaymentMonitoring();
     
     return () => {
-      // Cleanup subscription when component unmounts or effect re-runs
       if (cleanupPaymentMonitoring) {
         cleanupPaymentMonitoring();
       }
@@ -47,7 +50,6 @@ const UserDashboard = () => {
 
   useEffect(() => {
     return () => {
-      // Cleanup polling timers on unmount
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
@@ -74,7 +76,6 @@ const UserDashboard = () => {
       if (error) {
         console.error('Error fetching analyses:', error);
         
-        // Retry logic for temporary failures
         if (retryCount < 2) {
           setRetryCount(prev => prev + 1);
           setTimeout(() => fetchAnalyses(), 1000 * (retryCount + 1));
@@ -120,15 +121,23 @@ const UserDashboard = () => {
   };
 
   const handleStartNewAnalysis = () => {
+    if (!userProfile?.credits || userProfile.credits <= 0) {
+      toast({
+        variant: "destructive",
+        title: "No credits available",
+        description: "Please purchase credits to start an analysis.",
+      });
+      setShowPaymentModal(true);
+      return;
+    }
     navigate('/analyze');
   };
 
-  const handleAIResumeAnalyzer = () => {
-    navigate('/analyze'); // Consolidated to single route
+  const handleOpenStudio = () => {
+    navigate('/studio');
   };
 
   const setupPaymentMonitoring = () => {
-    // Check for pending payments in sessionStorage (secure approach)
     const storedRef = sessionStorage.getItem('_pref');
     if (storedRef) {
       try {
@@ -141,13 +150,11 @@ const UserDashboard = () => {
       }
     }
 
-    // Early return if no user ID available
     if (!user?.id) {
       console.log('No user ID available, skipping subscription setup');
-      return () => {}; // Return empty cleanup function
+      return () => {};
     }
 
-    // Set up real-time subscription for profile changes
     const subscription = supabase
       .channel('profile-changes')
       .on('postgres_changes', 
@@ -159,30 +166,26 @@ const UserDashboard = () => {
         }, 
         (payload) => {
           console.log('🔄 Profile updated:', payload.new);
-          // Refresh profile data
           refreshProfile();
         }
       )
       .subscribe();
 
-    // Return cleanup function to unsubscribe
     return () => subscription.unsubscribe();
   };
 
   const startPaymentPolling = (paymentId: string, expectedCredits: number) => {
     console.log(`🔄 Starting payment polling for: ${paymentId}`);
     
-    // Polling configuration
     const maxFailures = 5;
-    const baseDelay = 3000; // 3 seconds
-    const maxDelay = 30000; // 30 seconds max
-    const maxPollingTime = 5 * 60 * 1000; // 5 minutes
+    const baseDelay = 3000;
+    const maxDelay = 30000;
+    const maxPollingTime = 5 * 60 * 1000;
     
     let failureCount = 0;
     let currentDelay = baseDelay;
     let pollStartTime = Date.now();
     
-    // Helper function to clean up all timers and reset state
     const cleanupPolling = () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
@@ -198,22 +201,12 @@ const UserDashboard = () => {
     
     const scheduleNextPoll = (delay: number) => {
       pollingTimeoutRef.current = setTimeout(() => {
-        // Check if we've exceeded max polling time
         if (Date.now() - pollStartTime > maxPollingTime) {
           cleanupPolling();
           toast({
             variant: "destructive",
             title: "⏰ Payment Check Timeout",
             description: "Payment verification timed out. Please check your account or try a new payment.",
-            action: (
-              <Button
-                size="sm"
-                onClick={() => setShowPaymentModal(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                New Payment
-              </Button>
-            ),
             duration: 12000,
           });
           return;
@@ -232,44 +225,28 @@ const UserDashboard = () => {
         if (error) {
           console.error('❌ Payment status check error:', error);
           
-          // Handle specific error types
           if (error.message?.includes('404') || error.message?.includes('Not Found')) {
-            // 404 means function doesn't exist or payment not found
             cleanupPolling();
             toast({
               variant: "destructive",
               title: "❌ Payment Check Failed",
               description: "Unable to verify payment status. Please try making a new payment.",
-              action: (
-                <Button
-                  size="sm"
-                  onClick={() => setShowPaymentModal(true)}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Retry Payment
-                </Button>
-              ),
               duration: 10000,
             });
             return;
           }
           
-          // Treat other API errors as temporary failures for backoff logic
           handlePollingFailure(new Error(`API Error: ${error.message || 'Unknown error'}`));
           return;
         }
 
-        // Success! Reset failure tracking
         failureCount = 0;
         currentDelay = baseDelay;
         
         console.log(`📊 Payment status:`, data);
 
         if (data?.status === 'completed') {
-          // Payment completed successfully
           cleanupPolling();
-
-          // Refresh profile to get updated credits
           await refreshProfile();
           
           toast({
@@ -278,32 +255,20 @@ const UserDashboard = () => {
             duration: 5000,
           });
         } else if (data?.status === 'failed' || data?.status === 'expired') {
-          // Payment failed or expired
           cleanupPolling();
 
           toast({
             variant: "destructive",
             title: "❌ Payment Failed",
             description: `Your payment ${data.status}. Please try again.`,
-            action: (
-              <Button
-                size="sm"
-                onClick={() => setShowPaymentModal(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Try Again
-              </Button>
-            ),
             duration: 5000,
           });
         } else {
-          // Payment still pending, schedule next poll with normal delay
           scheduleNextPoll(currentDelay);
         }
       } catch (error) {
         console.error('Payment polling network error:', error);
         
-        // Check if it's a 404 or function not found error
         if (error instanceof Error && 
             (error.message?.includes('404') || 
              error.message?.includes('Not Found') || 
@@ -313,15 +278,6 @@ const UserDashboard = () => {
             variant: "destructive",
             title: "❌ Payment System Error",
             description: "Payment verification service is temporarily unavailable.",
-            action: (
-              <Button
-                size="sm"
-                onClick={() => setShowPaymentModal(true)}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Retry Payment
-              </Button>
-            ),
             duration: 10000,
           });
           return;
@@ -340,32 +296,19 @@ const UserDashboard = () => {
         toast({
           variant: "destructive",
           title: "🚫 Payment Check Failed",
-          description: "Unable to check payment status after multiple attempts. Please try making a new payment.",
-          action: (
-            <Button
-              size="sm"
-              onClick={() => setShowPaymentModal(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              New Payment
-            </Button>
-          ),
+          description: "Unable to check payment status after multiple attempts.",
           duration: 15000,
         });
         return;
       }
       
-      // Implement exponential backoff: double the delay up to maxDelay
       currentDelay = Math.min(currentDelay * 2, maxDelay);
       console.log(`⏳ Retrying in ${currentDelay / 1000}s (attempt ${failureCount + 1}/${maxFailures})`);
       
       scheduleNextPoll(currentDelay);
     };
 
-    // Clean up any existing timers before starting new ones
     cleanupPolling();
-
-    // Start with initial poll
     pollPayment();
   };
 
@@ -396,34 +339,6 @@ const UserDashboard = () => {
                 <Skeleton className="w-48 h-5 mb-4" />
                 <Skeleton className="w-40 h-10" />
               </Card>
-              <Card className="p-6">
-                <Skeleton className="w-40 h-6 mb-4" />
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center justify-between p-4 bg-muted rounded-lg">
-                      <div className="space-y-2">
-                        <Skeleton className="w-48 h-5" />
-                        <Skeleton className="w-32 h-4" />
-                        <Skeleton className="w-24 h-3" />
-                      </div>
-                      <Skeleton className="w-12 h-6 rounded-full" />
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-            <div className="space-y-6">
-              <Card className="p-6">
-                <Skeleton className="w-24 h-6 mb-4" />
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex justify-between">
-                      <Skeleton className="w-20 h-4" />
-                      <Skeleton className="w-8 h-4" />
-                    </div>
-                  ))}
-                </div>
-              </Card>
             </div>
           </div>
         </main>
@@ -438,17 +353,67 @@ const UserDashboard = () => {
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-emerald-600';
-    return 'text-red-600';
+    return 'text-orange-600';
   };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 80) return 'bg-green-100';
+    if (score >= 60) return 'bg-emerald-100';
+    return 'bg-orange-100';
+  };
+
+  // Quick action items for the dashboard
+  const quickActions = [
+    {
+      id: 'analyze',
+      title: 'AI Resume Analyzer',
+      description: 'Get instant feedback on your resume',
+      icon: Brain,
+      onClick: handleStartNewAnalysis,
+      color: 'green',
+      badge: userProfile?.credits && userProfile.credits > 0 ? `${userProfile.credits} credits` : null,
+      disabled: !userProfile?.credits || userProfile.credits <= 0,
+    },
+    {
+      id: 'studio',
+      title: 'Resume Studio',
+      description: 'Edit, export & manage versions',
+      icon: Palette,
+      onClick: handleOpenStudio,
+      color: 'emerald',
+      badge: 'New',
+      disabled: false,
+    },
+    {
+      id: 'tailor',
+      title: 'Tailor Resume',
+      description: 'Customize for specific jobs',
+      icon: Target,
+      onClick: () => navigate('/analyze'),
+      color: 'teal',
+      badge: null,
+      disabled: !userProfile?.credits || userProfile.credits <= 0,
+    },
+    {
+      id: 'referrals',
+      title: 'Refer Friends',
+      description: 'Earn free credits',
+      icon: Gift,
+      onClick: () => navigate('/referrals'),
+      color: 'green',
+      badge: '+3 credits',
+      disabled: false,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       {/* Enhanced Header */}
-      <nav className="bg-white/80 backdrop-blur-sm shadow-lg border-b border-green-200">
+      <nav className="bg-white/90 backdrop-blur-md shadow-lg border-b border-green-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate('/')}>
               <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
                 <Sprout className="h-6 w-6 text-white" />
               </div>
@@ -461,11 +426,11 @@ const UserDashboard = () => {
             </div>
 
             {/* Navigation Actions */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               {/* Credits Display */}
-              <div className="flex items-center space-x-2 bg-green-50 border border-green-200 px-3 py-1 rounded-full">
+              <div className="flex items-center space-x-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 px-4 py-2 rounded-full">
                 <CreditCard className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-700">
+                <span className="text-sm font-semibold text-green-700">
                   {userProfile?.credits || 0} credits
                 </span>
               </div>
@@ -474,18 +439,28 @@ const UserDashboard = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/analyze')}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                onClick={() => navigate('/studio')}
+                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 hidden sm:flex"
               >
-                <Shield className="h-4 w-4 mr-2" />
-                Analyzer
+                <Palette className="h-4 w-4 mr-2" />
+                Studio
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/analyze')}
+                className="text-green-600 hover:text-green-700 hover:bg-green-50 hidden sm:flex"
+              >
+                <Brain className="h-4 w-4 mr-2" />
+                Analyze
               </Button>
 
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowPaymentModal(true)}
-                className="border-green-200 text-green-600 hover:bg-green-50"
+                className="border-green-300 text-green-600 hover:bg-green-50 bg-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Buy Credits
@@ -495,10 +470,9 @@ const UserDashboard = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="text-gray-500 hover:text-red-600 hover:bg-red-50"
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -507,236 +481,306 @@ const UserDashboard = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-6">
             {/* Welcome Card */}
-            <div className="lg:col-span-2">
-              <Card className="p-6 mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+            <Card className="p-6 bg-gradient-to-r from-green-500 to-emerald-600 border-0 text-white overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+              
+              <div className="relative z-10">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                      Welcome back, {userProfile?.full_name || user?.email?.split('@')[0]}!
+                    <Badge className="bg-white/20 text-white border-0 mb-3">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Welcome back
+                    </Badge>
+                    <h2 className="text-2xl font-bold mb-2">
+                      {userProfile?.full_name || user?.email?.split('@')[0]}! 👋
                     </h2>
-                    <p className="text-green-700/80 mb-4">
+                    <p className="text-green-100 mb-4">
                       Ready to grow your resume for your next dream job?
                     </p>
-                    <div className="flex items-center space-x-4 mb-4">
-                      {analyses.length > 0 && (
-                        <>
-                          <div className="flex items-center space-x-2">
-                            <Target className="h-4 w-4 text-green-600" />
-                            <span className="text-sm text-green-700">
-                              {analyses.length} analysis{analyses.length !== 1 ? 'es' : ''} completed
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <TrendingUp className={`h-4 w-4 ${getScoreColor(averageScore)}`} />
-                            <span className="text-sm text-green-700">
-                              {averageScore}% average score
-                            </span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    
+                    {analyses.length > 0 && (
+                      <div className="flex items-center space-x-4 mb-4">
+                        <div className="flex items-center space-x-2 bg-white/20 px-3 py-1 rounded-full">
+                          <Target className="h-4 w-4" />
+                          <span className="text-sm font-medium">
+                            {analyses.length} analysis{analyses.length !== 1 ? 'es' : ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2 bg-white/20 px-3 py-1 rounded-full">
+                          <TrendingUp className="h-4 w-4" />
+                          <span className="text-sm font-medium">
+                            {averageScore}% avg score
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex flex-wrap gap-3">
                       <Button 
-                        className="flex-1 sm:flex-initial bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white" 
+                        className="bg-white text-green-600 hover:bg-green-50 font-semibold shadow-lg" 
                         onClick={handleStartNewAnalysis}
-                        disabled={!userProfile?.credits || userProfile.credits <= 0}
                       >
-                        <FileText className="h-4 w-4 mr-2" />
-                        {userProfile?.credits && userProfile.credits > 0 
-                          ? 'Start New Analysis' 
-                          : 'Buy Credits to Start'
-                        }
+                        <Brain className="h-4 w-4 mr-2" />
+                        Start Analysis
                       </Button>
                       <Button 
                         variant="outline"
-                        className="flex-1 sm:flex-initial border-green-200 text-green-600 hover:bg-green-50" 
-                        onClick={handleAIResumeAnalyzer}
+                        className="border-white/50 text-white hover:bg-white/20 bg-transparent" 
+                        onClick={handleOpenStudio}
                       >
-                        <Brain className="h-4 w-4 mr-2" />
-                        AI Resume Analyzer
+                        <Palette className="h-4 w-4 mr-2" />
+                        Open Studio
                       </Button>
                     </div>
                   </div>
-                  <div className="hidden sm:block">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                      <Zap className="h-8 w-8 text-green-600" />
+                  
+                  <div className="hidden md:block">
+                    <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center">
+                      <Zap className="h-10 w-10 text-white" />
                     </div>
                   </div>
                 </div>
-              </Card>
-
-              {/* Recent Analyses */}
-              <Card className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Recent Analyses</h3>
-                  <History className="h-5 w-5 text-muted-foreground" />
-                </div>
-                
-                {analyses.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                      <FileText className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h4 className="font-medium mb-2">No analyses yet</h4>
-                    <p className="text-muted-foreground text-sm mb-4">
-                      Start your first resume analysis to see results here
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      onClick={handleStartNewAnalysis}
-                      disabled={!userProfile?.credits || userProfile.credits <= 0}
-                      className="border-green-200 text-green-600 hover:bg-green-50"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Create Your First Analysis
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {analyses.map((analysis) => (
-                      <div 
-                        key={analysis.id} 
-                        className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
-                        onClick={() => navigate(`/analysis/${analysis.id}`)}
-                      >
-                        <div className="flex-1">
-                          <h4 className="font-medium">
-                            {analysis.job_title || 'Untitled Analysis'}
-                          </h4>
-                          {analysis.company_name && (
-                            <p className="text-sm text-muted-foreground">{analysis.company_name}</p>
-                          )}
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(analysis.created_at).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric'
-                            })} • Available for 30 days
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                          <div className="text-right">
-                            <p className={`text-lg font-bold ${getScoreColor(analysis.overall_score)}`}>
-                              {analysis.overall_score}%
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {analysis.overall_score >= 80 ? 'Excellent' : 
-                               analysis.overall_score >= 60 ? 'Good' : 'Needs Work'}
-                            </p>
-                          </div>
-                          <Button variant="ghost" size="sm" className="text-green-600 hover:bg-green-50">
-                            View Details
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    {analyses.length >= 10 && (
-                      <div className="text-center pt-2">
-                        <Button variant="ghost" size="sm" className="text-green-600 hover:bg-green-50">
-                          View All Analyses
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Card>
-          </div>
-
-          {/* Stats Sidebar */}
-          <div className="space-y-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Your Stats</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <FileText className="h-4 w-4 text-green-600" />
-                    </div>
-                    <span className="text-muted-foreground">Total Analyses</span>
-                  </div>
-                  <span className="font-semibold text-lg">{analyses.length}</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                      <CreditCard className="h-4 w-4 text-emerald-600" />
-                    </div>
-                    <span className="text-muted-foreground">Available Credits</span>
-                  </div>
-                  <span className="font-semibold text-lg text-emerald-600">{userProfile?.credits || 0}</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                    </div>
-                    <span className="text-muted-foreground">Average Score</span>
-                  </div>
-                  <span className={`font-semibold text-lg ${getScoreColor(averageScore)}`}>
-                    {averageScore}%
-                  </span>
-                </div>
-                {userProfile?.credits === 0 && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-4">
-                    <p className="text-orange-800 text-sm font-medium">No credits remaining</p>
-                    <p className="text-orange-600 text-xs">Purchase credits to continue analyzing</p>
-                  </div>
-                )}
               </div>
             </Card>
 
+            {/* Quick Actions Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Card 
+                    key={action.id}
+                    className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-green-100 ${
+                      action.disabled ? 'opacity-60' : ''
+                    }`}
+                    onClick={action.disabled ? undefined : action.onClick}
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-${action.color}-100 to-${action.color}-200 flex items-center justify-center flex-shrink-0`}>
+                        <Icon className={`h-6 w-6 text-${action.color}-600`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-semibold text-gray-900 truncate">{action.title}</h3>
+                          {action.badge && (
+                            <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                              {action.badge}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 mt-0.5">{action.description}</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {/* Recent Analyses */}
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-              <div className="space-y-3">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <History className="h-5 w-5 text-green-600" />
+                  <h3 className="text-lg font-semibold">Recent Analyses</h3>
+                </div>
+                {analyses.length > 0 && (
+                  <Button variant="ghost" size="sm" className="text-green-600 hover:bg-green-50">
+                    View All
+                  </Button>
+                )}
+              </div>
+              
+              {analyses.length === 0 ? (
+                <div className="text-center py-12 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h4 className="font-semibold text-gray-900 mb-2">No analyses yet</h4>
+                  <p className="text-gray-500 text-sm mb-4 max-w-sm mx-auto">
+                    Upload your resume and get AI-powered feedback to improve your chances
+                  </p>
+                  <Button 
+                    onClick={handleStartNewAnalysis}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Create Your First Analysis
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {analyses.map((analysis) => (
+                    <div 
+                      key={analysis.id} 
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-green-50 transition-colors cursor-pointer group"
+                      onClick={() => navigate(`/analysis/${analysis.id}`)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 truncate">
+                          {analysis.job_title || 'Untitled Analysis'}
+                        </h4>
+                        {analysis.company_name && (
+                          <p className="text-sm text-gray-500 truncate">{analysis.company_name}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(analysis.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-3 ml-4">
+                        <div className={`px-3 py-1 rounded-full ${getScoreBg(analysis.overall_score)}`}>
+                          <span className={`text-lg font-bold ${getScoreColor(analysis.overall_score)}`}>
+                            {analysis.overall_score}%
+                          </span>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-green-600 transition-colors" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Stats Card */}
+            <Card className="p-6 bg-white border-green-100">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <LayoutDashboard className="h-5 w-5 mr-2 text-green-600" />
+                Your Stats
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-green-600" />
+                    </div>
+                    <span className="text-gray-600">Total Analyses</span>
+                  </div>
+                  <span className="font-bold text-xl text-gray-900">{analyses.length}</span>
+                </div>
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                      <CreditCard className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <span className="text-gray-600">Credits</span>
+                  </div>
+                  <span className="font-bold text-xl text-emerald-600">{userProfile?.credits || 0}</span>
+                </div>
+                <div className="flex items-center justify-between py-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-green-600" />
+                    </div>
+                    <span className="text-gray-600">Avg Score</span>
+                  </div>
+                  <span className={`font-bold text-xl ${getScoreColor(averageScore)}`}>
+                    {averageScore}%
+                  </span>
+                </div>
+              </div>
+              
+              {userProfile?.credits === 0 && (
+                <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4 mt-4">
+                  <p className="text-orange-800 font-medium text-sm">No credits remaining</p>
+                  <p className="text-orange-600 text-xs mt-1">Purchase credits to continue</p>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowPaymentModal(true)}
+                    className="mt-3 w-full bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Buy Credits
+                  </Button>
+                </div>
+              )}
+            </Card>
+
+            {/* Quick Links */}
+            <Card className="p-6 bg-white border-green-100">
+              <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+              <div className="space-y-2">
                 <Button 
-                  variant="outline" 
-                  className="w-full justify-start border-green-200 text-green-600 hover:bg-green-50" 
-                  onClick={handleStartNewAnalysis}
-                  disabled={!userProfile?.credits || userProfile.credits <= 0}
+                  variant="ghost" 
+                  className="w-full justify-start text-gray-700 hover:text-green-700 hover:bg-green-50" 
+                  onClick={() => navigate('/how-it-works')}
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  New Analysis
-                  {userProfile?.credits && userProfile.credits > 0 && (
-                    <Badge variant="secondary" className="ml-auto text-xs bg-green-100 text-green-700">
-                      {userProfile.credits} left
-                    </Badge>
-                  )}
+                  <HelpCircle className="h-4 w-4 mr-3 text-green-600" />
+                  How It Works
+                  <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
                 </Button>
-                <Button variant="outline" className="w-full justify-start border-green-200 text-green-600 hover:bg-green-50" onClick={() => setShowPaymentModal(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Purchase Credits
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-gray-700 hover:text-green-700 hover:bg-green-50" 
+                  onClick={() => navigate('/referrals')}
+                >
+                  <Users className="h-4 w-4 mr-3 text-green-600" />
+                  Referral Program
+                  <Badge variant="secondary" className="ml-auto bg-green-100 text-green-700 text-xs">
+                    +3 credits
+                  </Badge>
                 </Button>
-                <Button variant="outline" className="w-full justify-start border-green-200 text-green-600 hover:bg-green-50" onClick={() => navigate('/referrals')}>
-                  <Gift className="h-4 w-4 mr-2" />
-                  Refer Friends
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-gray-700 hover:text-green-700 hover:bg-green-50" 
+                  onClick={() => navigate('/help')}
+                >
+                  <Shield className="h-4 w-4 mr-3 text-green-600" />
+                  Help Center
+                  <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-gray-700 hover:text-green-700 hover:bg-green-50" 
+                  onClick={() => navigate('/contact')}
+                >
+                  <Settings className="h-4 w-4 mr-3 text-green-600" />
+                  Contact Support
+                  <ExternalLink className="h-3 w-3 ml-auto text-gray-400" />
                 </Button>
               </div>
             </Card>
 
             {/* Performance Insights */}
             {analyses.length > 0 && (
-              <Card className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Performance Insights</h3>
+              <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                <h3 className="text-lg font-semibold mb-4 flex items-center">
+                  <Star className="h-5 w-5 mr-2 text-green-600" />
+                  Performance
+                </h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Best Score</span>
-                    <span className="font-medium text-green-600">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 text-sm">Best Score</span>
+                    <span className="font-bold text-green-600">
                       {Math.max(...analyses.map(a => a.overall_score))}%
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Recent Improvement</span>
-                    <span className="font-medium">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 text-sm">Improvement</span>
+                    <span className={`font-bold ${
+                      analyses.length >= 2 && analyses[0].overall_score - analyses[1].overall_score > 0 
+                        ? 'text-green-600' 
+                        : 'text-gray-600'
+                    }`}>
                       {analyses.length >= 2 
                         ? `${analyses[0].overall_score - analyses[1].overall_score > 0 ? '+' : ''}${analyses[0].overall_score - analyses[1].overall_score}%`
                         : 'N/A'
                       }
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">This Month</span>
-                    <span className="font-medium">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 text-sm">This Month</span>
+                    <span className="font-bold text-gray-900">
                       {analyses.filter(a => 
                         new Date(a.created_at).getMonth() === new Date().getMonth()
                       ).length} analyses
@@ -749,7 +793,6 @@ const UserDashboard = () => {
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
 
       <DodoPaymentModal 
