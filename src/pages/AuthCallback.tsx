@@ -77,11 +77,17 @@ const AuthCallback: React.FC = () => {
           
           // Provide user-friendly error messages
           if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
-            setMessage('Email confirmation link has expired');
-            setErrorDetail('Confirmation links are valid for 1 hour. Please request a new one from the sign-in page.');
+            setMessage('Verification link expired or already used');
+            setErrorDetail(
+              'This can happen if:\n' +
+              '• Your email security (Microsoft, Google) pre-clicked the link\n' +
+              '• The link was clicked more than once\n' +
+              '• The link is older than 1 hour\n\n' +
+              'Please request a new verification email below.'
+            );
           } else if (error === 'access_denied') {
-            setMessage('Access denied');
-            setErrorDetail(errorDescription || 'The link is invalid or has already been used.');
+            setMessage('Link already used');
+            setErrorDetail('This verification link has already been used. Please request a new one if needed.');
           } else {
             setMessage('Email verification failed');
             setErrorDetail(errorDescription || error);
@@ -238,7 +244,7 @@ const AuthCallback: React.FC = () => {
         {status === 'error' && (
           <div className="space-y-4">
             {errorDetail && (
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-500 text-sm whitespace-pre-line text-left">
                 {errorDetail}
               </p>
             )}
