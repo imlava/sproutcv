@@ -1,23 +1,39 @@
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ArrowLeft, Mail, MapPin, MessageCircle, Send, Phone } from 'lucide-react';
 import Header from '@/components/Header';
+import AuthenticatedHeader from '@/components/AuthenticatedHeader';
+import DodoPaymentModal from '@/components/dashboard/DodoPaymentModal';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 const ContactUs = () => {
+  const navigate = useNavigate();
+  const { user, userProfile, refreshProfile } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     subject: '',
     message: ''
   });
-
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // Pre-fill email if user is logged in
+  React.useEffect(() => {
+    if (user && !formData.email) {
+      setFormData(prev => ({
+        ...prev,
+        name: userProfile?.full_name || '',
+        email: user.email || ''
+      }));
+    }
+  }, [user, userProfile]);
 
   // Client-side validation
   const validateForm = () => {
@@ -95,9 +111,13 @@ const ContactUs = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
-      <Header />
+      {user ? (
+        <AuthenticatedHeader onBuyCredits={() => setShowPaymentModal(true)} />
+      ) : (
+        <Header />
+      )}
       
-      <div className="pt-20">
+      <div className={user ? "pt-4" : "pt-20"}>
         {/* Hero Section */}
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -275,6 +295,15 @@ const ContactUs = () => {
       </div>
       
       <Footer />
+
+      {/* Payment Modal */}
+      {user && (
+        <DodoPaymentModal 
+          isOpen={showPaymentModal} 
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={refreshProfile}
+        />
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,12 +36,16 @@ import {
   Lock
 } from 'lucide-react';
 import Header from '@/components/Header';
+import AuthenticatedHeader from '@/components/AuthenticatedHeader';
+import DodoPaymentModal from '@/components/dashboard/DodoPaymentModal';
 import Footer from '@/components/Footer';
 
 const HelpCenter = () => {
   const navigate = useNavigate();
+  const { user, refreshProfile } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Comprehensive FAQ data
   const faqData = [
@@ -205,9 +210,13 @@ const HelpCenter = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
-      <Header />
+      {user ? (
+        <AuthenticatedHeader onBuyCredits={() => setShowPaymentModal(true)} />
+      ) : (
+        <Header />
+      )}
       
-      <div className="pt-20">
+      <div className={user ? "pt-4" : "pt-20"}>
         {/* Enhanced Hero Section */}
         <div className="bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -564,6 +573,15 @@ const HelpCenter = () => {
       </div>
       
       <Footer />
+
+      {/* Payment Modal */}
+      {user && (
+        <DodoPaymentModal 
+          isOpen={showPaymentModal} 
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={refreshProfile}
+        />
+      )}
     </div>
   );
 };

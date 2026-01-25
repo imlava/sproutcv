@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import Header from '@/components/Header';
+import AuthenticatedHeader from '@/components/AuthenticatedHeader';
 import Footer from '@/components/Footer';
 import { toast } from 'sonner';
 
@@ -206,9 +206,9 @@ export default function PaymentsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
-      <Header />
+      <AuthenticatedHeader onBuyCredits={() => {}} />
       
-      <div className="pt-20">
+      <div className="pt-4">
         {/* Hero Section */}
         <div className="bg-white border-b border-green-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
