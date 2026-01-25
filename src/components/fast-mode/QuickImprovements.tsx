@@ -225,6 +225,9 @@ const QuickImprovements: React.FC<QuickImprovementsProps> = ({
         <p className="text-xs text-gray-500 text-center">
           ✨ Each improvement is tailored to increase your resume's effectiveness
         </p>
+        <p className="text-xs text-gray-400 text-center mt-1">
+          AI-powered by SproutCV
+        </p>
       </div>
     </Card>
   );
