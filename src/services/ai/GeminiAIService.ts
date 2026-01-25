@@ -52,6 +52,32 @@ export interface CompetitiveAnalysis {
   competitivenessScore: number;
 }
 
+// Fast Mode types for quick analysis
+export interface FastModeScores {
+  atsCompatibility: number;
+  keywordMatch: number;
+  impactScore: number;
+  formatQuality: number;
+  overallGrade: 'A' | 'B' | 'C' | 'D' | 'F';
+  overallScore: number;
+}
+
+export interface FastModeImprovement {
+  id: string;
+  category: string;
+  priority: 'high' | 'medium' | 'low';
+  original: string;
+  improved: string;
+  impact: string;
+}
+
+export interface FastModeResult {
+  scores: FastModeScores;
+  improvements: FastModeImprovement[];
+  processingTime: number;
+  timestamp: string;
+}
+
 export interface GeminiAnalysisResult {
   overallScore: number;
   detailedAnalysis: {
@@ -429,5 +455,269 @@ Keep response concise for real-time feedback.`;
     }
     
     return results;
+  }
+
+  /**
+   * Fast Mode Quick Analysis
+   * Optimized for speed (<10 seconds) with instant scoring and improvements
+   * Used for the Fast Mode feature - "polished resume in under 3 minutes"
+   */
+  async quickAnalyzeFastMode(
+    resumeText: string,
+    jobDescription: string = '',
+    userId: string
+  ): Promise<FastModeResult> {
+    const startTime = Date.now();
+    console.log('⚡ Starting Fast Mode quick analysis');
+
+    try {
+      // Try to use Gemini API for analysis
+      const { data, error } = await supabase.functions.invoke('gemini-analyze', {
+        body: {
+          resumeText: resumeText.substring(0, 5000), // Limit for speed
+          jobDescription: jobDescription.substring(0, 2000),
+          analysisType: 'fast_mode',
+          userId
+        }
+      });
+
+      if (error) {
+        console.warn('Gemini API error, using local analysis:', error);
+        return this.performLocalFastAnalysis(resumeText, jobDescription, startTime);
+      }
+
+      if (data?.success && data?.data) {
+        const processingTime = Date.now() - startTime;
+        console.log(`✅ Fast Mode analysis completed in ${processingTime}ms`);
+        
+        return {
+          scores: data.data.scores || this.calculateLocalScores(resumeText, jobDescription),
+          improvements: data.data.improvements || this.generateLocalImprovements(resumeText),
+          processingTime,
+          timestamp: new Date().toISOString()
+        };
+      }
+
+      // Fallback to local analysis
+      return this.performLocalFastAnalysis(resumeText, jobDescription, startTime);
+
+    } catch (error) {
+      console.error('Fast Mode analysis error, using fallback:', error);
+      return this.performLocalFastAnalysis(resumeText, jobDescription, startTime);
+    }
+  }
+
+  /**
+   * Local fast analysis fallback
+   * Provides instant results when API is unavailable
+   */
+  private performLocalFastAnalysis(
+    resumeText: string,
+    jobDescription: string,
+    startTime: number
+  ): FastModeResult {
+    const scores = this.calculateLocalScores(resumeText, jobDescription);
+    const improvements = this.generateLocalImprovements(resumeText);
+    
+    return {
+      scores,
+      improvements,
+      processingTime: Date.now() - startTime,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Calculate scores locally for instant feedback
+   */
+  private calculateLocalScores(resumeText: string, jobDescription: string): FastModeScores {
+    const text = resumeText.toLowerCase();
+    const job = jobDescription.toLowerCase();
+    
+    // Word count analysis
+    const wordCount = resumeText.split(/\s+/).filter(w => w).length;
+    
+    // Check for key resume elements
+    const hasQuantifiedAchievements = /\d+%|\$[\d,]+|\d+\s*(years?|months?|projects?|clients?|users?|team|members?)/i.test(resumeText);
+    const hasActionVerbs = /(led|managed|developed|created|implemented|achieved|increased|decreased|improved|delivered|designed|built|launched|spearheaded|drove|orchestrated)/i.test(resumeText);
+    const hasSections = /(experience|education|skills|summary|objective|professional|qualifications)/i.test(resumeText);
+    const hasContact = /(email|phone|linkedin|github|portfolio|@)/i.test(resumeText);
+    
+    // ATS compatibility score
+    let atsScore = 50;
+    if (hasSections) atsScore += 20;
+    if (hasContact) atsScore += 15;
+    if (wordCount >= 200 && wordCount <= 800) atsScore += 10;
+    atsScore = Math.min(95, atsScore + Math.floor(Math.random() * 5));
+
+    // Keyword match score
+    let keywordScore = 40;
+    if (jobDescription) {
+      const jobKeywords: string[] = job.match(/\b\w{4,}\b/g) || [];
+      const resumeKeywords: string[] = text.match(/\b\w{4,}\b/g) || [];
+      const matchCount = jobKeywords.filter((kw: string) => resumeKeywords.includes(kw)).length;
+      keywordScore = Math.min(90, 40 + (matchCount / Math.max(1, jobKeywords.length)) * 50);
+    } else {
+      keywordScore = 45 + Math.floor(Math.random() * 15);
+    }
+
+    // Impact score
+    let impactScore = 35;
+    if (hasQuantifiedAchievements) impactScore += 30;
+    if (hasActionVerbs) impactScore += 20;
+    const numbersCount = (resumeText.match(/\d+/g) || []).length;
+    impactScore += Math.min(15, numbersCount * 2);
+    impactScore = Math.min(95, impactScore);
+
+    // Format quality score
+    let formatScore = 50;
+    if (hasSections) formatScore += 15;
+    if (wordCount >= 150 && wordCount <= 900) formatScore += 15;
+    const lineBreaks = (resumeText.match(/\n/g) || []).length;
+    if (lineBreaks >= 10 && lineBreaks <= 100) formatScore += 10;
+    formatScore = Math.min(90, formatScore + Math.floor(Math.random() * 5));
+
+    // Overall score
+    const overallScore = Math.round((atsScore + keywordScore + impactScore + formatScore) / 4);
+
+    // Determine grade
+    let overallGrade: 'A' | 'B' | 'C' | 'D' | 'F';
+    if (overallScore >= 85) overallGrade = 'A';
+    else if (overallScore >= 70) overallGrade = 'B';
+    else if (overallScore >= 55) overallGrade = 'C';
+    else if (overallScore >= 40) overallGrade = 'D';
+    else overallGrade = 'F';
+
+    return {
+      atsCompatibility: Math.round(atsScore),
+      keywordMatch: Math.round(keywordScore),
+      impactScore: Math.round(impactScore),
+      formatQuality: Math.round(formatScore),
+      overallGrade,
+      overallScore
+    };
+  }
+
+  /**
+   * Generate improvement suggestions locally
+   */
+  private generateLocalImprovements(resumeText: string): FastModeImprovement[] {
+    const improvements: FastModeImprovement[] = [];
+    const text = resumeText.toLowerCase();
+    
+    // Check for common improvement areas
+    if (!/\d+%|\$[\d,]+/.test(resumeText)) {
+      improvements.push({
+        id: 'imp_1',
+        category: 'Impact',
+        priority: 'high',
+        original: 'Achievements without metrics',
+        improved: 'Add quantified results like "increased sales by 25%" or "reduced costs by $50K"',
+        impact: '+15% Impact Score'
+      });
+    }
+
+    if (!/(led|managed|spearheaded|drove)/i.test(resumeText)) {
+      improvements.push({
+        id: 'imp_2',
+        category: 'Impact',
+        priority: 'high',
+        original: 'Passive language in experience',
+        improved: 'Use strong action verbs like "Led", "Spearheaded", "Drove", "Orchestrated"',
+        impact: '+10% Impact Score'
+      });
+    }
+
+    if (!/(skill|proficient|expert)/i.test(text)) {
+      improvements.push({
+        id: 'imp_3',
+        category: 'Keywords',
+        priority: 'high',
+        original: 'Missing dedicated skills section',
+        improved: 'Add a clear "Skills" section with relevant technical and soft skills',
+        impact: '+12% ATS Score'
+      });
+    }
+
+    if (!/(summary|objective|profile)/i.test(text)) {
+      improvements.push({
+        id: 'imp_4',
+        category: 'Format',
+        priority: 'medium',
+        original: 'No professional summary',
+        improved: 'Add a 2-3 sentence professional summary highlighting key achievements and expertise',
+        impact: '+8% Format Quality'
+      });
+    }
+
+    if (!/(linkedin|github|portfolio)/i.test(text)) {
+      improvements.push({
+        id: 'imp_5',
+        category: 'ATS',
+        priority: 'medium',
+        original: 'Missing professional links',
+        improved: 'Add LinkedIn profile URL and relevant portfolio/GitHub links',
+        impact: '+5% ATS Score'
+      });
+    }
+
+    // Always include some general improvements
+    if (improvements.length < 3) {
+      improvements.push({
+        id: 'imp_generic_1',
+        category: 'Keywords',
+        priority: 'medium',
+        original: 'Generic job titles',
+        improved: 'Use industry-standard job titles that match target positions',
+        impact: '+8% Keyword Match'
+      });
+    }
+
+    if (improvements.length < 4) {
+      improvements.push({
+        id: 'imp_generic_2',
+        category: 'Format',
+        priority: 'low',
+        original: 'Inconsistent formatting',
+        improved: 'Ensure consistent date formats, bullet styles, and spacing throughout',
+        impact: '+5% Format Quality'
+      });
+    }
+
+    return improvements;
+  }
+
+  /**
+   * Apply improvements to resume text
+   * Returns improved version of the resume
+   */
+  async applyFastModeImprovements(
+    resumeText: string,
+    improvements: FastModeImprovement[],
+    userId: string
+  ): Promise<string> {
+    console.log('🔧 Applying Fast Mode improvements');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini-analyze', {
+        body: {
+          resumeText,
+          improvements: improvements.filter(i => i.priority === 'high' || i.priority === 'medium'),
+          action: 'apply_improvements',
+          userId
+        }
+      });
+
+      if (error || !data?.success) {
+        console.warn('Could not apply improvements via API');
+        return resumeText;
+      }
+
+      return data.data.improvedResume || resumeText;
+
+    } catch (error) {
+      console.error('Apply improvements error:', error);
+      return resumeText;
+    }
   }
 }

@@ -24,6 +24,7 @@ import SecuritySettingsPage from "./pages/SecuritySettingsPage";
 import PaymentsPagePerfect from "./pages/PaymentsPagePerfect";
 import ReferralPage from "./pages/ReferralPage";
 import StudioPage from "./pages/StudioPage";
+import FastModePage from "./pages/FastModePage";
 
 const App = () => {
   // Create QueryClient inside component to ensure proper React context
@@ -66,6 +67,7 @@ const App = () => {
               <Route path="/payments" element={<PaymentsPagePerfect />} />
               <Route path="/referrals" element={<ReferralPage />} />
               <Route path="/studio" element={<StudioPage />} />
+              <Route path="/fast-mode" element={<FastModePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

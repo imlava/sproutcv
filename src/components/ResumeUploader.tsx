@@ -245,15 +245,15 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
       </h2>
       
       {/* Upload Zone */}
-      <div
+        <div
         className={`
           border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer
           ${isDragOver ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-gray-300 hover:border-primary/50 hover:bg-gray-50'}
           ${isProcessing ? 'pointer-events-none opacity-60' : ''}
         `}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
         onClick={() => !isProcessing && fileInputRef.current?.click()}
       >
         <input
@@ -276,9 +276,9 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
         ) : (
           <>
             <Upload className={`h-12 w-12 mx-auto mb-4 ${isDragOver ? 'text-primary' : 'text-gray-400'}`} />
-            <h3 className="text-lg font-medium text-gray-700 mb-2">
-              Drop your resume here or click to browse
-            </h3>
+          <h3 className="text-lg font-medium text-gray-700 mb-2">
+            Drop your resume here or click to browse
+          </h3>
             <p className="text-gray-500 mb-4">
               Supports PDF, Word documents, text files, and images (for scanned resumes)
             </p>
@@ -293,7 +293,7 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
             </div>
             
             <Button className="bg-primary hover:bg-primary/90">
-              Choose File
+            Choose File
             </Button>
             
             <p className="text-xs text-gray-400 mt-4">
@@ -398,7 +398,7 @@ const ResumeUploader: React.FC<ResumeUploaderProps> = ({
               <span>{successfulUploads[0].metadata.wordCount} words</span>
               <span>{successfulUploads[0].metadata.characterCount} characters</span>
               <span>Processed in {successfulUploads[0].metadata.processingTime.toFixed(0)}ms</span>
-            </div>
+          </div>
           )}
         </div>
       )}

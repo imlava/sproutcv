@@ -365,6 +365,17 @@ const UserDashboard = () => {
   // Quick action items for the dashboard
   const quickActions = [
     {
+      id: 'fast-mode',
+      title: 'Fast Mode',
+      description: 'Optimize resume in under 3 minutes',
+      icon: Zap,
+      onClick: () => navigate('/fast-mode'),
+      color: 'amber',
+      badge: '< 3 min',
+      disabled: !userProfile?.credits || userProfile.credits <= 0,
+      featured: true,
+    },
+    {
       id: 'analyze',
       title: 'AI Resume Analyzer',
       description: 'Get instant feedback on your resume',
@@ -551,30 +562,47 @@ const UserDashboard = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {quickActions.map((action) => {
                 const Icon = action.icon;
+                const isFeatured = (action as any).featured;
                 return (
                   <Card 
                     key={action.id}
-                    className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 border-green-100 ${
-                      action.disabled ? 'opacity-60' : ''
-                    }`}
+                    className={`p-4 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 ${
+                      isFeatured 
+                        ? 'border-2 border-amber-400 bg-gradient-to-r from-amber-50 to-orange-50 ring-2 ring-amber-200/50' 
+                        : 'border-green-100'
+                    } ${action.disabled ? 'opacity-60' : ''}`}
                     onClick={action.disabled ? undefined : action.onClick}
                   >
                     <div className="flex items-start space-x-4">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-${action.color}-100 to-${action.color}-200 flex items-center justify-center flex-shrink-0`}>
-                        <Icon className={`h-6 w-6 text-${action.color}-600`} />
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                        isFeatured 
+                          ? 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-200' 
+                          : `bg-gradient-to-br from-${action.color}-100 to-${action.color}-200`
+                      }`}>
+                        <Icon className={`h-6 w-6 ${isFeatured ? 'text-white' : `text-${action.color}-600`}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
-                          <h3 className="font-semibold text-gray-900 truncate">{action.title}</h3>
+                          <h3 className={`font-semibold truncate ${isFeatured ? 'text-amber-900' : 'text-gray-900'}`}>
+                            {action.title}
+                          </h3>
                           {action.badge && (
-                            <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                            <Badge 
+                              variant="secondary" 
+                              className={isFeatured 
+                                ? "bg-amber-500 text-white text-xs font-semibold animate-pulse" 
+                                : "bg-green-100 text-green-700 text-xs"
+                              }
+                            >
                               {action.badge}
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500 mt-0.5">{action.description}</p>
+                        <p className={`text-sm mt-0.5 ${isFeatured ? 'text-amber-700' : 'text-gray-500'}`}>
+                          {action.description}
+                        </p>
                       </div>
-                      <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      <ChevronRight className={`h-5 w-5 flex-shrink-0 ${isFeatured ? 'text-amber-500' : 'text-gray-400'}`} />
                     </div>
                   </Card>
                 );

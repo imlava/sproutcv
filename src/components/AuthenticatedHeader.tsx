@@ -19,7 +19,8 @@ import {
   Plus,
   User,
   Settings,
-  HelpCircle
+  HelpCircle,
+  Zap
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -51,6 +52,7 @@ const AuthenticatedHeader: React.FC<AuthenticatedHeaderProps> = ({ onBuyCredits 
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/fast-mode', label: 'Fast Mode', icon: Zap, featured: true },
     { path: '/analyze', label: 'Analyze', icon: Brain },
     { path: '/studio', label: 'Studio', icon: Palette },
   ];
@@ -76,6 +78,7 @@ const AuthenticatedHeader: React.FC<AuthenticatedHeaderProps> = ({ onBuyCredits 
           <nav className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
+              const isFeatured = (item as any).featured;
               return (
                 <Button
                   key={item.path}
@@ -83,13 +86,22 @@ const AuthenticatedHeader: React.FC<AuthenticatedHeaderProps> = ({ onBuyCredits 
                   size="sm"
                   onClick={() => navigate(item.path)}
                   className={`${
-                    isActive(item.path)
-                      ? 'bg-green-50 text-green-700'
-                      : 'text-gray-600 hover:text-green-700 hover:bg-green-50'
+                    isFeatured
+                      ? isActive(item.path)
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'text-amber-600 hover:text-amber-700 hover:bg-amber-50'
+                      : isActive(item.path)
+                        ? 'bg-green-50 text-green-700'
+                        : 'text-gray-600 hover:text-green-700 hover:bg-green-50'
                   }`}
                 >
-                  <Icon className="h-4 w-4 mr-2" />
+                  <Icon className={`h-4 w-4 mr-2 ${isFeatured && !isActive(item.path) ? 'text-amber-500' : ''}`} />
                   {item.label}
+                  {isFeatured && (
+                    <Badge variant="secondary" className="ml-2 bg-amber-500 text-white text-[10px] px-1.5 py-0">
+                      Fast
+                    </Badge>
+                  )}
                 </Button>
               );
             })}
@@ -132,6 +144,13 @@ const AuthenticatedHeader: React.FC<AuthenticatedHeaderProps> = ({ onBuyCredits 
                 <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                   <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/fast-mode')} className="text-amber-600 focus:text-amber-700 focus:bg-amber-50">
+                  <Zap className="h-4 w-4 mr-2" />
+                  Fast Mode
+                  <Badge variant="secondary" className="ml-auto bg-amber-500 text-white text-xs">
+                    &lt;3 min
+                  </Badge>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/analyze')}>
                   <Brain className="h-4 w-4 mr-2" />
