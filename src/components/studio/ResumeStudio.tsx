@@ -247,23 +247,27 @@ const ResumeStudio: React.FC<ResumeStudioProps> = ({
   }, [hasUnsavedChanges, resumeId, sections, jobTitle, companyName]);
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 ${className}`}>
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b">
+    <div className={`min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 ${className}`}>
+      {/* Header - SproutCV Branded */}
+      <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-green-200 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <FileText className="h-6 w-6 text-primary" />
-                <h1 className="text-xl font-bold text-gray-900">Resume Studio</h1>
+                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                  <Palette className="h-4 w-4 text-white" />
+                </div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  Resume Studio
+                </h1>
               </div>
               {hasUnsavedChanges && (
-                <Badge variant="outline" className="text-yellow-600 border-yellow-300">
+                <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50">
                   Unsaved changes
                 </Badge>
               )}
               {lastSaved && !hasUnsavedChanges && (
-                <span className="text-sm text-gray-500 flex items-center gap-1">
+                <span className="text-sm text-green-600 flex items-center gap-1">
                   <Check className="h-3 w-3 text-green-500" />
                   Saved
                 </span>
@@ -271,21 +275,25 @@ const ResumeStudio: React.FC<ResumeStudioProps> = ({
             </div>
             
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500">{wordCount} words</span>
+              <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{wordCount} words</span>
               <Separator orientation="vertical" className="h-6" />
               
               {/* Quick Export Buttons */}
               <div className="flex gap-1">
-                <Button variant="ghost" size="sm" onClick={() => handleQuickExport('pdf')}>
+                <Button variant="ghost" size="sm" onClick={() => handleQuickExport('pdf')} className="text-green-600 hover:text-green-700 hover:bg-green-50">
                   <Download className="h-4 w-4 mr-1" />
                   PDF
                 </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleQuickExport('txt')}>
+                <Button variant="ghost" size="sm" onClick={() => handleQuickExport('txt')} className="text-green-600 hover:text-green-700 hover:bg-green-50">
                   TXT
                 </Button>
               </div>
               
-              <Button onClick={() => saveVersion()} disabled={!hasUnsavedChanges}>
+              <Button 
+                onClick={() => saveVersion()} 
+                disabled={!hasUnsavedChanges}
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Save Version
               </Button>
@@ -297,20 +305,20 @@ const ResumeStudio: React.FC<ResumeStudioProps> = ({
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="grid grid-cols-4 w-full max-w-lg mx-auto mb-6">
-            <TabsTrigger value="edit" className="flex items-center gap-2">
+          <TabsList className="grid grid-cols-4 w-full max-w-lg mx-auto mb-6 bg-white/80 border border-green-200 p-1 rounded-xl">
+            <TabsTrigger value="edit" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white rounded-lg">
               <Edit3 className="h-4 w-4" />
               Edit
             </TabsTrigger>
-            <TabsTrigger value="export" className="flex items-center gap-2">
+            <TabsTrigger value="export" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white rounded-lg">
               <Download className="h-4 w-4" />
               Export
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
+            <TabsTrigger value="history" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white rounded-lg">
               <History className="h-4 w-4" />
               History
             </TabsTrigger>
-            <TabsTrigger value="compare" className="flex items-center gap-2">
+            <TabsTrigger value="compare" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white rounded-lg">
               <GitCompare className="h-4 w-4" />
               Compare
             </TabsTrigger>
@@ -320,9 +328,9 @@ const ResumeStudio: React.FC<ResumeStudioProps> = ({
           <TabsContent value="edit">
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Left: Personal Info */}
-              <Card className="p-6">
+              <Card className="p-6 border-green-100 bg-white/80 backdrop-blur-sm">
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
+                  <Target className="h-5 w-5 text-green-600" />
                   Personal Info
                 </h2>
                 
