@@ -2,6 +2,7 @@
  * Resume Report Card Component
  * Displays visual scores with animated reveals
  * Categories: ATS, Keywords, Impact, Format
+ * Enhanced with ARIA labels and accessibility features
  */
 
 import React, { useState, useEffect } from 'react';
@@ -154,12 +155,12 @@ const ResumeReportCard: React.FC<ResumeReportCardProps> = ({ scores, isImproved 
   };
 
   return (
-    <Card className="p-6 overflow-hidden relative">
+    <Card className="p-6 overflow-hidden relative" role="region" aria-label="Resume analysis report">
       {/* Improved Badge */}
       {isImproved && (
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4" role="status" aria-label="Resume has been improved">
           <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0">
-            <CheckCircle className="h-3 w-3 mr-1" />
+            <CheckCircle className="h-3 w-3 mr-1" aria-hidden="true" />
             Improved
           </Badge>
         </div>
@@ -168,14 +169,14 @@ const ResumeReportCard: React.FC<ResumeReportCardProps> = ({ scores, isImproved 
       {/* Header with Overall Grade */}
       <div className="flex items-start gap-6 mb-6">
         {/* Grade Circle */}
-        <div className="relative">
+        <div className="relative" role="img" aria-label={`Overall grade: ${scores.overallGrade}, Score: ${scores.overallScore} out of 100`}>
           <div className={`w-24 h-24 rounded-2xl bg-gradient-to-br ${getGradeColor(scores.overallGrade)} flex items-center justify-center shadow-lg transform transition-all duration-500 ${showGrade ? 'scale-100 rotate-0' : 'scale-50 rotate-12'}`}>
             <span className="text-4xl font-bold text-white">
               {showGrade ? scores.overallGrade : '?'}
             </span>
           </div>
           {showGrade && (
-            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center">
+            <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center" aria-hidden="true">
               <Award className={`h-5 w-5 ${scores.overallGrade === 'A' ? 'text-yellow-500' : 'text-gray-400'}`} />
             </div>
           )}
@@ -207,35 +208,35 @@ const ResumeReportCard: React.FC<ResumeReportCardProps> = ({ scores, isImproved 
       </div>
 
       {/* Score Categories */}
-      <div className="space-y-4">
+      <div className="space-y-4" role="list" aria-label="Score categories">
         {categories.map((category) => {
           const status = getStatusBadge(category.score);
           
           return (
-            <div key={category.id} className="group">
+            <div key={category.id} className="group" role="listitem">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${category.color}`}>
+                  <div className={`p-2 rounded-lg ${category.color}`} aria-hidden="true">
                     {category.icon}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">{category.name}</span>
-                      <Badge variant={status.variant} className="text-xs py-0">
-                        {status.icon}
+                      <Badge variant={status.variant} className="text-xs py-0" role="status" aria-label={`${category.name} status: ${status.text}`}>
+                        <span aria-hidden="true">{status.icon}</span>
                         <span className="ml-1">{status.text}</span>
                       </Badge>
                     </div>
                     <p className="text-xs text-gray-500">{category.description}</p>
                   </div>
                 </div>
-                <span className={`text-2xl font-bold ${getScoreColor(category.score)}`}>
+                <span className={`text-2xl font-bold ${getScoreColor(category.score)}`} aria-label={`Score: ${category.score} out of 100`}>
                   {category.score}
                 </span>
               </div>
               
               {/* Progress Bar */}
-              <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden" role="progressbar" aria-valuenow={category.score} aria-valuemin={0} aria-valuemax={100} aria-label={`${category.name} progress`}>
                 <div 
                   className={`absolute inset-y-0 left-0 ${getProgressColor(category.score)} rounded-full transition-all duration-1000 ease-out`}
                   style={{ width: `${category.score}%` }}
