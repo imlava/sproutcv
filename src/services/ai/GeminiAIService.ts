@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { APIError, ValidationError, ErrorHandler, ErrorCode, AppError } from '@/lib/errors';
+
 
 export interface InteractiveAnalysisRequest {
   resumeText: string;
@@ -127,6 +129,14 @@ export class GeminiAIService {
     }
 
     try {
+      // Validate input
+      if (!request.resumeText?.trim()) {
+        throw new ValidationError('Resume text is required');
+      }
+      if (!request.jobDescription?.trim()) {
+        throw new ValidationError('Job description is required');
+      }
+
       // Call Gemini analysis function
       const { data, error } = await supabase.functions.invoke('gemini-resume-analyzer', {
         body: {
@@ -136,11 +146,20 @@ export class GeminiAIService {
       });
 
       if (error) {
-        throw new Error(`Gemini analysis failed: ${error.message}`);
+        throw new APIError(`Gemini analysis failed: ${error.message}`, {
+          originalError: error,
+          endpoint: 'gemini-resume-analyzer',
+        });
       }
 
       if (!data?.success) {
-        throw new Error(data?.error || 'Analysis failed');
+        throw new AppError(
+          data?.error || 'Analysis failed',
+          ErrorCode.ANALYSIS_FAILED,
+          400,
+          true,
+          { response: data }
+        );
       }
 
       const result: GeminiAnalysisResult = data.data;
@@ -155,8 +174,8 @@ export class GeminiAIService {
       return result;
 
     } catch (error) {
-      console.error('❌ Gemini analysis error:', error);
-      throw error;
+      ErrorHandler.log(error, 'GeminiAIService.analyzeResumeWithGemini');
+      throw ErrorHandler.normalize(error);
     }
   }
 
