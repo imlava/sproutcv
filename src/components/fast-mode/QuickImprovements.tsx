@@ -1,9 +1,10 @@
 /**
  * Quick Improvements Component
  * Displays AI-suggested improvements with one-click apply
+ * Optimized with React.memo for better performance
  */
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -37,15 +38,21 @@ interface QuickImprovementsProps {
   isApplying?: boolean;
 }
 
-const QuickImprovements: React.FC<QuickImprovementsProps> = ({
+const QuickImprovements: React.FC<QuickImprovementsProps> = React.memo(({
   improvements,
   onApplyImprovement,
   onApplyAll,
   isApplying = false,
 }) => {
-  const appliedCount = improvements.filter(i => i.applied).length;
-  const totalCount = improvements.length;
-  const allApplied = appliedCount === totalCount;
+  // Memoize computed values
+  const { appliedCount, totalCount, allApplied } = useMemo(() => {
+    const applied = improvements.filter(i => i.applied).length;
+    return {
+      appliedCount: applied,
+      totalCount: improvements.length,
+      allApplied: applied === improvements.length,
+    };
+  }, [improvements]);
 
   // Get priority styling
   const getPriorityStyle = (priority: string) => {
@@ -231,6 +238,8 @@ const QuickImprovements: React.FC<QuickImprovementsProps> = ({
       </div>
     </Card>
   );
-};
+});
+
+QuickImprovements.displayName = 'QuickImprovements';
 
 export default QuickImprovements;
