@@ -31,18 +31,40 @@ npm run dev
 - Write clear, readable code with meaningful variable names
 - Add comments for complex logic
 - Follow existing code patterns and structure
+- Keep functions small and focused (single responsibility)
+- Write self-documenting code when possible
 
 ### TypeScript
 
 - Use proper types, avoid `any`
 - Export interfaces/types from `src/types/`
 - Use strict mode
+- Leverage TypeScript's type inference
+- Use `const` for immutable values, `let` for mutable
 
 ### React
 
 - Use functional components with hooks
 - Keep components small and focused
 - Use custom hooks for reusable logic
+- Implement React.memo for performance-critical components
+- Use useCallback and useMemo appropriately
+- Follow component composition patterns
+
+### Performance
+
+- Lazy load routes and heavy components
+- Implement code splitting where beneficial
+- Optimize re-renders with memoization
+- Use Suspense boundaries for async components
+
+### Accessibility
+
+- Add ARIA labels to interactive elements
+- Use semantic HTML elements
+- Ensure keyboard navigation works
+- Maintain sufficient color contrast
+- Test with screen readers when possible
 
 ### Security
 
@@ -58,15 +80,44 @@ npm run dev
 2. Test your changes thoroughly
 3. Update documentation if needed
 4. Create a PR with a clear description
+5. Link related issues in the PR description
+6. Be responsive to code review feedback
 
 ### PR Title Format
 
-- `feat: Add new feature`
-- `fix: Fix bug description`
-- `docs: Update documentation`
-- `refactor: Refactor code`
-- `style: Format code`
-- `test: Add tests`
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+- `feat: Add new feature` - New feature
+- `fix: Fix bug description` - Bug fix
+- `docs: Update documentation` - Documentation only
+- `refactor: Refactor code` - Code refactoring
+- `style: Format code` - Code style/formatting
+- `test: Add tests` - Adding tests
+- `perf: Performance improvement` - Performance optimization
+- `chore: Update dependencies` - Maintenance tasks
+- `ci: CI/CD changes` - Build/CI changes
+- `a11y: Accessibility improvement` - Accessibility enhancement
+
+### PR Description Template
+
+```markdown
+## Description
+Brief description of changes
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+- [ ] Tested locally
+- [ ] Added/updated tests
+- [ ] No breaking changes
+
+## Related Issues
+Fixes #(issue number)
+```
 
 ## Reporting Issues
 
